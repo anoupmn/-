@@ -1,0 +1,17 @@
+<view class="page-shell">
+  <view class="card auth-card">
+    <view class="auth-title">收租吧身份认证</view>
+    <view class="auth-copy">先完成一次微信登录，后续的房源录入和经营查看都会基于这个 landlord 会话。</view>
+
+    <block wx:if="{{loading}}">
+      <view class="auth-state">正在恢复本地会话...</view>
+    </block>
+
+    <block wx:else>
+      <button class="auth-button" loading="{{submitting}}" bindtap="handleLogin">
+        微信登录
+      </button>
+      <view wx:if="{{errorMessage}}" class="auth-error">{{errorMessage}}</view>
+    </block>
+  </view>
+</view>

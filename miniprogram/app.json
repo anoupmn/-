@@ -1,5 +1,5 @@
 {
-  "pages": ["pages/workbench/index"],
+  "pages": ["pages/auth/index", "pages/workbench/index"],
   "window": {
     "navigationBarTitleText": "收租吧",
     "navigationBarBackgroundColor": "#ffffff",

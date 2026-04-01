@@ -1,7 +1,8 @@
 <view class="page-shell">
   <view class="card">
-    <view class="headline">{{title}}</view>
-    <view class="copy">工程已初始化，Phase 1 后续能力会在这里继续接入。</view>
+    <view class="headline">已登录</view>
+    <view class="copy">你好，{{displayName || '房东'}}。这里是登录后的安全落点页，Phase 1 后续导航会继续落在这里。</view>
     <view class="status">{{status}}</view>
+    <button class="logout-button" bindtap="handleLogout">退出登录</button>
   </view>
 </view>

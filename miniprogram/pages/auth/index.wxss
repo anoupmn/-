@@ -1,0 +1,28 @@
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.auth-title {
+  font-size: 38rpx;
+  font-weight: 700;
+}
+
+.auth-copy,
+.auth-state {
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: #4b5563;
+}
+
+.auth-button {
+  background: #111827;
+  color: #ffffff;
+  border-radius: 999rpx;
+}
+
+.auth-error {
+  color: #b91c1c;
+  font-size: 26rpx;
+}
