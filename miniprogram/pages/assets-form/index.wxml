@@ -1,0 +1,12 @@
+<view class="page-shell">
+  <view class="card form-card">
+    <view class="section-title">房源维护</view>
+    <picker range="{{['整租', '分租']}}" bindchange="handleRentalModeChange">
+      <view class="field">rentalMode：{{rentalMode}}</view>
+    </picker>
+    <input class="input" placeholder="房源名称" data-field="name" bindinput="handleInputChange" />
+    <input class="input" placeholder="地址" data-field="address" bindinput="handleInputChange" />
+    <button class="primary-button" bindtap="handleSubmit">保存房源</button>
+    <view wx:if="{{message}}" class="message">{{message}}</view>
+  </view>
+</view>

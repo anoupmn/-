@@ -1,0 +1,9 @@
+<view class="page-shell">
+  <view class="card form-card">
+    <view class="section-title">租户维护</view>
+    <input class="input" placeholder="姓名" data-field="name" bindinput="handleInputChange" />
+    <input class="input" placeholder="手机号" data-field="phone" bindinput="handleInputChange" />
+    <button class="primary-button" bindtap="handleSubmit">保存租户</button>
+    <view wx:if="{{message}}" class="message">{{message}}</view>
+  </view>
+</view>

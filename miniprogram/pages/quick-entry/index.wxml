@@ -1,0 +1,20 @@
+<view class="page-shell">
+  <view class="card form-card">
+    <view class="section-title">快速录入</view>
+    <picker range="{{['整租', '分租']}}" bindchange="handleRentalModeChange">
+      <view class="field">出租模式：{{rentalMode}}</view>
+    </picker>
+    <input class="input" placeholder="房源名称" data-field="assetName" bindinput="handleInputChange" />
+    <input class="input" placeholder="地址" data-field="address" bindinput="handleInputChange" />
+    <view wx:if="{{rentalMode === 'whole'}}" class="hint">整租模式会自动创建默认整租单元，无需重复录入房间。</view>
+    <input wx:if="{{rentalMode === 'room'}}" class="input" placeholder="房间名称" data-field="roomName" bindinput="handleInputChange" />
+    <input class="input" placeholder="租户姓名" data-field="tenantName" bindinput="handleInputChange" />
+    <input class="input" placeholder="开始日期 YYYY-MM-DD" data-field="startDate" bindinput="handleInputChange" />
+    <input class="input" placeholder="结束日期 YYYY-MM-DD" data-field="endDate" bindinput="handleInputChange" />
+    <input class="input" placeholder="租金周期天数" data-field="billingCycleDays" bindinput="handleInputChange" />
+    <input class="input" placeholder="租金" data-field="rentAmount" bindinput="handleInputChange" />
+    <input class="input" placeholder="押金" data-field="depositAmount" bindinput="handleInputChange" />
+    <button class="primary-button" bindtap="handleSubmit">提交快速录入</button>
+    <view wx:if="{{message}}" class="message">{{message}}</view>
+  </view>
+</view>

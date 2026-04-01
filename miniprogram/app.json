@@ -1,5 +1,13 @@
 {
-  "pages": ["pages/auth/index", "pages/workbench/index"],
+  "pages": [
+    "pages/auth/index",
+    "pages/workbench/index",
+    "pages/quick-entry/index",
+    "pages/assets-form/index",
+    "pages/rooms-form/index",
+    "pages/tenants-form/index",
+    "pages/leases-form/index"
+  ],
   "window": {
     "navigationBarTitleText": "收租吧",
     "navigationBarBackgroundColor": "#ffffff",

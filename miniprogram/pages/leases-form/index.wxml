@@ -1,0 +1,14 @@
+<view class="page-shell">
+  <view class="card form-card">
+    <view class="section-title">租约维护</view>
+    <input class="input" placeholder="roomId" data-field="roomId" bindinput="handleInputChange" />
+    <input class="input" placeholder="tenantId" data-field="tenantId" bindinput="handleInputChange" />
+    <input class="input" placeholder="开始日期" data-field="startDate" bindinput="handleInputChange" />
+    <input class="input" placeholder="结束日期" data-field="endDate" bindinput="handleInputChange" />
+    <input class="input" placeholder="billingCycleDays" data-field="billingCycleDays" bindinput="handleInputChange" />
+    <input class="input" placeholder="租金" data-field="rentAmount" bindinput="handleInputChange" />
+    <input class="input" placeholder="押金" data-field="depositAmount" bindinput="handleInputChange" />
+    <button class="primary-button" bindtap="handleSubmit">保存租约</button>
+    <view wx:if="{{message}}" class="message">{{message}}</view>
+  </view>
+</view>

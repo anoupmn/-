@@ -3,6 +3,11 @@
     <view class="headline">已登录</view>
     <view class="copy">你好，{{displayName || '房东'}}。这里是登录后的安全落点页，Phase 1 后续导航会继续落在这里。</view>
     <view class="status">{{status}}</view>
+    <button class="nav-button" bindtap="openQuickEntry">快速录入</button>
+    <button class="nav-button" bindtap="openAssetsForm">房源维护</button>
+    <button class="nav-button" bindtap="openRoomsForm">房间维护</button>
+    <button class="nav-button" bindtap="openTenantsForm">租户维护</button>
+    <button class="nav-button" bindtap="openLeasesForm">租约维护</button>
     <button class="logout-button" bindtap="handleLogout">退出登录</button>
   </view>
 </view>

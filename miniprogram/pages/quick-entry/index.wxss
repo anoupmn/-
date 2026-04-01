@@ -1,0 +1,29 @@
+.form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.section-title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.field,
+.hint,
+.message {
+  font-size: 26rpx;
+  color: #4b5563;
+}
+
+.input {
+  background: #f9fafb;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+
+.primary-button {
+  background: #111827;
+  color: #ffffff;
+  border-radius: 999rpx;
+}

@@ -1,0 +1,9 @@
+<view class="page-shell">
+  <view class="card form-card">
+    <view class="section-title">房间维护</view>
+    <input class="input" placeholder="房源 ID" data-field="assetId" bindinput="handleInputChange" />
+    <input class="input" placeholder="房间名称" data-field="name" bindinput="handleInputChange" />
+    <button class="primary-button" bindtap="handleSubmit">保存房间</button>
+    <view wx:if="{{message}}" class="message">{{message}}</view>
+  </view>
+</view>

@@ -23,5 +23,30 @@ Page({
   async handleLogout() {
     await clearSession();
     await wx.reLaunch({ url: '/pages/auth/index' });
+  },
+  openQuickEntry() {
+    wx.navigateTo({
+      url: '/pages/quick-entry/index'
+    });
+  },
+  openAssetsForm() {
+    wx.navigateTo({
+      url: '/pages/assets-form/index'
+    });
+  },
+  openRoomsForm() {
+    wx.navigateTo({
+      url: '/pages/rooms-form/index'
+    });
+  },
+  openTenantsForm() {
+    wx.navigateTo({
+      url: '/pages/tenants-form/index'
+    });
+  },
+  openLeasesForm() {
+    wx.navigateTo({
+      url: '/pages/leases-form/index'
+    });
   }
 });
