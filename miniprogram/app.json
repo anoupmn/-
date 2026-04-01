@@ -6,7 +6,9 @@
     "pages/assets-form/index",
     "pages/rooms-form/index",
     "pages/tenants-form/index",
-    "pages/leases-form/index"
+    "pages/leases-form/index",
+    "pages/units/index",
+    "pages/unit-detail/index"
   ],
   "window": {
     "navigationBarTitleText": "收租吧",

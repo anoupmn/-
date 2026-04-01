@@ -48,5 +48,10 @@ Page({
     wx.navigateTo({
       url: '/pages/leases-form/index'
     });
+  },
+  openUnits() {
+    wx.navigateTo({
+      url: '/pages/units/index'
+    });
   }
 });

@@ -1,0 +1,7 @@
+@import "../quick-entry/index.wxss";
+
+.section-subtitle {
+  margin-top: 24rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+}

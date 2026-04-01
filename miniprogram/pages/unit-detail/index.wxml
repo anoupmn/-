@@ -1,0 +1,17 @@
+<view class="page-shell" wx:if="{{detail}}">
+  <view class="card">
+    <view class="section-title">{{detail.asset.name}} / {{detail.room.name}}</view>
+    <view class="field">当前租约：{{detail.activeLease ? detail.activeLease.startDate : '无'}}</view>
+    <button class="primary-button" bindtap="handleEndLease">结束租约</button>
+
+    <view class="section-subtitle">leaseHistory</view>
+    <view wx:for="{{detail.leaseHistory}}" wx:key="id" class="field">
+      {{item.startDate}} - {{item.endDate}} / {{item.tenantId}}
+    </view>
+
+    <view class="section-subtitle">tenantHistory</view>
+    <view wx:for="{{detail.tenantHistory}}" wx:key="id" class="field">
+      {{item.name}}
+    </view>
+  </view>
+</view>

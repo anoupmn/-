@@ -1,0 +1,14 @@
+<view class="page-shell">
+  <view class="card">
+    <view class="section-title">经营列表</view>
+    <view wx:for="{{units}}" wx:key="roomId" class="unit-card" data-room-id="{{item.roomId}}" bindtap="openUnitDetail">
+      <view class="headline">{{item.displayName}}</view>
+      <view class="field">currentStatus: {{item.currentStatus}}</view>
+      <view class="field">currentTenantName: {{item.currentTenantName}}</view>
+      <view class="field">nextReceivableDate: {{item.nextReceivableDate}}</view>
+      <view class="field">nextReceivableAmount: {{item.nextReceivableAmount}}</view>
+      <view class="field">overdueDays: {{item.overdueDays}}</view>
+      <view class="field">vacancyDays: {{item.vacancyDays}}</view>
+    </view>
+  </view>
+</view>

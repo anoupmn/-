@@ -1,0 +1,6 @@
+@import "../quick-entry/index.wxss";
+
+.unit-card {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #e5e7eb;
+}
