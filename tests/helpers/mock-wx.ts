@@ -11,6 +11,7 @@ export type MockWx = typeof wx & {
   __setCloudHandler: (
     handler: (input: CloudFunctionCall) => Promise<{ result: unknown }> | { result: unknown }
   ) => void;
+  __reset: () => void;
 };
 
 const storage: StorageState = {};
@@ -27,6 +28,13 @@ const mockWx = {
   __calls: calls,
   __setCloudHandler(handler: typeof cloudHandler) {
     cloudHandler = handler;
+  },
+  __reset() {
+    Object.keys(storage).forEach((key) => {
+      delete storage[key];
+    });
+    calls.splice(0, calls.length);
+    cloudHandler = async ({ data }) => ({ result: data ?? {} });
   },
   getStorageSync(key: string) {
     return storage[key];
@@ -63,10 +71,10 @@ Object.defineProperty(global, 'wx', {
   value: mockWx
 });
 
+export function getMockWx(): MockWx {
+  return mockWx;
+}
+
 beforeEach(() => {
-  Object.keys(storage).forEach((key) => {
-    delete storage[key];
-  });
-  calls.splice(0, calls.length);
-  cloudHandler = async ({ data }) => ({ result: data ?? {} });
+  mockWx.__reset();
 });
