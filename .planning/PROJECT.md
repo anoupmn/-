@@ -12,16 +12,19 @@
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] 支持“房源/资产 -> 房间 -> 租约”的兼容型结构，同时覆盖整套出租和分房出租两种场景
+- [x] 支持房屋列表、房屋详情、当前租户信息和历任租户档案查询
+- [x] 支持手动录入房屋、房间、租户和租约基础数据
+
+Validated in Phase 1: 核心数据骨架
 
 ### Active
 
 - [ ] 支持“房源/资产 -> 房间 -> 租约”的兼容型结构，同时覆盖整套出租和分房出租两种场景
 - [ ] 支持按租约单独配置不固定租金周期，并管理房租、押金、水电、物业和其他杂费
 - [ ] 提供首页概览、异常提醒和规则型建议，让房东快速识别 15 天内到期、空置和异常房屋
-- [ ] 支持房屋列表、房屋详情、当前租户信息和历任租户档案查询
 - [ ] 记录维修历史，并能统计每套房、每任租户期间的维修次数和主要维修类别
-- [ ] 支持手动录入和 Excel 导入房屋、租约、租户及账单数据
+- [ ] 支持 Excel 导入房屋、租约、租户及账单数据
 - [ ] 先支持房东本人微信提醒，后续预留扩展到家人或合伙人的能力
 
 ### Out of Scope
@@ -77,5 +80,9 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope - reasons still valid?
 4. Update Context with current state
 
+## Current State
+
+Phase 1 complete. 项目已经具备 landlord 登录、核心数据骨架、手动建档、经营列表、详情历史和结束租约闭环。
+
 ---
-*Last updated: 2026-04-01 after initialization*
+*Last updated: 2026-04-01 after Phase 1 completion*
