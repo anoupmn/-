@@ -1,0 +1,17 @@
+.headline {
+  font-size: 36rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+
+.copy {
+  font-size: 28rpx;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.status {
+  margin-top: 24rpx;
+  font-size: 24rpx;
+  color: #111827;
+}

@@ -1,0 +1,28 @@
+{
+  "name": "rent-helper-miniapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "收租吧微信小程序工程",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "jest --runInBand",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --check ."
+  },
+  "dependencies": {
+    "@cloudbase/wx-cloud-client-sdk": "^1.8.6",
+    "dayjs": "^1.11.20",
+    "miniprogram-api-typings": "^5.1.2",
+    "tdesign-miniprogram": "^1.13.1",
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "eslint": "^9.24.0",
+    "jest": "^30.0.5",
+    "prettier": "^3.5.3",
+    "ts-jest": "^29.4.0",
+    "typescript": "^5.8.3"
+  }
+}

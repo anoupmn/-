@@ -1,0 +1,7 @@
+<view class="page-shell">
+  <view class="card">
+    <view class="headline">{{title}}</view>
+    <view class="copy">工程已初始化，Phase 1 后续能力会在这里继续接入。</view>
+    <view class="status">{{status}}</view>
+  </view>
+</view>
