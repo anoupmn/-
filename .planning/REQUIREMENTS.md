@@ -111,52 +111,52 @@
 
 | 需求编号 | 所属阶段 | 状态 |
 |-------------|-------|--------|
-| AUTH-01 | 未映射 | Pending |
-| AUTH-02 | 未映射 | Pending |
-| ASST-01 | 未映射 | Pending |
-| ASST-02 | 未映射 | Pending |
-| ASST-03 | 未映射 | Pending |
-| ASST-04 | 未映射 | Pending |
-| LEASE-01 | 未映射 | Pending |
-| LEASE-02 | 未映射 | Pending |
-| LEASE-03 | 未映射 | Pending |
-| LEASE-04 | 未映射 | Pending |
-| LEASE-05 | 未映射 | Pending |
-| BILL-01 | 未映射 | Pending |
-| BILL-02 | 未映射 | Pending |
-| BILL-03 | 未映射 | Pending |
-| BILL-04 | 未映射 | Pending |
-| DASH-01 | 未映射 | Pending |
-| DASH-02 | 未映射 | Pending |
-| DASH-03 | 未映射 | Pending |
-| DASH-04 | 未映射 | Pending |
-| ALRT-01 | 未映射 | Pending |
-| ALRT-02 | 未映射 | Pending |
-| ALRT-03 | 未映射 | Pending |
-| ALRT-04 | 未映射 | Pending |
-| ALRT-05 | 未映射 | Pending |
-| NOTF-01 | 未映射 | Pending |
-| NOTF-02 | 未映射 | Pending |
-| NOTF-03 | 未映射 | Pending |
-| REPR-01 | 未映射 | Pending |
-| REPR-02 | 未映射 | Pending |
-| REPR-03 | 未映射 | Pending |
-| REPR-04 | 未映射 | Pending |
-| REPR-05 | 未映射 | Pending |
-| REPR-06 | 未映射 | Pending |
-| LIST-01 | 未映射 | Pending |
-| LIST-02 | 未映射 | Pending |
-| LIST-03 | 未映射 | Pending |
-| IMPT-01 | 未映射 | Pending |
-| IMPT-02 | 未映射 | Pending |
-| IMPT-03 | 未映射 | Pending |
-| IMPT-04 | 未映射 | Pending |
+| AUTH-01 | 第 1 阶段 | 待开始 |
+| AUTH-02 | 第 1 阶段 | 待开始 |
+| ASST-01 | 第 1 阶段 | 待开始 |
+| ASST-02 | 第 1 阶段 | 待开始 |
+| ASST-03 | 第 1 阶段 | 待开始 |
+| ASST-04 | 第 2 阶段 | 待开始 |
+| LEASE-01 | 第 1 阶段 | 待开始 |
+| LEASE-02 | 第 1 阶段 | 待开始 |
+| LEASE-03 | 第 1 阶段 | 待开始 |
+| LEASE-04 | 第 1 阶段 | 待开始 |
+| LEASE-05 | 第 1 阶段 | 待开始 |
+| BILL-01 | 第 2 阶段 | 待开始 |
+| BILL-02 | 第 2 阶段 | 待开始 |
+| BILL-03 | 第 2 阶段 | 待开始 |
+| BILL-04 | 第 2 阶段 | 待开始 |
+| DASH-01 | 第 3 阶段 | 待开始 |
+| DASH-02 | 第 3 阶段 | 待开始 |
+| DASH-03 | 第 3 阶段 | 待开始 |
+| DASH-04 | 第 3 阶段 | 待开始 |
+| ALRT-01 | 第 3 阶段 | 待开始 |
+| ALRT-02 | 第 3 阶段 | 待开始 |
+| ALRT-03 | 第 3 阶段 | 待开始 |
+| ALRT-04 | 第 3 阶段 | 待开始 |
+| ALRT-05 | 第 3 阶段 | 待开始 |
+| NOTF-01 | 第 3 阶段 | 待开始 |
+| NOTF-02 | 第 5 阶段 | 待开始 |
+| NOTF-03 | 第 3 阶段 | 待开始 |
+| REPR-01 | 第 4 阶段 | 待开始 |
+| REPR-02 | 第 4 阶段 | 待开始 |
+| REPR-03 | 第 4 阶段 | 待开始 |
+| REPR-04 | 第 4 阶段 | 待开始 |
+| REPR-05 | 第 4 阶段 | 待开始 |
+| REPR-06 | 第 4 阶段 | 待开始 |
+| LIST-01 | 第 1 阶段 | 待开始 |
+| LIST-02 | 第 2 阶段 | 待开始 |
+| LIST-03 | 第 4 阶段 | 待开始 |
+| IMPT-01 | 第 1 阶段 | 待开始 |
+| IMPT-02 | 第 5 阶段 | 待开始 |
+| IMPT-03 | 第 5 阶段 | 待开始 |
+| IMPT-04 | 第 5 阶段 | 待开始 |
 
 **覆盖情况：**
 - v1 需求总数：40
-- 已映射到阶段：0
-- 未映射：40 ⚠️
+- 已映射到阶段：40
+- 未映射：0 ✓
 
 ---
 *需求文档创建于：2026-04-01*  
-*最后更新：2026-04-01，初始定义*
+*最后更新：2026-04-01，完成 roadmap 映射*
