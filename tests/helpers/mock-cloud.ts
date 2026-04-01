@@ -11,8 +11,16 @@ export interface MockStore {
   leases: MockRecord[];
 }
 
-type CollectionName = keyof MockStore;
+type CollectionName = keyof MockStore | 'landlord_users' | 'assets' | 'rooms' | 'tenants' | 'leases';
 type Query = Partial<MockRecord>;
+
+function resolveCollectionName(name: CollectionName): keyof MockStore {
+  if (name === 'landlord_users') {
+    return 'landlordUsers';
+  }
+
+  return name;
+}
 
 function cloneRecord<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -37,14 +45,15 @@ function filterRecords(records: MockRecord[], query: Query) {
 export function createMockDb(store: MockStore) {
   return {
     collection(name: CollectionName) {
+      const key = resolveCollectionName(name);
       return {
         async get() {
           return {
-            data: cloneRecord(store[name])
+            data: cloneRecord(store[key])
           };
         },
         async add({ data }: { data: MockRecord }) {
-          store[name].push(cloneRecord(data));
+          store[key].push(cloneRecord(data));
           return {
             _id: data.id
           };
@@ -52,10 +61,10 @@ export function createMockDb(store: MockStore) {
         where(query: Query) {
           return {
             get: async () => ({
-              data: cloneRecord(filterRecords(store[name], query))
+              data: cloneRecord(filterRecords(store[key], query))
             }),
             update: async ({ data }: { data: Partial<MockRecord> }) => {
-              const matches = filterRecords(store[name], query);
+              const matches = filterRecords(store[key], query);
               matches.forEach((record) => {
                 Object.assign(record, cloneRecord(data));
               });
@@ -66,11 +75,11 @@ export function createMockDb(store: MockStore) {
               };
             },
             remove: async () => {
-              const remaining = store[name].filter(
+              const remaining = store[key].filter(
                 (record) => !Object.entries(query).every(([key, value]) => record[key] === value)
               );
-              const removed = store[name].length - remaining.length;
-              store[name].splice(0, store[name].length, ...remaining);
+              const removed = store[key].length - remaining.length;
+              store[key].splice(0, store[key].length, ...remaining);
               return {
                 stats: {
                   removed
@@ -82,10 +91,10 @@ export function createMockDb(store: MockStore) {
         doc(id: string) {
           return {
             get: async () => ({
-              data: cloneRecord(store[name].find((record) => record.id === id) ?? null)
+              data: cloneRecord(store[key].find((record) => record.id === id) ?? null)
             }),
             update: async ({ data }: { data: Partial<MockRecord> }) => {
-              const record = store[name].find((item) => item.id === id);
+              const record = store[key].find((item) => item.id === id);
               if (record) {
                 Object.assign(record, cloneRecord(data));
               }
@@ -96,9 +105,9 @@ export function createMockDb(store: MockStore) {
               };
             },
             remove: async () => {
-              const index = store[name].findIndex((record) => record.id === id);
+              const index = store[key].findIndex((record) => record.id === id);
               if (index >= 0) {
-                store[name].splice(index, 1);
+                store[key].splice(index, 1);
               }
               return {
                 stats: {
