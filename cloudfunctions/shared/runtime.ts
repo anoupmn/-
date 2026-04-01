@@ -1,4 +1,8 @@
 import { COLLECTIONS } from './constants/collections';
+import type { Asset } from './schemas/asset';
+import type { Lease } from './schemas/lease';
+import type { Room } from './schemas/room';
+import type { Tenant } from './schemas/tenant';
 
 export interface DbRecord {
   id: string;
@@ -104,10 +108,10 @@ export async function updateRecord<T extends DbRecord>(
 
 export async function getAllDomainData(db: DbLike) {
   const [assets, rooms, tenants, leases] = await Promise.all([
-    listAll(db, COLLECTIONS.assets),
-    listAll(db, COLLECTIONS.rooms),
-    listAll(db, COLLECTIONS.tenants),
-    listAll(db, COLLECTIONS.leases)
+    listAll<Asset>(db, COLLECTIONS.assets),
+    listAll<Room>(db, COLLECTIONS.rooms),
+    listAll<Tenant>(db, COLLECTIONS.tenants),
+    listAll<Lease>(db, COLLECTIONS.leases)
   ]);
 
   return {
