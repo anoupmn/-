@@ -1,1 +1,12 @@
 @import "../quick-entry/index.wxss";
+
+.picker-field {
+  background: #f9fafb;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+
+.asset-card {
+  padding-top: 20rpx;
+  border-top: 1rpx solid #e5e7eb;
+}

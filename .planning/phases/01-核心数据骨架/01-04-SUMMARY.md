@@ -65,6 +65,9 @@ Phase 1 的录入、维护、浏览、查看历史和结束租约页面已经接
 
 - 快速录入页在 whole 模式下明确提示系统自动创建默认整租单元，避免前端重复录房间。
 - 经营列表第一屏严格只渲染 Phase 1 需要的摘要字段，不提前塞入 Phase 2 账单块。
+- 基于真实调试反馈，房间录入不再作为工作台独立入口，而是从房源列表卡片进入。
+- 租户录入并入租约维护，同一页内完成“选房源/选房间/填租户/定租约”更符合真实录入心智。
+- 面向用户的列表、详情与工作台文案全部改为中文，并为高频长列表补上搜索与折叠交互。
 
 ## Deviations from Plan
 
@@ -73,6 +76,7 @@ None - plan executed exactly as written.
 ## Issues Encountered
 
 页面层只出现了两个返回值类型断言问题，补齐后 `typecheck` 即通过，没有影响交互范围。
+真实联调进一步暴露出两个非计划内问题：开发者工具要求运行时存在 `.js` 入口文件，且云函数需要独立可部署目录；另外模拟器下地图选点会超时，因此地址录入增加了手动兜底。
 
 ## User Setup Required
 
@@ -87,4 +91,3 @@ None - plan executed exactly as written.
 
 - SUMMARY file exists.
 - Task commits `f49140e` and `4ae0479` exist in git history.
-

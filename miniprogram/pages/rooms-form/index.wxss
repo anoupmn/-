@@ -1,1 +1,6 @@
 @import "../quick-entry/index.wxss";
+
+.asset-card {
+  padding-top: 20rpx;
+  border-top: 1rpx solid #e5e7eb;
+}

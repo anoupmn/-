@@ -5,10 +5,8 @@
     <view class="status">{{status}}</view>
     <button class="nav-button" bindtap="openQuickEntry">快速录入</button>
     <button class="nav-button" bindtap="openAssetsForm">房源维护</button>
-    <button class="nav-button" bindtap="openRoomsForm">房间维护</button>
-    <button class="nav-button" bindtap="openTenantsForm">租户维护</button>
     <button class="nav-button" bindtap="openLeasesForm">租约维护</button>
-    <button class="nav-button" bindtap="openUnits">经营列表</button>
+    <button class="nav-button" bindtap="openUnits">房屋列表</button>
     <button class="logout-button" bindtap="handleLogout">退出登录</button>
   </view>
 </view>

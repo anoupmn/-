@@ -1,14 +1,27 @@
 <view class="page-shell">
   <view class="card">
-    <view class="section-title">经营列表</view>
-    <view wx:for="{{units}}" wx:key="roomId" class="unit-card" data-room-id="{{item.roomId}}" bindtap="openUnitDetail">
+    <view class="section-title">房屋列表</view>
+    <input
+      class="input"
+      placeholder="搜索房源、租户、状态"
+      bindinput="handleUnitSearch"
+      value="{{unitSearchKeyword}}"
+    />
+    <view wx:for="{{visibleUnits}}" wx:key="roomId" class="unit-card" data-room-id="{{item.roomId}}" bindtap="openUnitDetail">
       <view class="headline">{{item.displayName}}</view>
-      <view class="field">currentStatus: {{item.currentStatus}}</view>
-      <view class="field">currentTenantName: {{item.currentTenantName}}</view>
-      <view class="field">nextReceivableDate: {{item.nextReceivableDate}}</view>
-      <view class="field">nextReceivableAmount: {{item.nextReceivableAmount}}</view>
-      <view class="field">overdueDays: {{item.overdueDays}}</view>
-      <view class="field">vacancyDays: {{item.vacancyDays}}</view>
+      <view class="field">当前状态：{{item.currentStatusLabel}}</view>
+      <view class="field">当前租户：{{item.currentTenantName || '暂无'}}</view>
+      <view class="field">下一次应收日期：{{item.nextReceivableDate || '暂无'}}</view>
+      <view class="field">下一次应收金额：{{item.nextReceivableAmount || 0}}</view>
+      <view class="field">逾期天数：{{item.overdueDays || 0}}</view>
+      <view class="field">空置天数：{{item.vacancyDays || 0}}</view>
     </view>
+    <button
+      wx:if="{{!unitSearchKeyword && units.length > 12}}"
+      class="secondary-button"
+      bindtap="toggleUnitList"
+    >
+      {{unitListExpanded ? '收起部分房屋' : '查看更多房屋'}}
+    </button>
   </view>
 </view>

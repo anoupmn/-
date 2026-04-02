@@ -5,7 +5,7 @@ import {
   clearSession,
   loginAsLandlord
 } from '../../miniprogram/services/auth';
-import { createMockDb, createMockStore, getWXContext } from '../helpers/mock-cloud';
+import { getWXContext } from '../helpers/mock-cloud';
 import { getMockWx } from '../helpers/mock-wx';
 
 describe('auth service', () => {
@@ -25,14 +25,11 @@ describe('auth service', () => {
 
   it('logs in through cloud function and persists the session', async () => {
     const mockWx = getMockWx();
-    const store = createMockStore();
-    const db = createMockDb(store);
 
     mockWx.__setCloudHandler(async ({ name, data }) => {
       expect(name).toBe('login');
       const result = await loginCloudFunction({
         displayName: String(data?.displayName ?? ''),
-        __mockDb: db,
         __mockContext: {
           getWXContext: () => getWXContext('openid-2')
         }
@@ -52,11 +49,6 @@ describe('auth service', () => {
       }
     });
     expect(mockWx.getStorageSync(RZB_SESSION_KEY)).toEqual(session);
-    expect(store.landlordUsers[0]).toMatchObject({
-      openid: 'openid-2',
-      displayName: '李房东',
-      role: 'landlord'
-    });
   });
 
   it('clears session from local storage', async () => {

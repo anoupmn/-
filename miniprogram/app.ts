@@ -3,6 +3,14 @@ App<IAppOption>({
     session: null
   },
   onLaunch() {
-    // Phase 1 keeps launch work minimal so auth bootstrap stays explicit in the auth page.
+    if (wx.cloud) {
+      const cloudApi = wx.cloud as typeof wx.cloud & {
+        DYNAMIC_CURRENT_ENV?: string;
+      };
+      wx.cloud.init({
+        env: cloudApi.DYNAMIC_CURRENT_ENV,
+        traceUser: true
+      });
+    }
   }
 });

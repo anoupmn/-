@@ -1,9 +1,20 @@
 <view class="page-shell">
   <view class="card form-card">
     <view class="section-title">房间维护</view>
-    <input class="input" placeholder="房源 ID" data-field="assetId" bindinput="handleInputChange" />
+    <view wx:if="{{assetId}}" class="field">当前房源：{{assetName}}（{{assetId}}）</view>
+    <input wx:else class="input" placeholder="房源 ID" data-field="assetId" bindinput="handleInputChange" />
     <input class="input" placeholder="房间名称" data-field="name" bindinput="handleInputChange" />
     <button class="primary-button" bindtap="handleSubmit">保存房间</button>
     <view wx:if="{{message}}" class="message">{{message}}</view>
+  </view>
+
+  <view wx:if="{{assetId}}" class="card form-card">
+    <view class="section-title">该房源下的房间</view>
+    <view wx:if="{{!rooms.length}}" class="hint">还没有房间，先新增一条。</view>
+    <view wx:for="{{rooms}}" wx:key="id" class="asset-card">
+      <view class="headline">{{item.name}}</view>
+      <view class="field">默认整租单元：{{item.isWholeUnitDefault ? '是' : '否'}}</view>
+      <view class="field">ID：{{item.id}}</view>
+    </view>
   </view>
 </view>

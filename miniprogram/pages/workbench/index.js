@@ -1,4 +1,4 @@
-import { bootstrapAuthSession, clearSession } from '../../services/auth';
+const { bootstrapAuthSession, clearSession } = require('../../services/auth');
 
 Page({
   data: {
@@ -25,23 +25,15 @@ Page({
     await wx.reLaunch({ url: '/pages/auth/index' });
   },
   openQuickEntry() {
-    wx.navigateTo({
-      url: '/pages/quick-entry/index'
-    });
+    wx.navigateTo({ url: '/pages/quick-entry/index' });
   },
   openAssetsForm() {
-    wx.navigateTo({
-      url: '/pages/assets-form/index'
-    });
+    wx.navigateTo({ url: '/pages/assets-form/index' });
   },
   openLeasesForm() {
-    wx.navigateTo({
-      url: '/pages/leases-form/index'
-    });
+    wx.navigateTo({ url: '/pages/leases-form/index' });
   },
   openUnits() {
-    wx.navigateTo({
-      url: '/pages/units/index'
-    });
+    wx.navigateTo({ url: '/pages/units/index' });
   }
 });
