@@ -1,7 +1,151 @@
 @import "../quick-entry/index.wxss";
 
-.section-subtitle {
-  margin-top: 24rpx;
+.detail-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.summary-card,
+.action-card,
+.history-card,
+.fee-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.summary-top,
+.history-head,
+.fee-row,
+.summary-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.summary-block {
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #eff6ff;
+}
+
+.status-pill {
+  padding: 10rpx 20rpx;
+  border-radius: 999rpx;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.tag {
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 24rpx;
+}
+
+.field-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.summary-date {
+  font-size: 28rpx;
+  color: #111827;
+}
+
+.summary-amount {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.summary-hint {
+  font-size: 24rpx;
+  color: #4b5563;
+}
+
+.danger-text {
+  color: #dc2626;
+}
+
+.action-button,
+.danger-button,
+.ghost-button,
+.text-button {
+  border-radius: 999rpx;
+}
+
+.action-card {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.action-button {
+  flex: 1;
+  min-width: 280rpx;
+  background: #2563eb;
+}
+
+.fee-title {
   font-size: 28rpx;
   font-weight: 600;
+  color: #111827;
+}
+
+.fee-item {
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #f9fafb;
+}
+
+.fee-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.fee-status {
+  font-size: 24rpx;
+  color: #2563eb;
+}
+
+.ghost-button {
+  margin-top: 16rpx;
+  background: #ffffff;
+  color: #111827;
+  border: 1rpx solid #d1d5db;
+}
+
+.section-subtitle {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.text-button {
+  padding: 0;
+  background: transparent;
+  color: #2563eb;
+  line-height: 1.4;
+}
+
+.danger-card {
+  padding-top: 0;
+}
+
+.danger-button {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1rpx solid #fecaca;
 }

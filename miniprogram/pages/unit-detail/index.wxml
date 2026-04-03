@@ -1,17 +1,106 @@
 <view class="page-shell" wx:if="{{detail}}">
-  <view class="card">
-    <view class="section-title">{{detail.asset.name}} / {{detail.room.name}}</view>
-    <view class="field">当前租约：{{detail.activeLeaseLabel}}</view>
-    <button class="primary-button" bindtap="handleEndLease">结束租约</button>
+  <view class="detail-shell">
+    <view class="card summary-card">
+      <view class="summary-top">
+        <view>
+          <view class="section-title">{{detail.summaryCard.displayName}}</view>
+          <view class="field">当前租户：{{detail.summaryCard.currentTenantName || '暂无租客'}}</view>
+        </view>
+        <view class="status-pill">{{detail.summaryCard.mainStatusLabel}}</view>
+      </view>
 
-    <view class="section-subtitle">历史租约</view>
-    <view wx:for="{{detail.leaseHistoryView}}" wx:key="id" class="field">
-      {{item.period}} / {{item.tenantName}} / {{item.statusLabel}}
+      <view wx:if="{{detail.summaryCard.riskTagLabels.length}}" class="tag-row">
+        <view wx:for="{{detail.summaryCard.riskTagLabels}}" wx:key="*this" class="tag">{{item}}</view>
+      </view>
+
+      <view class="summary-block">
+        <view class="field-label">下一笔应收</view>
+        <view class="summary-main">
+          <text class="summary-date">{{detail.summaryCard.nextReceivableDate || '暂无账单'}}</text>
+          <text class="summary-amount" wx:if="{{detail.summaryCard.nextReceivableDate}}">
+            ¥{{detail.summaryCard.nextReceivableAmount}}
+          </text>
+        </view>
+      </view>
+
+      <view wx:if="{{detail.summaryCard.summaryHint}}" class="summary-hint">{{detail.summaryCard.summaryHint}}</view>
+      <view wx:if="{{detail.summaryCard.overdueHint}}" class="summary-hint danger-text">{{detail.summaryCard.overdueHint}}</view>
     </view>
 
-    <view class="section-subtitle">历任租户</view>
-    <view wx:for="{{detail.tenantHistory}}" wx:key="id" class="field">
-      {{item.name}}
+    <view class="card action-card">
+      <button class="primary-button action-button" bindtap="handleViewAllBills">查看全部账单</button>
+      <button
+        class="primary-button action-button"
+        wx:if="{{detail.feeSections.length && detail.feeSections[0].items.length}}"
+        data-bill-id="{{detail.feeSections[0].items[0].id}}"
+        data-amount="{{detail.feeSections[0].items[0].amount}}"
+        bindtap="handleReceiveBill"
+      >
+        登记收款
+      </button>
+    </view>
+
+    <view class="card">
+      <view class="section-subtitle">当前租约</view>
+      <view class="field" wx:if="{{detail.activeLease}}">租期：{{detail.activeLease.startDate}} 至 {{detail.activeLease.endDate}}</view>
+      <view class="field" wx:if="{{detail.activeLease}}">房租：¥{{detail.activeLease.rentAmount}}</view>
+      <view class="field" wx:if="{{detail.activeLease}}">押金：¥{{detail.activeLease.depositAmount}}</view>
+      <view class="hint" wx:if="{{!detail.activeLease}}">当前没有生效中的租约。</view>
+    </view>
+
+    <view class="card">
+      <view class="section-subtitle">费用分区</view>
+      <view wx:for="{{detail.feeSections}}" wx:key="key" class="fee-section">
+        <view class="fee-title">{{item.title}}</view>
+        <view wx:if="{{!item.items.length}}" class="hint">暂无账单记录</view>
+        <view wx:for="{{item.items}}" wx:key="id" class="fee-item">
+          <view class="fee-row">
+            <view class="fee-name">{{item.label}}</view>
+            <view class="fee-status">{{item.statusLabel}}</view>
+          </view>
+          <view class="field">应收日期：{{item.dueDate}}</view>
+          <view class="field">金额：¥{{item.amount}}</view>
+          <view wx:if="{{item.receivedAt}}" class="field">收款日期：{{item.receivedAt}}</view>
+          <button
+            wx:if="{{item.status !== 'paid'}}"
+            class="ghost-button"
+            data-bill-id="{{item.id}}"
+            data-amount="{{item.amount}}"
+            bindtap="handleReceiveBill"
+          >
+            登记收款
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <view class="card history-card">
+      <view class="history-head">
+        <view class="section-subtitle">历史租约</view>
+        <button class="text-button" bindtap="toggleHistory">
+          {{historyCollapsed ? '展开历史' : '收起历史'}}
+        </button>
+      </view>
+      <view wx:if="{{!historyCollapsed}}">
+        <view wx:for="{{detail.leaseHistory}}" wx:key="id" class="field">
+          {{item.startDate}} 至 {{item.endDate}} / {{item.tenantId}}
+        </view>
+      </view>
+    </view>
+
+    <view class="card history-card">
+      <view class="history-head">
+        <view class="section-subtitle">历任租户</view>
+      </view>
+      <view wx:if="{{!historyCollapsed}}">
+        <view wx:for="{{detail.tenantHistory}}" wx:key="id" class="field">
+          {{item.name}}
+        </view>
+      </view>
+    </view>
+
+    <view class="card danger-card">
+      <button class="danger-button" bindtap="handleEndLease">结束租约</button>
     </view>
   </view>
 </view>
