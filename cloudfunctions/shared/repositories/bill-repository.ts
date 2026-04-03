@@ -5,7 +5,7 @@ import { BILL_STATUSES } from '../constants/statuses';
 import { deriveBillStatus } from '../calculators/bill-status';
 import { billSchema, type Bill, type BillSection, type BillType } from '../schemas/bill';
 import { getLeaseFeeRules, type CustomFeeItem, type Lease, type LeaseFeeRule } from '../schemas/lease';
-import { createId, insertRecord, listAll, resolveNow, type CloudEventBase, type DbLike } from '../runtime';
+import { createId, findById, insertRecord, listAll, resolveNow, updateRecord, type CloudEventBase, type DbLike } from '../runtime';
 
 type FeeItemDefinition = {
   type: BillType;
@@ -138,4 +138,31 @@ export async function syncBillsForLease(db: DbLike, lease: Lease, event: CloudEv
   }
 
   return bills;
+}
+
+export async function markBillReceived(
+  db: DbLike,
+  input: {
+    billId: string;
+    receivedAt: string;
+    receivedAmount: number;
+  },
+  event: CloudEventBase
+) {
+  const bill = await findById<Bill>(db, COLLECTIONS.bills, input.billId);
+
+  if (!bill) {
+    throw new Error(`Bill ${input.billId} not found.`);
+  }
+
+  if (input.receivedAmount <= 0) {
+    throw new Error('receivedAmount must be greater than 0.');
+  }
+
+  return updateRecord<Bill>(db, COLLECTIONS.bills, input.billId, {
+    receivedAt: input.receivedAt,
+    receivedAmount: input.receivedAmount,
+    status: BILL_STATUSES.paid,
+    updatedAt: resolveNow(event)
+  });
 }

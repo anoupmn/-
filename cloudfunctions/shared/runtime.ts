@@ -1,5 +1,6 @@
 import { COLLECTIONS } from './constants/collections';
 import type { Asset } from './schemas/asset';
+import type { Bill } from './schemas/bill';
 import type { Lease } from './schemas/lease';
 import type { Room } from './schemas/room';
 import type { Tenant } from './schemas/tenant';
@@ -107,17 +108,19 @@ export async function updateRecord<T extends DbRecord>(
 }
 
 export async function getAllDomainData(db: DbLike) {
-  const [assets, rooms, tenants, leases] = await Promise.all([
+  const [assets, rooms, tenants, leases, bills] = await Promise.all([
     listAll<Asset>(db, COLLECTIONS.assets),
     listAll<Room>(db, COLLECTIONS.rooms),
     listAll<Tenant>(db, COLLECTIONS.tenants),
-    listAll<Lease>(db, COLLECTIONS.leases)
+    listAll<Lease>(db, COLLECTIONS.leases),
+    listAll<Bill>(db, COLLECTIONS.bills)
   ]);
 
   return {
     assets,
     rooms,
     tenants,
-    leases
+    leases,
+    bills
   };
 }
