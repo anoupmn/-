@@ -49,3 +49,25 @@ export const BILL_RISK_TAG_LABELS: Record<BillRiskTag, string> = {
   [BILL_RISK_TAGS.overdue]: '已逾期',
   [BILL_RISK_TAGS.abnormal]: '异常'
 };
+
+export const ALERT_TYPES = {
+  expiring: 'expiring',
+  overdue: 'overdue',
+  vacancyLong: 'vacancy_long',
+  manualAbnormal: 'manual_abnormal'
+} as const;
+export type AlertType = (typeof ALERT_TYPES)[keyof typeof ALERT_TYPES];
+
+export const ALERT_LEVELS = {
+  info: 'info',
+  warning: 'warning',
+  danger: 'danger'
+} as const;
+export type AlertLevel = (typeof ALERT_LEVELS)[keyof typeof ALERT_LEVELS];
+
+export const ALERT_TYPE_LABELS: Record<AlertType, string> = {
+  [ALERT_TYPES.expiring]: '即将到期',
+  [ALERT_TYPES.overdue]: '已逾期',
+  [ALERT_TYPES.vacancyLong]: '空置过久',
+  [ALERT_TYPES.manualAbnormal]: '人工异常'
+};

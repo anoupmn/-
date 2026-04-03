@@ -4,7 +4,10 @@ export const COLLECTIONS = {
   rooms: 'rooms',
   tenants: 'tenants',
   leases: 'leases',
-  bills: 'bills'
+  bills: 'bills',
+  alerts: 'alerts',
+  abnormalFlags: 'abnormal_flags',
+  notificationPreferences: 'notification_preferences'
 } as const;
 
 export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];
