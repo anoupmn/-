@@ -8,7 +8,8 @@ requires:
     provides: bill ledger 与共享状态计算
 provides:
   - bills-receive 收款登记云函数
-  - rentable-unit-detail 账单摘要与费用分区
+  - bills-save 月度浮动费用补录云函数
+  - rentable-unit-detail 账单摘要与月度账单聚合
   - rentable-units-list 主状态与风险标签摘要
 affects: [mini-program-services, phase2-ui]
 tech-stack:
@@ -17,6 +18,7 @@ tech-stack:
 key-files:
   created:
     - cloudfunctions/bills-receive/index.ts
+    - cloudfunctions/bills-save/index.ts
     - miniprogram/services/bill.ts
   modified:
     - cloudfunctions/rentable-unit-detail/index.ts
@@ -24,7 +26,8 @@ key-files:
     - cloudfunctions/shared/runtime.ts
     - cloudfunctions/shared/repositories/bill-repository.ts
 key-decisions:
-  - "详情页直接返回 `summaryCard`、`primaryActions` 和 `feeSections`，前端不再自行拼账单分区。"
+  - "详情页直接返回 `summaryCard` 和 `monthlyBillGroups`，前端不再自行按月份拼账单。"
+  - "固定费用在租约里维护，水电/维修等浮动费用通过 `bills-save` 按月补录。"
   - "列表查询同时返回主状态和风险标签，让经营风险不再被单枚举覆盖。"
 patterns-established:
   - "Pattern 1: 收款动作只更新 bill，不回写租约字段。"
@@ -41,8 +44,8 @@ Phase 2 的查询和动作层已经接通，列表、详情和收款登记都能
 
 ## Accomplishments
 
-- 新增 `bills-receive` 云函数和 `receiveBill()` service，登记收款后 bill 会切换到已收状态。
-- `rentable-unit-detail` 现在返回摘要卡、主动作、费用分区和历史默认折叠标记。
+- 新增 `bills-receive` / `bills-save` 云函数以及 `receiveBill()` / `saveBill()` service，支持登记收款和按月补录浮动费用。
+- `rentable-unit-detail` 现在返回摘要卡、月度账单分组和历史默认折叠标记。
 - `rentable-units-list` 现在返回 `mainStatus`、`riskTagLabels` 和 `summaryHint` 等房态摘要字段。
 
 ## Task Commits
@@ -55,6 +58,12 @@ Phase 2 的查询和动作层已经接通，列表、详情和收款登记都能
 - `npm test -- --runInBand --runTestsByPath tests/cloud/bills-receive.spec.ts tests/cloud/rentable-unit-detail-billing.spec.ts`
 - `npm test -- --runInBand --runTestsByPath tests/cloud/rentable-units-list-status.spec.ts`
 - `npm run typecheck`
+
+## Post-debug Polish
+
+- 详情聚合从“费用分区”收敛为“月度账单视图”，默认展开当前月，其他月份手风琴折叠。
+- 月度账单新增“补录本月费用”入口，支持水费、电费、维修费和其他费用，并把手动补录项排序到当月账单末尾。
+- 为历史老租约补上 bill 缺失兼容，避免详情页出现“当前有租约但暂无账单”的断层。
 
 ## Self-Check: PASSED
 
