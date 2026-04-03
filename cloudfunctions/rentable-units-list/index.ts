@@ -3,7 +3,7 @@ import { getAllDomainData, type CloudEventBase, resolveDb } from '../shared/runt
 
 export async function main(event: CloudEventBase) {
   const db = resolveDb(event);
-  const { assets, rooms, tenants, leases } = await getAllDomainData(db);
+  const { assets, rooms, tenants, leases, bills } = await getAllDomainData(db);
 
   return rooms.map((room) => {
     const asset = assets.find((item) => item.id === room.assetId);
@@ -16,6 +16,7 @@ export async function main(event: CloudEventBase) {
       room,
       leases,
       tenants,
+      bills,
       now: event.now ?? new Date().toISOString()
     });
   });
