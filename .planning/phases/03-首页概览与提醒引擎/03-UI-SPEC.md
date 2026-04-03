@@ -88,7 +88,7 @@ Exceptions: pill radius may stay fully rounded; Mini Program `rpx` equivalents m
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px | 400 | 1.6 |
-| Label | 12px | 600 | 1.4 |
+| Label | 12px | 700 | 1.4 |
 | Heading | 17px | 700 | 1.4 |
 | Display | 22px | 700 | 1.2 |
 
@@ -229,7 +229,6 @@ Accent reserved for: primary CTA buttons, active navigation target, selected rem
 | Registry | Blocks Used | Safety Gate |
 |----------|-------------|-------------|
 | shadcn official | none | not required |
-| third-party registry | none | shadcn view + diff required |
 
 ---
 
