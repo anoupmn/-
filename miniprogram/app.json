@@ -2,6 +2,7 @@
   "pages": [
     "pages/auth/index",
     "pages/workbench/index",
+    "pages/alerts/index",
     "pages/quick-entry/index",
     "pages/assets-form/index",
     "pages/rooms-form/index",

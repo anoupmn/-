@@ -3,6 +3,7 @@
     <view class="card intro-card">
       <view class="headline">首页概览</view>
       <view class="copy">你好，{{displayName || '房东'}}。先看概览卡，再看异常和今日建议，保持每天处理顺序稳定。</view>
+      <view class="hint">固定概览卡：15 天内到期、当前空置、异常。</view>
       <view class="status">{{status}}</view>
     </view>
 
@@ -11,7 +12,7 @@
         wx:for="{{overviewCards}}"
         wx:key="key"
         class="card overview-card"
-        data-query="{{item.query}}"
+        data-url="{{item.url}}"
         bindtap="openOverviewCard"
       >
         <view class="overview-label">{{item.label}}</view>
@@ -36,7 +37,7 @@
           wx:for="{{abnormalRows}}"
           wx:key="roomId"
           class="abnormal-row"
-          data-query="{{item.query}}"
+          data-url="{{item.url}}"
           bindtap="openAbnormalRow"
         >
           <view class="abnormal-main">

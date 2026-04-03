@@ -4,7 +4,7 @@ import {
   type DashboardAbnormalRow,
   type DashboardOverviewCard,
   type DashboardPayload,
-  type DashboardRecommendation
+type DashboardRecommendation
 } from '../../services/dashboard';
 import { stringifyUnitListQuery } from '../../services/rentable-unit';
 
@@ -23,6 +23,7 @@ Page({
     overviewCards: [] as DashboardOverviewCard[],
     abnormalRows: [] as DashboardAbnormalRow[],
     recommendation: null as DashboardRecommendation,
+    recommendationUrl: '',
     subscriptionState: {
       hasRequested: false,
       enabledRuleTypes: [] as string[]
@@ -44,9 +45,16 @@ Page({
       this.setData({
         status,
         isLoading: false,
-        overviewCards: payload.overviewCards,
-        abnormalRows: payload.abnormalRows,
+        overviewCards: payload.overviewCards.map((item) => ({
+          ...item,
+          url: buildUnitsUrl(item.query)
+        })),
+        abnormalRows: payload.abnormalRows.map((item) => ({
+          ...item,
+          url: buildUnitsUrl(item.query)
+        })),
         recommendation: payload.recommendation,
+        recommendationUrl: payload.recommendation ? buildUnitsUrl(payload.recommendation.actionQuery) : '',
         subscriptionState: payload.subscriptionState
       });
     } catch (error) {
@@ -103,28 +111,26 @@ Page({
     wx.navigateTo({ url });
   },
   openOverviewCard(event: WechatMiniprogram.BaseEvent) {
-    const query = event.currentTarget.dataset.query as Record<string, string>;
+    const url = event.currentTarget.dataset.url as string;
 
     wx.navigateTo({
-      url: buildUnitsUrl(query)
+      url
     });
   },
   openAbnormalRow(event: WechatMiniprogram.BaseEvent) {
-    const query = event.currentTarget.dataset.query as Record<string, string>;
+    const url = event.currentTarget.dataset.url as string;
 
     wx.navigateTo({
-      url: buildUnitsUrl(query)
+      url
     });
   },
   openRecommendation() {
-    const actionQuery = this.data.recommendation?.actionQuery;
-
-    if (!actionQuery) {
+    if (!this.data.recommendationUrl) {
       return;
     }
 
     wx.navigateTo({
-      url: buildUnitsUrl(actionQuery)
+      url: this.data.recommendationUrl
     });
   }
 });

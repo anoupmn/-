@@ -1,0 +1,51 @@
+<view class="page-shell">
+  <view class="alerts-shell">
+    <view class="card intro-card">
+      <view class="section-title">提醒中心</view>
+      <view class="hint">按规则类型分组看问题，先看哪类最多、最急，再进入对应列表继续处理。</view>
+      <view class="hint">分组固定为：即将到期、已逾期、空置过久、人工异常。</view>
+    </view>
+
+    <view wx:if="{{isLoading}}" class="card state-card">
+      <view class="hint">正在加载提醒分组…</view>
+    </view>
+
+    <view wx:elif="{{loadFailed}}" class="card state-card">
+      <view class="hint">加载提醒失败，请稍后再试。</view>
+    </view>
+
+    <view wx:elif="{{!groups.length}}" class="card state-card">
+      <view class="section-title">当前暂无异常</view>
+      <view class="hint">今日没有到期、逾期或异常房间。你可以回首页继续看经营盘面。</view>
+    </view>
+
+    <view wx:for="{{groups}}" wx:key="type" class="card group-card">
+      <view class="group-head">
+        <view>
+          <view class="group-title">{{item.label}}</view>
+          <view class="hint">{{item.items.length}} 条提醒</view>
+        </view>
+        <view class="group-actions">
+          <button class="text-button" data-url="{{item.listUrl}}" bindtap="navigateTo">进入列表</button>
+          <button class="fold-button" data-type="{{item.type}}" bindtap="toggleGroup">
+            {{item.collapsed ? '展开' : '收起'}}
+          </button>
+        </view>
+      </view>
+
+      <view wx:if="{{!item.collapsed}}" class="group-list">
+        <view
+          wx:for="{{item.items}}"
+          wx:key="id"
+          class="alert-row"
+          data-url="{{item.url}}"
+          bindtap="navigateTo"
+        >
+          <view class="alert-title">{{item.title}}</view>
+          <view class="alert-reason">{{item.reason}}</view>
+          <view class="alert-summary">{{item.summary}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,84 @@
+@import "../quick-entry/index.wxss";
+
+.alerts-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.intro-card,
+.state-card,
+.group-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.section-title,
+.group-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.hint,
+.alert-summary {
+  font-size: 24rpx;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.group-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
+.text-button,
+.fold-button {
+  border-radius: 999rpx;
+  font-size: 24rpx;
+}
+
+.text-button {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.fold-button {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.alert-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #f9fafb;
+}
+
+.alert-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.alert-reason {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #dc2626;
+}

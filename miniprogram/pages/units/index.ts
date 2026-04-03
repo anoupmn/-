@@ -1,3 +1,4 @@
+import { listAlertGroups } from '../../services/alert';
 import { listRentableUnits, type UnitListDrilldownQuery } from '../../services/rentable-unit';
 
 interface UnitSummary {
@@ -74,7 +75,7 @@ function filterUnits(units: UnitSummary[], keyword: string) {
   );
 }
 
-function matchesDrilldown(unit: UnitSummary, filters: UnitListDrilldownQuery) {
+function matchesDrilldown(unit: UnitSummary, filters: UnitListDrilldownQuery, alertRoomIds: string[]) {
   if (filters.roomId && unit.roomId !== filters.roomId) {
     return false;
   }
@@ -96,10 +97,10 @@ function matchesDrilldown(unit: UnitSummary, filters: UnitListDrilldownQuery) {
   }
 
   if (filters.alertType === 'manual_abnormal' && !unit.summaryHint.includes('人工')) {
-    return false;
+    return alertRoomIds.includes(unit.roomId);
   }
 
-  if (filters.bucket === 'abnormal' && !(unit.riskTagLabels.includes('异常') || unit.summaryHint.includes('人工'))) {
+  if (filters.bucket === 'abnormal' && !alertRoomIds.includes(unit.roomId) && !unit.riskTagLabels.includes('异常')) {
     return false;
   }
 
@@ -114,10 +115,11 @@ Page({
     unitListExpanded: false,
     listTitle: '房屋列表',
     listHint: '先看主状态、风险标签和下一笔应收，快速扫一遍今天要处理的单元。',
-    drilldownFilters: {} as UnitListDrilldownQuery
+    drilldownFilters: {} as UnitListDrilldownQuery,
+    alertRoomIds: [] as string[]
   },
   applyVisibleUnits(units: UnitSummary[], unitSearchKeyword: string, unitListExpanded: boolean) {
-    const narrowedUnits = units.filter((unit) => matchesDrilldown(unit, this.data.drilldownFilters));
+    const narrowedUnits = units.filter((unit) => matchesDrilldown(unit, this.data.drilldownFilters, this.data.alertRoomIds));
     const filteredUnits = filterUnits(narrowedUnits, unitSearchKeyword);
 
     this.setData({
@@ -128,6 +130,33 @@ Page({
   async loadUnits() {
     const units = (await listRentableUnits()) as UnitSummary[];
     this.applyVisibleUnits(units, this.data.unitSearchKeyword, this.data.unitListExpanded);
+  },
+  async loadAlertRoomIds() {
+    const needsAlertLookup = this.data.drilldownFilters.alertType === 'manual_abnormal' || this.data.drilldownFilters.bucket === 'abnormal';
+
+    if (!needsAlertLookup) {
+      this.setData({
+        alertRoomIds: []
+      });
+      return;
+    }
+
+    const response = await listAlertGroups();
+    const alertRoomIds = Array.from(
+      new Set(
+        response.groups
+          .filter((group) =>
+            this.data.drilldownFilters.alertType
+              ? group.type === this.data.drilldownFilters.alertType
+              : group.type !== 'expiring'
+          )
+          .flatMap((group) => group.items.map((item) => item.roomId))
+      )
+    );
+
+    this.setData({
+      alertRoomIds
+    });
   },
   async onLoad(query: Record<string, string>) {
     const drilldownFilters = parseQuery(query);
@@ -140,6 +169,8 @@ Page({
           ? '这是从首页或提醒中心钻取过来的可操作列表，继续点进单元即可处理。'
           : '先看主状态、风险标签和下一笔应收，快速扫一遍今天要处理的单元。'
     });
+
+    await this.loadAlertRoomIds();
   },
   async onShow() {
     await this.loadUnits();
