@@ -15,3 +15,37 @@ export const UNIT_STATUSES = {
   overdue: 'overdue'
 } as const;
 export type UnitStatus = (typeof UNIT_STATUSES)[keyof typeof UNIT_STATUSES];
+
+export const UNIT_MAIN_STATUSES = {
+  occupied: UNIT_STATUSES.occupied,
+  pendingMoveIn: UNIT_STATUSES.pendingMoveIn,
+  vacant: UNIT_STATUSES.vacant
+} as const;
+export type UnitMainStatus = (typeof UNIT_MAIN_STATUSES)[keyof typeof UNIT_MAIN_STATUSES];
+
+export const UNIT_MAIN_STATUS_LABELS: Record<UnitMainStatus, string> = {
+  [UNIT_MAIN_STATUSES.occupied]: '已出租',
+  [UNIT_MAIN_STATUSES.pendingMoveIn]: '待入住',
+  [UNIT_MAIN_STATUSES.vacant]: '空置'
+};
+
+export const BILL_STATUSES = {
+  pending: 'pending',
+  dueToday: 'due_today',
+  paid: 'paid',
+  overdue: 'overdue'
+} as const;
+export type BillStatus = (typeof BILL_STATUSES)[keyof typeof BILL_STATUSES];
+
+export const BILL_RISK_TAGS = {
+  expiring: 'expiring',
+  overdue: 'overdue',
+  abnormal: 'abnormal'
+} as const;
+export type BillRiskTag = (typeof BILL_RISK_TAGS)[keyof typeof BILL_RISK_TAGS];
+
+export const BILL_RISK_TAG_LABELS: Record<BillRiskTag, string> = {
+  [BILL_RISK_TAGS.expiring]: '即将到期',
+  [BILL_RISK_TAGS.overdue]: '已逾期',
+  [BILL_RISK_TAGS.abnormal]: '异常'
+};

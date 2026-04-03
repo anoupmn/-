@@ -9,9 +9,10 @@ export interface MockStore {
   rooms: MockRecord[];
   tenants: MockRecord[];
   leases: MockRecord[];
+  bills: MockRecord[];
 }
 
-type CollectionName = keyof MockStore | 'landlord_users' | 'assets' | 'rooms' | 'tenants' | 'leases';
+type CollectionName = keyof MockStore | 'landlord_users' | 'assets' | 'rooms' | 'tenants' | 'leases' | 'bills';
 type Query = Partial<MockRecord>;
 
 function resolveCollectionName(name: CollectionName): keyof MockStore {
@@ -32,7 +33,8 @@ export function createMockStore(): MockStore {
     assets: [],
     rooms: [],
     tenants: [],
-    leases: []
+    leases: [],
+    bills: []
   };
 }
 

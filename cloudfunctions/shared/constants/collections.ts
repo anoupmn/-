@@ -3,7 +3,8 @@ export const COLLECTIONS = {
   assets: 'assets',
   rooms: 'rooms',
   tenants: 'tenants',
-  leases: 'leases'
+  leases: 'leases',
+  bills: 'bills'
 } as const;
 
 export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];
