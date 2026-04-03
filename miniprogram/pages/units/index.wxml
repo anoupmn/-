@@ -1,8 +1,8 @@
 <view class="page-shell">
   <view class="list-shell">
     <view class="card list-header">
-      <view class="section-title">房屋列表</view>
-      <view class="hint">先看主状态、风险标签和下一笔应收，快速扫一遍今天要处理的单元。</view>
+      <view class="section-title">{{listTitle}}</view>
+      <view class="hint">{{listHint}}</view>
     </view>
 
     <view class="card search-card">

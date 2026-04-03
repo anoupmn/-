@@ -1,7 +1,25 @@
-.headline {
-  font-size: 36rpx;
-  font-weight: 600;
-  margin-bottom: 16rpx;
+@import "../quick-entry/index.wxss";
+
+.dashboard-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.intro-card,
+.abnormal-card,
+.recommendation-card,
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.headline,
+.section-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #111827;
 }
 
 .copy {
@@ -11,21 +29,136 @@
 }
 
 .status {
-  margin-top: 24rpx;
   font-size: 24rpx;
   color: #111827;
 }
 
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.overview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  min-height: 180rpx;
+  justify-content: space-between;
+}
+
+.overview-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.overview-count {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.abnormal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.abnormal-row {
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.abnormal-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.abnormal-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.abnormal-reason {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #dc2626;
+  text-align: right;
+}
+
+.abnormal-support,
+.hint,
+.recommendation-label {
+  font-size: 24rpx;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.recommendation-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #f9fafb;
+}
+
+.empty-heading {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.primary-button,
+.secondary-button,
+.nav-button,
 .logout-button {
-  margin-top: 32rpx;
-  background: #111827;
-  color: #ffffff;
   border-radius: 999rpx;
 }
 
+.primary-button,
+.logout-button {
+  background: #111827;
+  color: #ffffff;
+}
+
+.secondary-button,
 .nav-button {
-  margin-top: 16rpx;
   background: #f3f4f6;
   color: #111827;
-  border-radius: 999rpx;
+}
+
+.text-button {
+  padding: 0;
+  margin: 0;
+  line-height: 1.6;
+  background: transparent;
+  color: #2563eb;
+  font-size: 24rpx;
+}
+
+.text-button::after {
+  border: 0;
 }

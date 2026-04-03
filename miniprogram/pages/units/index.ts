@@ -1,14 +1,56 @@
-import { listRentableUnits } from '../../services/rentable-unit';
+import { listRentableUnits, type UnitListDrilldownQuery } from '../../services/rentable-unit';
 
 interface UnitSummary {
   roomId: string;
   displayName: string;
+  mainStatus: string;
   mainStatusLabel: string;
   riskTagLabels: string[];
   currentTenantName: string;
   nextReceivableDate: string;
   nextReceivableAmount: number;
   summaryHint: string;
+}
+
+function parseQuery(query: Record<string, string>): UnitListDrilldownQuery {
+  return {
+    alertType: query.alertType || '',
+    mainStatus: query.mainStatus || '',
+    bucket: query.bucket || '',
+    roomId: query.roomId || ''
+  };
+}
+
+function buildPageTitle(filters: UnitListDrilldownQuery) {
+  if (filters.roomId) {
+    return '重点房间';
+  }
+
+  if (filters.alertType === 'expiring') {
+    return '15 天内到期';
+  }
+
+  if (filters.alertType === 'overdue') {
+    return '已逾期';
+  }
+
+  if (filters.alertType === 'vacancy_long') {
+    return '空置过久';
+  }
+
+  if (filters.alertType === 'manual_abnormal') {
+    return '人工异常';
+  }
+
+  if (filters.mainStatus === 'vacant') {
+    return '当前空置';
+  }
+
+  if (filters.bucket === 'abnormal') {
+    return '异常房间';
+  }
+
+  return '房屋列表';
 }
 
 function filterUnits(units: UnitSummary[], keyword: string) {
@@ -32,23 +74,71 @@ function filterUnits(units: UnitSummary[], keyword: string) {
   );
 }
 
+function matchesDrilldown(unit: UnitSummary, filters: UnitListDrilldownQuery) {
+  if (filters.roomId && unit.roomId !== filters.roomId) {
+    return false;
+  }
+
+  if (filters.mainStatus && unit.mainStatus !== filters.mainStatus) {
+    return false;
+  }
+
+  if (filters.alertType === 'expiring' && !unit.riskTagLabels.includes('即将到期')) {
+    return false;
+  }
+
+  if (filters.alertType === 'overdue' && !unit.riskTagLabels.includes('已逾期')) {
+    return false;
+  }
+
+  if (filters.alertType === 'vacancy_long' && !(unit.mainStatus === 'vacant' && unit.summaryHint.includes('已空置'))) {
+    return false;
+  }
+
+  if (filters.alertType === 'manual_abnormal' && !unit.summaryHint.includes('人工')) {
+    return false;
+  }
+
+  if (filters.bucket === 'abnormal' && !(unit.riskTagLabels.includes('异常') || unit.summaryHint.includes('人工'))) {
+    return false;
+  }
+
+  return true;
+}
+
 Page({
   data: {
     units: [] as UnitSummary[],
     visibleUnits: [] as UnitSummary[],
     unitSearchKeyword: '',
-    unitListExpanded: false
+    unitListExpanded: false,
+    listTitle: '房屋列表',
+    listHint: '先看主状态、风险标签和下一笔应收，快速扫一遍今天要处理的单元。',
+    drilldownFilters: {} as UnitListDrilldownQuery
+  },
+  applyVisibleUnits(units: UnitSummary[], unitSearchKeyword: string, unitListExpanded: boolean) {
+    const narrowedUnits = units.filter((unit) => matchesDrilldown(unit, this.data.drilldownFilters));
+    const filteredUnits = filterUnits(narrowedUnits, unitSearchKeyword);
+
+    this.setData({
+      units: narrowedUnits,
+      visibleUnits: unitListExpanded || unitSearchKeyword ? filteredUnits : filteredUnits.slice(0, 12)
+    });
   },
   async loadUnits() {
     const units = (await listRentableUnits()) as UnitSummary[];
-    const visibleUnits = filterUnits(units, this.data.unitSearchKeyword).slice(
-      0,
-      this.data.unitListExpanded || this.data.unitSearchKeyword ? units.length : 12
-    );
+    this.applyVisibleUnits(units, this.data.unitSearchKeyword, this.data.unitListExpanded);
+  },
+  async onLoad(query: Record<string, string>) {
+    const drilldownFilters = parseQuery(query);
 
     this.setData({
-      units,
-      visibleUnits
+      drilldownFilters,
+      listTitle: buildPageTitle(drilldownFilters),
+      listHint:
+        Object.values(drilldownFilters).some(Boolean)
+          ? '这是从首页或提醒中心钻取过来的可操作列表，继续点进单元即可处理。'
+          : '先看主状态、风险标签和下一笔应收，快速扫一遍今天要处理的单元。'
     });
   },
   async onShow() {
@@ -56,22 +146,20 @@ Page({
   },
   handleUnitSearch(event: WechatMiniprogram.Input) {
     const unitSearchKeyword = event.detail.value;
-    const filteredUnits = filterUnits(this.data.units, unitSearchKeyword);
 
     this.setData({
       unitSearchKeyword,
-      visibleUnits: filteredUnits,
       unitListExpanded: Boolean(unitSearchKeyword)
     });
+    this.applyVisibleUnits(this.data.units, unitSearchKeyword, Boolean(unitSearchKeyword));
   },
   toggleUnitList() {
     const unitListExpanded = !this.data.unitListExpanded;
-    const filteredUnits = filterUnits(this.data.units, this.data.unitSearchKeyword);
 
     this.setData({
-      unitListExpanded,
-      visibleUnits: unitListExpanded ? filteredUnits : filteredUnits.slice(0, 12)
+      unitListExpanded
     });
+    this.applyVisibleUnits(this.data.units, this.data.unitSearchKeyword, unitListExpanded);
   },
   openUnitDetail(event: WechatMiniprogram.BaseEvent) {
     const roomId = event.currentTarget.dataset.roomId as string;

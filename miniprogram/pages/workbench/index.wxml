@@ -1,12 +1,82 @@
 <view class="page-shell">
-  <view class="card">
-    <view class="headline">已登录</view>
-    <view class="copy">你好，{{displayName || '房东'}}。这里是登录后的安全落点页，Phase 1 后续导航会继续落在这里。</view>
-    <view class="status">{{status}}</view>
-    <button class="nav-button" bindtap="openQuickEntry">快速录入</button>
-    <button class="nav-button" bindtap="openAssetsForm">房源维护</button>
-    <button class="nav-button" bindtap="openLeasesForm">租约维护</button>
-    <button class="nav-button" bindtap="openUnits">房屋列表</button>
-    <button class="logout-button" bindtap="handleLogout">退出登录</button>
+  <view class="dashboard-shell">
+    <view class="card intro-card">
+      <view class="headline">首页概览</view>
+      <view class="copy">你好，{{displayName || '房东'}}。先看概览卡，再看异常和今日建议，保持每天处理顺序稳定。</view>
+      <view class="status">{{status}}</view>
+    </view>
+
+    <view class="overview-grid">
+      <view
+        wx:for="{{overviewCards}}"
+        wx:key="key"
+        class="card overview-card"
+        data-query="{{item.query}}"
+        bindtap="openOverviewCard"
+      >
+        <view class="overview-label">{{item.label}}</view>
+        <view class="overview-count">{{item.count}}</view>
+      </view>
+    </view>
+
+    <view class="card abnormal-card">
+      <view class="section-head">
+        <view>
+          <view class="section-title">异常房间</view>
+          <view class="hint">默认只展示最值得先看的几条，避免首页拉成长表。</view>
+        </view>
+        <button class="text-button" data-url="/pages/alerts/index" bindtap="navigateTo">查看全部</button>
+      </view>
+
+      <view wx:if="{{isLoading}}" class="hint">正在加载首页盘面…</view>
+      <view wx:elif="{{loadFailed}}" class="hint">加载首页失败，请下拉重试或稍后再试。</view>
+
+      <view wx:elif="{{abnormalRows.length}}" class="abnormal-list">
+        <view
+          wx:for="{{abnormalRows}}"
+          wx:key="roomId"
+          class="abnormal-row"
+          data-query="{{item.query}}"
+          bindtap="openAbnormalRow"
+        >
+          <view class="abnormal-main">
+            <view class="abnormal-name">{{item.displayName}}</view>
+            <view class="abnormal-reason">{{item.primaryReason}}</view>
+          </view>
+          <view class="abnormal-support">{{item.supportingText}}</view>
+        </view>
+      </view>
+
+      <view wx:else class="empty-state">
+        <view class="empty-heading">当前暂无异常</view>
+        <view class="hint">今日没有到期、逾期或异常房间。你可以继续查看全部房屋或检查提醒设置。</view>
+      </view>
+    </view>
+
+    <view class="card recommendation-card">
+      <view class="section-title">今日建议</view>
+      <view wx:if="{{recommendation}}">
+        <view class="recommendation-label">{{recommendation.label}}</view>
+        <view class="recommendation-title">{{recommendation.title}}</view>
+        <button class="primary-button" bindtap="openRecommendation">{{recommendation.actionLabel}}</button>
+      </view>
+      <view wx:else class="hint">先去房屋列表看一遍当前盘面，今天暂无需要系统优先推送的动作。</view>
+    </view>
+
+    <view class="card settings-card">
+      <view class="section-head">
+        <view>
+          <view class="section-title">提醒中心</view>
+          <view class="hint">
+            {{subscriptionState.hasRequested ? '已接入提醒规则管理，继续按问题类型查看。' : '先去提醒中心看分组问题，再决定是否订阅提醒。'}}
+          </view>
+        </view>
+        <button class="nav-button" data-url="/pages/alerts/index" bindtap="navigateTo">
+          {{subscriptionState.hasRequested ? '提醒设置入口' : '订阅入口'}}
+        </button>
+      </view>
+      <button class="secondary-button" bindtap="openQuickEntry">继续录入</button>
+      <button class="logout-button" bindtap="handleLogout">退出登录</button>
+    </view>
   </view>
 </view>
