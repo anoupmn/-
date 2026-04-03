@@ -44,8 +44,15 @@
     <picker range="{{billingCycleOptions}}" bindchange="handleBillingCycleChange">
       <view class="field picker-field">收租周期：{{billingCycleDays}} 天</view>
     </picker>
+    <view class="section-subtitle">固定费用</view>
     <input class="input" placeholder="租金" data-field="rentAmount" bindinput="handleInputChange" value="{{rentAmount}}" />
-    <input class="input" placeholder="押金" data-field="depositAmount" bindinput="handleInputChange" value="{{depositAmount}}" />
+    <input class="input" placeholder="押金（一次性）" data-field="depositAmount" bindinput="handleInputChange" value="{{depositAmount}}" />
+    <input class="input" placeholder="管理费 / 物业费" data-field="propertyAmount" bindinput="handleInputChange" value="{{propertyAmount}}" />
+    <input class="input" placeholder="其他固定费用" data-field="miscAmount" bindinput="handleInputChange" value="{{miscAmount}}" />
+
+    <view class="section-subtitle">浮动费用说明</view>
+    <view class="hint">水费、电费、维修费都不适合放在租约里维护固定金额。</view>
+    <view class="hint">这类费用应该在“单元详情 -> 月度账单”里按当月实际金额逐月补录。</view>
     <button class="primary-button" bindtap="handleSubmit">保存租约</button>
     <view wx:if="{{message}}" class="message">{{message}}</view>
   </view>

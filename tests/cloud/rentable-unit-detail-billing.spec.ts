@@ -3,7 +3,7 @@ import { BILL_STATUSES } from '../../cloudfunctions/shared/constants/statuses';
 import { createMockDb, createMockStore } from '../helpers/mock-cloud';
 
 describe('rentable-unit-detail billing view', () => {
-  it('returns summaryCard, feeSections, and default-collapsed history blocks', async () => {
+  it('returns summaryCard, monthlyBillGroups, and default-collapsed history blocks', async () => {
     const store = createMockStore();
     store.assets.push({
       id: 'asset_1',
@@ -113,9 +113,10 @@ describe('rentable-unit-detail billing view', () => {
 
     expect(result.summaryCard.mainStatusLabel).toBe('已出租');
     expect(result.summaryCard.currentTenantName).toBe('李租客');
-    expect(result.primaryActions.map((item) => item.label)).toEqual(['登记收款', '查看全部账单']);
-    expect(result.feeSections.map((section) => section.title)).toEqual(['房租', '押金', '非房租类费用']);
-    expect(result.feeSections[0].items[0].status).toBe(BILL_STATUSES.pending);
+    expect(result.monthlyBillGroups).toHaveLength(1);
+    expect(result.monthlyBillGroups[0].monthLabel).toBe('2026年04月');
+    expect(result.monthlyBillGroups[0].items.map((item) => item.label)).toEqual(['押金', '租金', '水费']);
+    expect(result.monthlyBillGroups[0].items[1].status).toBe(BILL_STATUSES.pending);
     expect(result.historyCollapsedByDefault).toBe(true);
   });
 });

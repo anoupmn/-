@@ -1,4 +1,13 @@
-const { listAssets, saveAsset } = require('../../services/asset');
+const { deleteAsset, listAssets, saveAsset } = require('../../services/asset');
+
+function showModalAsync(options) {
+  return new Promise((resolve) => {
+    wx.showModal({
+      ...options,
+      success: resolve
+    });
+  });
+}
 
 Page({
   data: {
@@ -137,5 +146,29 @@ Page({
     wx.navigateTo({
       url: '/pages/rooms-form/index?assetId=' + assetId + '&assetName=' + encodeURIComponent(assetName)
     });
+  },
+  async handleDeleteAsset(event) {
+    const assetId = event.currentTarget.dataset.assetId;
+    const assetName = event.currentTarget.dataset.assetName;
+
+    if (!assetId) {
+      return;
+    }
+
+    const confirmation = await showModalAsync({
+      title: '删除房源',
+      content: '确认删除“' + assetName + '”吗？关联的房间、租约和账单也会一起删除。'
+    });
+
+    if (!confirmation.confirm) {
+      return;
+    }
+
+    await deleteAsset({ assetId });
+    wx.showToast({
+      title: '房源已删除',
+      icon: 'success'
+    });
+    await this.loadAssets();
   }
 });

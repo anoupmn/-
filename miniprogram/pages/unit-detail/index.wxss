@@ -9,7 +9,7 @@
 .summary-card,
 .action-card,
 .history-card,
-.fee-section {
+.month-card {
   display: flex;
   flex-direction: column;
   gap: 20rpx;
@@ -17,12 +17,20 @@
 
 .summary-top,
 .history-head,
+.month-head,
+.month-tools,
 .fee-row,
+.dialog-actions,
 .summary-main {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 16rpx;
+}
+
+.month-tools {
+  justify-content: flex-end;
+  margin-top: 20rpx;
 }
 
 .summary-block {
@@ -88,14 +96,22 @@
 }
 
 .action-card {
-  flex-direction: row;
-  flex-wrap: wrap;
+  align-items: stretch;
 }
 
 .action-button {
-  flex: 1;
-  min-width: 280rpx;
   background: #2563eb;
+}
+
+.single-action {
+  width: 100%;
+}
+
+.month-card {
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #f9fafb;
+  margin-top: 20rpx;
 }
 
 .fee-title {
@@ -121,11 +137,21 @@
   color: #2563eb;
 }
 
-.ghost-button {
-  margin-top: 16rpx;
-  background: #ffffff;
-  color: #111827;
-  border: 1rpx solid #d1d5db;
+.mini-pay-button {
+  padding: 10rpx 24rpx;
+  border-radius: 999rpx;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 24rpx;
+}
+
+.month-add-button {
+  min-width: 180rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  padding: 0 24rpx;
+  font-size: 24rpx;
+  border-radius: 999rpx;
 }
 
 .section-subtitle {
@@ -148,4 +174,24 @@
   background: #ffffff;
   color: #dc2626;
   border: 1rpx solid #fecaca;
+}
+
+.dialog-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx;
+}
+
+.dialog-card {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
 }

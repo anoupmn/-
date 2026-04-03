@@ -8,7 +8,12 @@ function listAssets() {
   return callCloudFunction('assets-list');
 }
 
+function deleteAsset(payload) {
+  return callCloudFunction('assets-delete', payload);
+}
+
 module.exports = {
   saveAsset,
-  listAssets
+  listAssets,
+  deleteAsset
 };

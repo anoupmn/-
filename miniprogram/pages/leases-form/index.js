@@ -22,6 +22,8 @@ Page({
     billingCycleDays: '30',
     rentAmount: '',
     depositAmount: '',
+    propertyAmount: '',
+    miscAmount: '',
     message: '',
     roomHint: '请先选择房源'
   },
@@ -166,6 +168,23 @@ Page({
         billingCycleDays: Number(this.data.billingCycleDays || 30),
         rentAmount: Number(this.data.rentAmount || 0),
         depositAmount: Number(this.data.depositAmount || 0),
+        feeRules: {
+          rent: {
+            amount: Number(this.data.rentAmount || 0),
+            cadence: 'cycle'
+          },
+          deposit: {
+            amount: Number(this.data.depositAmount || 0),
+            cadence: 'once'
+          },
+          property: Number(this.data.propertyAmount || 0)
+            ? { amount: Number(this.data.propertyAmount || 0), cadence: 'cycle' }
+            : undefined,
+          misc: Number(this.data.miscAmount || 0)
+            ? { amount: Number(this.data.miscAmount || 0), cadence: 'cycle' }
+            : undefined,
+          customFeeItems: []
+        },
         note: ''
       }
     });
@@ -177,6 +196,8 @@ Page({
       billingCycleDays: '30',
       rentAmount: '',
       depositAmount: '',
+      propertyAmount: '',
+      miscAmount: '',
       message: '租户与租约已保存'
     });
   }

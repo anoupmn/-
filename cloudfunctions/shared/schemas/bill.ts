@@ -23,6 +23,7 @@ export const billSchema = z.object({
   note: z.string().optional(),
   itemKey: z.string().optional(),
   itemLabel: z.string().optional(),
+  source: z.enum(['system', 'manual']).optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });

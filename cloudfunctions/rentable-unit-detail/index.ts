@@ -4,6 +4,7 @@ import { buildRentableUnitSummary } from '../shared/calculators/rentable-unit';
 import { BILL_STATUSES, LEASE_STATUSES } from '../shared/constants/statuses';
 import { deriveBillStatus } from '../shared/calculators/bill-status';
 import { deriveLeaseStatus } from '../shared/calculators/lease-lifecycle';
+import { ensureBillsForLease } from '../shared/repositories/bill-repository';
 import { getAllDomainData, type CloudEventBase, resolveDb } from '../shared/runtime';
 import type { Bill } from '../shared/schemas/bill';
 
@@ -11,30 +12,83 @@ export interface RentableUnitDetailEvent extends CloudEventBase {
   roomId: string;
 }
 
-function groupFeeSections(bills: Bill[], now: string) {
-  const sections = [
-    { key: 'rent', title: '房租' },
-    { key: 'deposit', title: '押金' },
-    { key: 'non_rent', title: '非房租类费用' }
-  ] as const;
+function getBillTypeLabel(bill: Bill) {
+  if (bill.itemLabel) {
+    return bill.itemLabel;
+  }
 
-  return sections.map((section) => ({
-    key: section.key,
-    title: section.title,
-    items: bills
-      .filter((bill) => bill.section === section.key)
-      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-      .map((bill) => ({
+  return {
+    rent: '租金',
+    deposit: '押金',
+    water: '水费',
+    electricity: '电费',
+    property: '管理费',
+    misc: '杂费',
+    custom: '其他费用'
+  }[bill.type];
+}
+
+function buildMonthlyBillGroups(bills: Bill[], now: string) {
+  const currentMonth = dayjs(now).format('YYYY-MM');
+  const monthMap = new Map<
+    string,
+    {
+      monthKey: string;
+      monthLabel: string;
+      isCurrentMonth: boolean;
+      expandedByDefault: boolean;
+      items: Array<{
+        id: string;
+        type: Bill['type'];
+        section: Bill['section'];
+        label: string;
+        dueDate: string;
+        amount: number;
+        status: string;
+        receivedAt: string | null;
+        receivedAmount: number | null;
+      }>;
+    }
+  >();
+
+  bills
+    .slice()
+    .sort((a, b) => {
+      const sourceRankA = a.source === 'manual' ? 1 : 0;
+      const sourceRankB = b.source === 'manual' ? 1 : 0;
+
+      if (sourceRankA !== sourceRankB) {
+        return sourceRankA - sourceRankB;
+      }
+
+      return a.dueDate.localeCompare(b.dueDate);
+    })
+    .forEach((bill) => {
+      const monthKey = bill.dueDate.slice(0, 7);
+      if (!monthMap.has(monthKey)) {
+        monthMap.set(monthKey, {
+          monthKey,
+          monthLabel: dayjs(`${monthKey}-01`).format('YYYY年MM月'),
+          isCurrentMonth: monthKey === currentMonth,
+          expandedByDefault: monthKey === currentMonth,
+          items: []
+        });
+      }
+
+      monthMap.get(monthKey)?.items.push({
         id: bill.id,
         type: bill.type,
-        label: bill.itemLabel ?? bill.type,
+        section: bill.section,
+        label: getBillTypeLabel(bill),
         dueDate: bill.dueDate,
         amount: bill.amount,
         status: deriveBillStatus(bill, now),
         receivedAt: bill.receivedAt,
         receivedAmount: bill.receivedAmount
-      }))
-  }));
+      });
+    });
+
+  return Array.from(monthMap.values()).sort((a, b) => a.monthKey.localeCompare(b.monthKey));
 }
 
 export async function main(event: RentableUnitDetailEvent) {
@@ -61,13 +115,20 @@ export async function main(event: RentableUnitDetailEvent) {
   const tenantHistory = leaseHistory
     .map((lease) => tenants.find((tenant) => tenant.id === lease.tenantId))
     .filter((tenant): tenant is NonNullable<typeof tenant> => Boolean(tenant));
-  const activeBills = activeLease ? bills.filter((bill) => bill.leaseId === activeLease.id) : [];
+  const activeBills = activeLease
+    ? bills.filter((bill) => bill.leaseId === activeLease.id).length > 0
+      ? bills.filter((bill) => bill.leaseId === activeLease.id)
+      : await ensureBillsForLease(db, activeLease, { ...event, now })
+    : [];
+  const allBills = activeLease && bills.every((bill) => bill.leaseId !== activeLease.id)
+    ? [...bills, ...activeBills]
+    : bills;
   const summary = buildRentableUnitSummary({
     asset,
     room,
     leases,
     tenants,
-    bills,
+    bills: allBills,
     now
   });
   const overdueCount = activeBills.filter((bill) => deriveBillStatus(bill, now) === BILL_STATUSES.overdue).length;
@@ -91,11 +152,7 @@ export async function main(event: RentableUnitDetailEvent) {
       overdueHint: overdueCount > 0 ? `当前有 ${overdueCount} 笔账单已逾期` : '',
       generatedAt: dayjs(now).format('YYYY-MM-DD')
     },
-    primaryActions: [
-      { key: 'receive_bill', label: '登记收款' },
-      { key: 'view_all_bills', label: '查看全部账单' }
-    ],
-    feeSections: groupFeeSections(activeBills, now),
+    monthlyBillGroups: buildMonthlyBillGroups(activeBills, now),
     historyCollapsedByDefault: true
   };
 }

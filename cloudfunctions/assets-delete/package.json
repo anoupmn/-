@@ -1,9 +1,8 @@
 {
-  "name": "rzb-rentable-unit-detail",
+  "name": "rzb-assets-delete",
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
-    "dayjs": "^1.11.20",
     "wx-server-sdk": "latest"
   }
 }

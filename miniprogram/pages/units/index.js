@@ -1,14 +1,26 @@
 const { listRentableUnits } = require('../../services/rentable-unit');
 
-function toStatusLabel(status) {
-  const statusMap = {
-    occupied: '已出租',
-    vacant: '空置',
-    overdue: '已逾期',
-    pending_move_in: '待入住'
-  };
+function filterUnits(units, keyword) {
+  const normalized = String(keyword || '').trim().toLowerCase();
 
-  return statusMap[status] || '未知状态';
+  if (!normalized) {
+    return units;
+  }
+
+  return units.filter((item) => {
+    const text = [
+      item.displayName,
+      item.mainStatusLabel,
+      item.currentTenantName,
+      item.summaryHint,
+      (item.riskTagLabels || []).join(' ')
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return text.indexOf(normalized) >= 0;
+  });
 }
 
 Page({
@@ -20,10 +32,7 @@ Page({
   },
   async onShow() {
     const units = await listRentableUnits();
-    const localizedUnits = (units || []).map((item) => ({
-      ...item,
-      currentStatusLabel: toStatusLabel(item.currentStatus)
-    }));
+    const localizedUnits = units || [];
     this.setData({
       units: localizedUnits
     });
@@ -31,10 +40,13 @@ Page({
   },
   handleUnitSearch(event) {
     const keyword = event.detail.value || '';
+    const filtered = filterUnits(this.data.units, keyword);
+
     this.setData({
-      unitSearchKeyword: keyword
+      unitSearchKeyword: keyword,
+      unitListExpanded: !!keyword,
+      visibleUnits: filtered
     });
-    this.applyUnitFilter(this.data.units, keyword, this.data.unitListExpanded);
   },
   toggleUnitList() {
     const nextExpanded = !this.data.unitListExpanded;
@@ -45,20 +57,7 @@ Page({
   },
   applyUnitFilter(units, keyword, expanded) {
     const normalized = String(keyword || '').trim().toLowerCase();
-    const filtered = !normalized
-      ? units
-      : units.filter((item) => {
-          const text = [
-            item.displayName,
-            item.currentStatusLabel,
-            item.currentTenantName,
-            item.nextReceivableDate
-          ]
-            .filter(Boolean)
-            .join(' ')
-            .toLowerCase();
-          return text.indexOf(normalized) >= 0;
-        });
+    const filtered = filterUnits(units, keyword);
 
     this.setData({
       visibleUnits: expanded || normalized ? filtered : filtered.slice(0, 12)

@@ -10,3 +10,18 @@
   padding-top: 20rpx;
   border-top: 1rpx solid #e5e7eb;
 }
+
+.section-subtitle {
+  font-size: 28rpx;
+  font-weight: 600;
+  margin-top: 8rpx;
+}
+
+.custom-fee-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding: 20rpx;
+  border-radius: 20rpx;
+  background: #f9fafb;
+}

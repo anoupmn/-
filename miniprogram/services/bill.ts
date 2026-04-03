@@ -7,3 +7,13 @@ export function receiveBill(payload: {
 }) {
   return callCloudFunction('bills-receive', payload);
 }
+
+export function saveBill(payload: {
+  leaseId: string;
+  monthKey: string;
+  type: 'water' | 'electricity' | 'misc' | 'custom';
+  amount: number;
+  itemLabel?: string;
+}) {
+  return callCloudFunction('bills-save', payload);
+}

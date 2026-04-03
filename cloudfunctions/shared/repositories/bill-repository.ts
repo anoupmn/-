@@ -98,6 +98,7 @@ function buildBillsForLease(lease: Lease, event: CloudEventBase) {
         note: '',
         itemKey: item.itemKey,
         itemLabel: item.itemLabel,
+        source: 'system',
         createdAt: generatedAt,
         updatedAt: generatedAt
       });
@@ -140,6 +141,16 @@ export async function syncBillsForLease(db: DbLike, lease: Lease, event: CloudEv
   return bills;
 }
 
+export async function ensureBillsForLease(db: DbLike, lease: Lease, event: CloudEventBase) {
+  const existingBills = await listBillsByLease(db, lease.id);
+
+  if (existingBills.length > 0) {
+    return existingBills;
+  }
+
+  return syncBillsForLease(db, lease, event);
+}
+
 export async function markBillReceived(
   db: DbLike,
   input: {
@@ -165,4 +176,50 @@ export async function markBillReceived(
     status: BILL_STATUSES.paid,
     updatedAt: resolveNow(event)
   });
+}
+
+export async function createManualBill(
+  db: DbLike,
+  input: {
+    lease: Lease;
+    type: BillType;
+    section: BillSection;
+    dueDate: string;
+    amount: number;
+    itemLabel?: string;
+  },
+  event: CloudEventBase
+) {
+  if (input.amount <= 0) {
+    throw new Error('amount must be greater than 0.');
+  }
+
+  const createdAt = resolveNow(event);
+  const parsed = billSchema.parse({
+    id: createId('bill'),
+    landlordOpenId: input.lease.landlordOpenId,
+    leaseId: input.lease.id,
+    roomId: input.lease.roomId,
+    type: input.type,
+    section: input.section,
+    dueDate: input.dueDate,
+    amount: input.amount,
+    status: BILL_STATUSES.pending,
+    receivedAt: null,
+    receivedAmount: null,
+    note: '',
+    itemKey: input.type === 'custom' ? `manual_${Date.now()}` : undefined,
+    itemLabel: input.itemLabel,
+    source: 'manual',
+    createdAt,
+    updatedAt: createdAt
+  });
+
+  const bill = {
+    ...parsed,
+    status: deriveBillStatus(parsed, createdAt)
+  };
+
+  await insertRecord(db, COLLECTIONS.bills, bill);
+  return bill;
 }

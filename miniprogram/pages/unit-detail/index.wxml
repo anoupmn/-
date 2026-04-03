@@ -27,19 +27,6 @@
       <view wx:if="{{detail.summaryCard.overdueHint}}" class="summary-hint danger-text">{{detail.summaryCard.overdueHint}}</view>
     </view>
 
-    <view class="card action-card">
-      <button class="primary-button action-button" bindtap="handleViewAllBills">查看全部账单</button>
-      <button
-        class="primary-button action-button"
-        wx:if="{{detail.feeSections.length && detail.feeSections[0].items.length}}"
-        data-bill-id="{{detail.feeSections[0].items[0].id}}"
-        data-amount="{{detail.feeSections[0].items[0].amount}}"
-        bindtap="handleReceiveBill"
-      >
-        登记收款
-      </button>
-    </view>
-
     <view class="card">
       <view class="section-subtitle">当前租约</view>
       <view class="field" wx:if="{{detail.activeLease}}">租期：{{detail.activeLease.startDate}} 至 {{detail.activeLease.endDate}}</view>
@@ -49,27 +36,52 @@
     </view>
 
     <view class="card">
-      <view class="section-subtitle">费用分区</view>
-      <view wx:for="{{detail.feeSections}}" wx:key="key" class="fee-section">
-        <view class="fee-title">{{item.title}}</view>
-        <view wx:if="{{!item.items.length}}" class="hint">暂无账单记录</view>
-        <view wx:for="{{item.items}}" wx:key="id" class="fee-item">
-          <view class="fee-row">
-            <view class="fee-name">{{item.label}}</view>
-            <view class="fee-status">{{item.statusLabel}}</view>
+      <view class="section-subtitle">月度账单</view>
+      <view wx:for="{{detail.monthlyBillGroups}}" wx:key="monthKey" class="month-card">
+        <view class="month-head" data-month-key="{{item.monthKey}}" bindtap="toggleMonth">
+          <view>
+            <view class="fee-title">{{item.monthLabel}}</view>
+            <view class="hint" wx:if="{{item.isCurrentMonth}}">当前月份</view>
           </view>
-          <view class="field">应收日期：{{item.dueDate}}</view>
-          <view class="field">金额：¥{{item.amount}}</view>
-          <view wx:if="{{item.receivedAt}}" class="field">收款日期：{{item.receivedAt}}</view>
-          <button
-            wx:if="{{item.status !== 'paid'}}"
-            class="ghost-button"
-            data-bill-id="{{item.id}}"
-            data-amount="{{item.amount}}"
-            bindtap="handleReceiveBill"
-          >
-            登记收款
-          </button>
+          <view class="text-button">{{expandedMonths[item.monthKey] ? '收起' : '展开'}}</view>
+        </view>
+
+        <view wx:if="{{expandedMonths[item.monthKey]}}">
+          <view wx:if="{{!item.items.length}}" class="hint">暂无账单记录</view>
+          <view wx:for="{{item.items}}" wx:key="id" class="fee-item">
+            <view class="fee-row">
+              <view>
+                <view class="fee-name">{{item.label}}</view>
+                <view class="field">{{item.dueDate}}</view>
+              </view>
+              <view class="fee-status">{{item.statusLabel}}</view>
+            </view>
+            <view class="fee-row">
+              <view class="field">应收金额：¥{{item.amount}}</view>
+              <button
+                wx:if="{{item.status !== 'paid'}}"
+                class="mini-pay-button"
+                data-bill-id="{{item.id}}"
+                data-amount="{{item.amount}}"
+                data-title="{{item.label}}"
+                data-due-date="{{item.dueDate}}"
+                bindtap="openPaymentDialog"
+              >
+                登记缴费
+              </button>
+            </view>
+            <view wx:if="{{item.receivedAt}}" class="field">收款时间：{{item.receivedAt}}</view>
+          </view>
+          <view class="month-tools">
+            <button
+              class="secondary-button month-add-button"
+              data-month-key="{{item.monthKey}}"
+              data-month-label="{{item.monthLabel}}"
+              bindtap="openManualBillDialog"
+            >
+              补录本月费用
+            </button>
+          </view>
         </view>
       </view>
     </view>
@@ -101,6 +113,54 @@
 
     <view class="card danger-card">
       <button class="danger-button" bindtap="handleEndLease">结束租约</button>
+    </view>
+  </view>
+
+  <view wx:if="{{paymentDialogVisible}}" class="dialog-mask">
+    <view class="dialog-card">
+      <view class="section-subtitle">登记缴费</view>
+      <view class="field">{{paymentForm.title}} / {{paymentForm.dueDate}}</view>
+      <input
+        class="input"
+        type="digit"
+        value="{{paymentForm.amount}}"
+        bindinput="handlePaymentAmountChange"
+        placeholder="请输入收款金额"
+      />
+      <view class="dialog-actions">
+        <button class="secondary-button" bindtap="closePaymentDialog">取消</button>
+        <button class="primary-button" bindtap="confirmPayment">确认收款</button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{manualBillDialogVisible}}" class="dialog-mask">
+    <view class="dialog-card">
+      <view class="section-subtitle">补录本月费用</view>
+      <view class="field">{{manualBillForm.monthLabel}}</view>
+      <picker range="{{manualBillTypeOptions}}" value="{{manualBillForm.typeIndex}}" bindchange="handleManualBillTypeChange">
+        <view class="field picker-field">费用类型：{{manualBillTypeOptions[manualBillForm.typeIndex]}}</view>
+      </picker>
+      <input
+        wx:if="{{manualBillMeta.showLabelInput}}"
+        class="input"
+        data-field="itemLabel"
+        value="{{manualBillForm.itemLabel}}"
+        bindinput="handleManualBillInputChange"
+        placeholder="{{manualBillMeta.labelPlaceholder}}"
+      />
+      <input
+        class="input"
+        type="digit"
+        data-field="amount"
+        value="{{manualBillForm.amount}}"
+        bindinput="handleManualBillInputChange"
+        placeholder="请输入本月实际金额"
+      />
+      <view class="dialog-actions">
+        <button class="secondary-button" bindtap="closeManualBillDialog">取消</button>
+        <button class="primary-button" bindtap="confirmManualBill">确认补录</button>
+      </view>
     </view>
   </view>
 </view>

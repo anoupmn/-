@@ -37,14 +37,24 @@
       <view class="field">地址：{{item.address || '未填写'}}</view>
       <view class="field">模式：{{item.rentalMode}}</view>
       <view class="field">ID：{{item.id}}</view>
-      <button
-        class="primary-button"
-        data-asset-id="{{item.id}}"
-        data-asset-name="{{item.name}}"
-        bindtap="openRoomsForm"
-      >
-        给这个房源添加房间
-      </button>
+      <view class="asset-actions">
+        <button
+          class="primary-button"
+          data-asset-id="{{item.id}}"
+          data-asset-name="{{item.name}}"
+          bindtap="openRoomsForm"
+        >
+          给这个房源添加房间
+        </button>
+        <button
+          class="danger-button"
+          data-asset-id="{{item.id}}"
+          data-asset-name="{{item.name}}"
+          bindtap="handleDeleteAsset"
+        >
+          删除房源
+        </button>
+      </view>
     </view>
     <button
       wx:if="{{!assetSearchKeyword && assets.length > 8}}"

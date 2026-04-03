@@ -16,3 +16,17 @@
   padding-top: 20rpx;
   border-top: 1rpx solid #e5e7eb;
 }
+
+.asset-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.danger-button {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1rpx solid #fecaca;
+  border-radius: 999rpx;
+}
