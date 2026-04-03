@@ -10,14 +10,35 @@ export interface MockStore {
   tenants: MockRecord[];
   leases: MockRecord[];
   bills: MockRecord[];
+  alerts: MockRecord[];
+  abnormalFlags: MockRecord[];
+  notificationPreferences: MockRecord[];
 }
 
-type CollectionName = keyof MockStore | 'landlord_users' | 'assets' | 'rooms' | 'tenants' | 'leases' | 'bills';
+type CollectionName =
+  | keyof MockStore
+  | 'landlord_users'
+  | 'assets'
+  | 'rooms'
+  | 'tenants'
+  | 'leases'
+  | 'bills'
+  | 'alerts'
+  | 'abnormal_flags'
+  | 'notification_preferences';
 type Query = Partial<MockRecord>;
 
 function resolveCollectionName(name: CollectionName): keyof MockStore {
   if (name === 'landlord_users') {
     return 'landlordUsers';
+  }
+
+  if (name === 'abnormal_flags') {
+    return 'abnormalFlags';
+  }
+
+  if (name === 'notification_preferences') {
+    return 'notificationPreferences';
   }
 
   return name;
@@ -34,7 +55,10 @@ export function createMockStore(): MockStore {
     rooms: [],
     tenants: [],
     leases: [],
-    bills: []
+    bills: [],
+    alerts: [],
+    abnormalFlags: [],
+    notificationPreferences: []
   };
 }
 
