@@ -1,6 +1,114 @@
 @import "../quick-entry/index.wxss";
 
+.list-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.list-header,
+.search-card,
+.empty-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
 .unit-card {
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.unit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.headline {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.tenant-row {
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+.status-pill {
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.tag {
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 24rpx;
+}
+
+.receivable-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #f8fafc;
+}
+
+.field-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.receivable-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16rpx;
+}
+
+.receivable-date {
+  font-size: 28rpx;
+  color: #111827;
+}
+
+.receivable-amount {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.summary-hint {
+  font-size: 24rpx;
+  color: #4b5563;
+}
+
+.empty-heading {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.secondary-button {
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: #111827;
+  border: 1rpx solid #d1d5db;
 }
