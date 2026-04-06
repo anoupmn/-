@@ -1,9 +1,6 @@
-@import "../quick-entry/index.wxss";
-
 .dashboard-shell {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
 }
 
 .intro-card,
@@ -15,148 +12,116 @@
   gap: 16rpx;
 }
 
-.headline,
-.section-title {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #111827;
+.intro-card {
+  background: linear-gradient(140deg, #ffffff 0%, #f3f8ff 100%);
 }
 
-.copy {
-  font-size: 28rpx;
-  color: #4b5563;
-  line-height: 1.6;
-}
-
-.status {
-  font-size: 24rpx;
-  color: #111827;
+.status-line {
+  padding: 14rpx 16rpx;
+  border-radius: 14rpx;
+  background: #f2f6fc;
+  border: 1rpx solid #dbe3ef;
 }
 
 .overview-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16rpx;
+  gap: 14rpx;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .overview-card {
+  min-height: 170rpx;
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
-  min-height: 180rpx;
   justify-content: space-between;
+  gap: 10rpx;
+  padding: 20rpx;
+}
+
+.metric-neutral {
+  border-top: 6rpx solid #8b95a1;
+}
+
+.metric-expiring {
+  border-top: 6rpx solid #d4a02b;
+}
+
+.metric-overdue {
+  border-top: 6rpx solid #dc5a3f;
+}
+
+.metric-vacancy {
+  border-top: 6rpx solid #d48a00;
+}
+
+.metric-manual {
+  border-top: 6rpx solid #5d7db2;
 }
 
 .overview-label {
   font-size: 24rpx;
+  color: #5c6773;
   font-weight: 600;
-  color: #4b5563;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .overview-count {
   font-size: 44rpx;
-  font-weight: 700;
-  color: #111827;
-  line-height: 1.2;
 }
 
-.section-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16rpx;
+.overview-foot {
+  font-size: 22rpx;
 }
 
 .abnormal-list {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: 12rpx;
 }
 
 .abnormal-row {
-  padding: 24rpx;
-  border-radius: 20rpx;
-  background: #f9fafb;
+  background: #f8fafd;
+  border: 1rpx solid #e1e7f0;
+  border-radius: 18rpx;
+  padding: 18rpx;
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
+  gap: 10rpx;
 }
 
 .abnormal-main {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: 12rpx;
 }
 
 .abnormal-name {
+  flex: 1;
+  min-width: 0;
   font-size: 28rpx;
   font-weight: 600;
-  color: #111827;
+  color: #1b2430;
 }
 
 .abnormal-reason {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: #dc2626;
-  text-align: right;
+  max-width: 44%;
+  text-align: center;
 }
 
-.abnormal-support,
-.hint,
-.recommendation-label {
+.abnormal-support {
   font-size: 24rpx;
-  color: #4b5563;
-  line-height: 1.6;
+}
+
+.recommendation-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
 }
 
 .recommendation-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #111827;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-  padding: 24rpx;
-  border-radius: 20rpx;
-  background: #f9fafb;
-}
-
-.empty-heading {
   font-size: 30rpx;
-  font-weight: 700;
-  color: #111827;
 }
 
-.primary-button,
-.secondary-button,
-.nav-button {
-  border-radius: 999rpx;
-}
-
-.primary-button {
-  background: #111827;
-  color: #ffffff;
-}
-
-.secondary-button,
-.nav-button {
-  background: #f3f4f6;
-  color: #111827;
-}
-
-.text-button {
-  padding: 0;
-  margin: 0;
-  line-height: 1.6;
-  background: transparent;
-  color: #2563eb;
-  font-size: 24rpx;
-}
-
-.text-button::after {
-  border: 0;
+.reminder-card {
+  gap: 14rpx;
 }

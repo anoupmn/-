@@ -1,9 +1,6 @@
-@import "../quick-entry/index.wxss";
-
 .list-shell {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
 }
 
 .list-header,
@@ -14,101 +11,87 @@
   gap: 12rpx;
 }
 
+.list-meta {
+  padding-top: 6rpx;
+}
+
 .unit-card {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 14rpx;
+  padding: 20rpx;
 }
 
-.unit-head {
+.unit-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16rpx;
+  gap: 12rpx;
 }
 
-.headline {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #111827;
+.unit-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
 }
 
-.tenant-row {
-  margin-top: 8rpx;
-  font-size: 26rpx;
-  color: #6b7280;
+.unit-name {
+  font-size: 30rpx;
+  line-height: 1.35;
 }
 
-.status-pill {
-  padding: 8rpx 20rpx;
-  border-radius: 999rpx;
-  background: #dbeafe;
-  color: #1d4ed8;
+.unit-tenant {
   font-size: 24rpx;
-  font-weight: 600;
+}
+
+.unit-main-status {
+  margin-top: 2rpx;
 }
 
 .tag-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12rpx;
+  gap: 8rpx;
 }
 
-.tag {
-  padding: 8rpx 18rpx;
-  border-radius: 999rpx;
-  background: #f3f4f6;
-  color: #374151;
-  font-size: 24rpx;
+.unit-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10rpx;
+  padding: 14rpx;
+  border-radius: 16rpx;
+  background: #f7f9fc;
+  border: 1rpx solid #dfe6f0;
 }
 
-.receivable-card {
+.metric-item {
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
-  padding: 24rpx;
-  border-radius: 20rpx;
-  background: #f8fafc;
+  gap: 4rpx;
 }
 
-.field-label {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: #6b7280;
+.metric-item-right {
+  align-items: flex-end;
+  text-align: right;
 }
 
-.receivable-main {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 16rpx;
+.metric-value {
+  font-size: 26rpx;
+  color: #1b2430;
 }
 
-.receivable-date {
-  font-size: 28rpx;
-  color: #111827;
-}
-
-.receivable-amount {
-  font-size: 40rpx;
+.metric-value.amount {
+  font-size: 30rpx;
   font-weight: 700;
-  color: #111827;
 }
 
 .summary-hint {
   font-size: 24rpx;
-  color: #4b5563;
+  line-height: 1.55;
 }
 
-.empty-heading {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #111827;
-}
-
-.secondary-button {
-  border-radius: 999rpx;
-  background: #ffffff;
-  color: #111827;
-  border: 1rpx solid #d1d5db;
+.entry-hint {
+  font-size: 22rpx;
 }

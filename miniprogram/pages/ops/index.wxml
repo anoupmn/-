@@ -1,26 +1,33 @@
 <view class="page-shell">
-  <view class="ops-shell">
+  <view class="ops-shell page-stack">
     <view class="card intro-card">
-      <view class="section-title">业务维护</view>
-      <view class="hint">你好，{{displayName || '房东'}}。这里统一处理新增、录入与维护动作。</view>
-      <view class="hint">维护入口归位后，首页仅保留经营概览、异常摘要、今日建议和提醒入口。</view>
+      <view class="page-title">业务维护</view>
+      <view class="text-body">你好，{{displayName || '房东'}}。所有维护动作统一在这里执行，首页只承担经营盘面与提醒入口。</view>
+      <view class="text-muted">维护入口固定：快速录入、房源维护、房间维护、租户维护、租约维护。</view>
+    </view>
+
+    <view class="card action-card quick-card">
+      <view class="section-head-main">
+        <view class="section-title">快速录入</view>
+        <view class="text-muted">适合新增房源并快速形成可管理房间与租约的轻流程。</view>
+      </view>
+      <view class="action-buttons grid-2">
+        <button class="primary-button" data-url="/pages/quick-entry/index" bindtap="navigateTo">打开快速录入</button>
+        <button class="secondary-button" bindtap="openUnitsTab">前往房源列表</button>
+      </view>
     </view>
 
     <view class="card action-card">
-      <view class="section-title">快速录入</view>
-      <view class="hint">适合当天新增一套房源并直接落租的轻量流程。</view>
-      <button class="primary-button" data-url="/pages/quick-entry/index" bindtap="navigateTo">打开快速录入</button>
-    </view>
-
-    <view class="card action-card">
-      <view class="section-title">维护中心</view>
-      <view class="ops-grid">
+      <view class="section-head-main">
+        <view class="section-title">维护中心</view>
+        <view class="text-muted">按对象维护基础资料，保证提醒、列表与详情链路数据完整。</view>
+      </view>
+      <view class="ops-grid grid-2">
         <button class="secondary-button" data-url="/pages/assets-form/index" bindtap="navigateTo">房源维护</button>
         <button class="secondary-button" data-url="/pages/rooms-form/index" bindtap="navigateTo">房间维护</button>
         <button class="secondary-button" data-url="/pages/tenants-form/index" bindtap="navigateTo">租户维护</button>
         <button class="secondary-button" data-url="/pages/leases-form/index" bindtap="navigateTo">租约维护</button>
       </view>
-      <button class="secondary-button" bindtap="openUnitsTab">前往房源列表处理详情</button>
     </view>
   </view>
 </view>

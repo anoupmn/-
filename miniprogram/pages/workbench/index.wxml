@@ -1,36 +1,43 @@
 <view class="page-shell">
-  <view class="dashboard-shell">
+  <view class="dashboard-shell page-stack">
     <view class="card intro-card">
-      <view class="headline">首页</view>
-      <view class="copy">你好，{{displayName || '房东'}}。先看经营概览，再看异常摘要和今日建议，保持每天处理顺序稳定。</view>
-      <view class="hint">异常口径固定：即将到期、已逾期、空置过久、人工异常（含维修高频触发）。</view>
-      <view class="status">{{status}}</view>
+      <view class="section-head-main">
+        <view class="page-title">首页</view>
+        <view class="text-body">你好，{{displayName || '房东'}}。先看经营概览，再按异常摘要和今日建议安排处理顺序。</view>
+        <view class="text-muted">状态口径统一：即将到期 / 已逾期 / 空置过久 / 人工异常（含维修高频异常）。</view>
+      </view>
+      <view class="status-line text-muted">{{status}}</view>
     </view>
 
-    <view class="overview-grid">
+    <view class="grid-3 overview-grid">
       <view
         wx:for="{{overviewCards}}"
         wx:key="key"
-        class="card overview-card"
+        class="card overview-card {{item.key === 'overdue' ? 'metric-overdue' : item.key === 'expiring' ? 'metric-expiring' : item.key === 'vacancy_long' ? 'metric-vacancy' : item.key === 'manual_abnormal' ? 'metric-manual' : 'metric-neutral'}}"
         data-url="{{item.url}}"
         bindtap="openOverviewCard"
       >
         <view class="overview-label">{{item.label}}</view>
-        <view class="overview-count">{{item.count}}</view>
+        <view class="stat-number overview-count">{{item.count}}</view>
+        <view class="overview-foot text-weak">进入处理列表</view>
       </view>
     </view>
 
     <view class="card abnormal-card">
       <view class="section-head">
-        <view>
+        <view class="section-head-main">
           <view class="section-title">异常摘要</view>
-          <view class="hint">默认只展示最值得先看的几条，避免首页拉成长表。</view>
+          <view class="text-muted">默认展示最优先处理条目，避免首页变成长列表。</view>
         </view>
         <button class="text-button" data-url="/pages/alerts/index" bindtap="navigateTo">查看全部</button>
       </view>
 
-      <view wx:if="{{isLoading}}" class="hint">正在加载首页盘面…</view>
-      <view wx:elif="{{loadFailed}}" class="hint">加载首页失败，请下拉重试或稍后再试。</view>
+      <view wx:if="{{isLoading}}" class="empty-state">
+        <view class="text-muted">正在加载首页盘面...</view>
+      </view>
+      <view wx:elif="{{loadFailed}}" class="empty-state">
+        <view class="text-muted">加载首页失败，请下拉重试或稍后再试。</view>
+      </view>
 
       <view wx:elif="{{abnormalRows.length}}" class="abnormal-list">
         <view
@@ -42,34 +49,39 @@
         >
           <view class="abnormal-main">
             <view class="abnormal-name">{{item.displayName}}</view>
-            <view class="abnormal-reason">{{item.primaryReason}}</view>
+            <view class="badge abnormal-reason {{item.primaryReason.indexOf('已逾期') !== -1 ? 'status-overdue' : item.primaryReason.indexOf('即将到期') !== -1 ? 'status-expiring' : item.primaryReason.indexOf('空置过久') !== -1 ? 'status-vacancy' : 'status-manual'}}">{{item.primaryReason}}</view>
           </view>
-          <view class="abnormal-support">{{item.supportingText}}</view>
+          <view class="abnormal-support text-muted">{{item.supportingText}}</view>
         </view>
       </view>
 
       <view wx:else class="empty-state">
         <view class="empty-heading">当前暂无异常</view>
-        <view class="hint">今日没有到期、逾期或异常房间。你可以继续查看提醒中心或房源列表。</view>
+        <view class="text-muted">今日无到期、逾期、空置过久或人工异常房间，可继续查看提醒中心。</view>
       </view>
     </view>
 
     <view class="card recommendation-card">
-      <view class="section-title">今日建议</view>
-      <view wx:if="{{recommendation}}">
-        <view class="recommendation-label">{{recommendation.label}}</view>
-        <view class="recommendation-title">{{recommendation.title}}</view>
+      <view class="section-head-main">
+        <view class="section-title">今日建议</view>
+        <view class="text-muted">基于当前盘面给出优先动作，建议先处理高风险项。</view>
+      </view>
+      <view wx:if="{{recommendation}}" class="recommendation-body">
+        <view class="badge {{recommendation.type === 'overdue' ? 'status-overdue' : recommendation.type === 'expiring' ? 'status-expiring' : recommendation.type === 'vacancy_long' ? 'status-vacancy' : 'status-manual'}}">{{recommendation.label}}</view>
+        <view class="sub-title recommendation-title">{{recommendation.title}}</view>
         <button class="primary-button" bindtap="openRecommendation">{{recommendation.actionLabel}}</button>
       </view>
-      <view wx:else class="hint">先去房源列表看一遍当前盘面，今天暂无需要系统优先推送的动作。</view>
+      <view wx:else class="empty-state">
+        <view class="text-muted">今天暂无系统优先动作，建议先扫一遍房源列表。</view>
+      </view>
     </view>
 
     <view class="card reminder-card">
       <view class="section-head">
-        <view>
+        <view class="section-head-main">
           <view class="section-title">提醒入口</view>
-          <view class="hint">
-            {{subscriptionState.hasRequested ? '已接入提醒规则管理，可继续调整规则开关。' : '先完成一次订阅授权，再到提醒设置里长期管理提醒类型。'}}
+          <view class="text-muted">
+            {{subscriptionState.hasRequested ? '已接入提醒规则管理，可持续调整规则。' : '先完成一次订阅授权，再长期管理提醒类型。'}}
           </view>
         </view>
         <button class="nav-button" bindtap="handleReminderEntry">

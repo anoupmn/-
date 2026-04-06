@@ -1,50 +1,35 @@
-@import "../quick-entry/index.wxss";
-
 .profile-shell {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
 }
 
 .account-card,
 .subscription-card,
-.action-card {
+.action-card,
+.logout-card {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
 }
 
-.section-title {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #111827;
+.account-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f4f8ff 100%);
 }
 
 .account-name {
   font-size: 30rpx;
-  font-weight: 600;
-  color: #111827;
 }
 
-.hint {
-  font-size: 24rpx;
-  color: #4b5563;
-  line-height: 1.6;
+.status-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  padding: 16rpx;
+  border-radius: 16rpx;
+  background: #f7f9fc;
+  border: 1rpx solid #dde4ef;
 }
 
-.primary-button,
-.secondary-button,
-.logout-button {
-  border-radius: 999rpx;
-}
-
-.primary-button,
-.logout-button {
-  background: #111827;
-  color: #ffffff;
-}
-
-.secondary-button {
-  background: #f3f4f6;
-  color: #111827;
+.action-grid {
+  gap: 12rpx;
 }

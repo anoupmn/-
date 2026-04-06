@@ -1,17 +1,23 @@
 <view class="page-shell">
-  <view class="card auth-card">
-    <view class="auth-title">登录 / 注册</view>
-    <view class="auth-copy">首次使用会自动创建你的房东工作空间，后续打开小程序会自动恢复登录状态。</view>
+  <view class="auth-shell page-stack">
+    <view class="card auth-hero">
+      <view class="auth-mark">收租吧</view>
+      <view class="page-title">登录 / 注册</view>
+      <view class="text-body">首次登录会自动创建你的房东工作空间，后续打开小程序会恢复会话并进入四个业务 Tab。</view>
+      <view class="text-muted">仅登录态可访问首页、业务维护、房源列表、我的。</view>
+    </view>
 
-    <block wx:if="{{loading}}">
-      <view class="auth-state">正在恢复本地会话...</view>
-    </block>
-
-    <block wx:else>
-      <button class="auth-button" loading="{{submitting}}" bindtap="handleLogin">
-        微信一键登录
-      </button>
-      <view wx:if="{{errorMessage}}" class="auth-error">{{errorMessage}}</view>
-    </block>
+    <view class="card auth-card">
+      <view class="sub-title">微信账号验证</view>
+      <block wx:if="{{loading}}">
+        <view class="auth-state">正在恢复本地会话，请稍候...</view>
+      </block>
+      <block wx:else>
+        <button class="auth-button" loading="{{submitting}}" bindtap="handleLogin">
+          微信一键登录 / 注册
+        </button>
+        <view wx:if="{{errorMessage}}" class="auth-error">{{errorMessage}}</view>
+      </block>
+    </view>
   </view>
 </view>

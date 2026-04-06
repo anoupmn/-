@@ -1,15 +1,18 @@
 <view class="page-shell">
-  <view class="list-shell">
+  <view class="list-shell page-stack">
     <view class="card list-header">
-      <view class="section-title">{{listTitle}}</view>
-      <view class="hint">{{listHint}}</view>
+      <view class="section-head-main">
+        <view class="page-title">{{listTitle}}</view>
+        <view class="text-muted">{{listHint}}</view>
+      </view>
+      <view class="list-meta text-weak">共 {{units.length}} 套，当前显示 {{visibleUnits.length}} 套</view>
     </view>
 
     <view class="card search-card">
-      <view class="field-label">搜索房源、租客或风险</view>
+      <view class="field-label">搜索房源、租户或风险标签</view>
       <input
-        class="input"
-        placeholder="搜索房源、租户、状态"
+        class="search-input"
+        placeholder="输入房间名 / 租户名 / 状态关键词"
         bindinput="handleUnitSearch"
         value="{{unitSearchKeyword}}"
       />
@@ -17,7 +20,7 @@
 
     <view wx:if="{{!visibleUnits.length}}" class="card empty-card">
       <view class="empty-heading">没有匹配的房屋</view>
-      <view class="hint">换个关键词试试，或者先清空搜索条件。</view>
+      <view class="text-muted">可换个关键词，或先清空筛选条件后重试。</view>
     </view>
 
     <view
@@ -27,37 +30,39 @@
       data-room-id="{{item.roomId}}"
       bindtap="openUnitDetail"
     >
-      <view class="unit-head">
-        <view>
-          <view class="headline">{{item.displayName}}</view>
-          <view class="tenant-row">{{item.currentTenantName || '当前暂无租客'}}</view>
+      <view class="unit-top">
+        <view class="unit-main">
+          <view class="sub-title unit-name">{{item.displayName}}</view>
+          <view class="text-muted unit-tenant">{{item.currentTenantName || '当前暂无租客'}}</view>
         </view>
-        <view class="status-pill">{{item.mainStatusLabel}}</view>
+        <view class="status-chip unit-main-status {{item.mainStatus === 'vacant' ? 'status-vacancy' : 'status-normal'}}">{{item.mainStatusLabel}}</view>
       </view>
 
       <view wx:if="{{item.riskTagLabels.length}}" class="tag-row">
-        <view wx:for="{{item.riskTagLabels}}" wx:key="*this" class="tag">{{item}}</view>
-      </view>
-
-      <view class="receivable-card">
-        <view class="field-label">下一笔应收</view>
-        <view class="receivable-main">
-          <text class="receivable-date">{{item.nextReceivableDate || '暂无账单'}}</text>
-          <text class="receivable-amount" wx:if="{{item.nextReceivableDate}}">¥{{item.nextReceivableAmount}}</text>
+        <view
+          wx:for="{{item.riskTagLabels}}"
+          wx:key="*this"
+          class="tag {{item.indexOf('已逾期') !== -1 ? 'status-overdue' : item.indexOf('即将到期') !== -1 ? 'status-expiring' : item.indexOf('空置过久') !== -1 ? 'status-vacancy' : item.indexOf('人工异常') !== -1 ? 'status-manual' : 'status-normal'}}"
+        >
+          {{item}}
         </view>
       </view>
 
-      <view wx:if="{{item.summaryHint}}" class="summary-hint">{{item.summaryHint}}</view>
+      <view class="unit-metrics">
+        <view class="metric-item">
+          <view class="field-label">下一笔应收日期</view>
+          <view class="metric-value">{{item.nextReceivableDate || '暂无账单'}}</view>
+        </view>
+        <view class="metric-item metric-item-right">
+          <view class="field-label">下一笔应收金额</view>
+          <view class="metric-value amount">{{item.nextReceivableDate ? ('¥' + item.nextReceivableAmount) : '--'}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{item.summaryHint}}" class="summary-hint text-muted">{{item.summaryHint}}</view>
+      <view class="entry-hint text-weak">点击进入详情处理</view>
     </view>
 
-    <input
-      wx:if="{{!unitSearchKeyword && units.length > 12}}"
-      class="secondary-button"
-      type="default"
-      value="{{unitListExpanded ? '收起部分房屋' : '查看更多房屋'}}"
-      disabled="{{true}}"
-      hidden="{{true}}"
-    />
     <button wx:if="{{!unitSearchKeyword && units.length > 12}}" class="secondary-button" bindtap="toggleUnitList">
       {{unitListExpanded ? '收起部分房屋' : '查看更多房屋'}}
     </button>

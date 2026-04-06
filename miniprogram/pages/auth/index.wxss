@@ -1,28 +1,40 @@
+.auth-shell {
+  justify-content: center;
+  padding-top: 24rpx;
+}
+
+.auth-hero,
 .auth-card {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 16rpx;
 }
 
-.auth-title {
-  font-size: 38rpx;
-  font-weight: 700;
+.auth-hero {
+  background: linear-gradient(145deg, #ffffff 0%, #f4f8ff 100%);
 }
 
-.auth-copy,
-.auth-state {
-  font-size: 28rpx;
-  line-height: 1.6;
-  color: #4b5563;
-}
-
-.auth-button {
-  background: #111827;
-  color: #ffffff;
+.auth-mark {
+  align-self: flex-start;
+  padding: 8rpx 14rpx;
   border-radius: 999rpx;
+  background: #e9f2ff;
+  color: #1657b8;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.auth-state {
+  font-size: 26rpx;
+  color: #5c6773;
+  line-height: 1.6;
 }
 
 .auth-error {
-  color: #b91c1c;
-  font-size: 26rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: #c0392b;
+  background: #fee7e4;
+  border-radius: 14rpx;
+  padding: 14rpx 16rpx;
 }
