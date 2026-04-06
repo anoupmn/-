@@ -65,10 +65,62 @@ function buildMonthlyBillGroups(bills, now) {
     });
     return Array.from(monthMap.values()).sort((a, b) => a.monthKey.localeCompare(b.monthKey));
 }
+function getDateKey(raw) {
+    return String(raw ?? '').slice(0, 10);
+}
+function normalizeClosedDate(raw) {
+    if (!raw) {
+        return '';
+    }
+    const parsed = (0, dayjs_1.default)(raw);
+    if (parsed.isValid()) {
+        return parsed.format('YYYY-MM-DD');
+    }
+    const dateKey = getDateKey(raw);
+    return /^\d{4}-\d{2}-\d{2}$/.test(dateKey) ? dateKey : '';
+}
+function resolveLeaseActualEndDate(lease) {
+    const closedDate = normalizeClosedDate(lease.closedAt);
+    if (closedDate) {
+        return closedDate;
+    }
+    return lease.endDate;
+}
+function isLeaseEarlyTerminated(lease) {
+    const closedDate = normalizeClosedDate(lease.closedAt);
+    if (!closedDate) {
+        return false;
+    }
+    return (0, dayjs_1.default)(closedDate).isBefore((0, dayjs_1.default)(lease.endDate), 'day');
+}
+function resolveLeaseTerminationRemark(lease) {
+    const closedDate = normalizeClosedDate(lease.closedAt);
+    if (!closedDate) {
+        return '';
+    }
+    return isLeaseEarlyTerminated(lease) ? '提前结束租约' : '期满结束租约';
+}
 async function main(event) {
     const db = (0, runtime_1.resolveDb)(event);
     const now = event.now ?? new Date().toISOString();
     const { assets, rooms, tenants, leases, bills, repairs } = await (0, runtime_1.getAllDomainData)(db);
+    const tenantIdMap = new Map();
+    tenants.forEach((tenant) => {
+        if (tenant.id) {
+            tenantIdMap.set(String(tenant.id), tenant);
+        }
+        const legacyDocId = tenant._id;
+        if (legacyDocId) {
+            tenantIdMap.set(String(legacyDocId), tenant);
+        }
+    });
+    const findTenantByLeaseTenantId = (tenantId) => {
+        if (!tenantId) {
+            return null;
+        }
+        return tenantIdMap.get(String(tenantId).trim()) ?? null;
+    };
+    const resolveTenantName = (tenantId) => findTenantByLeaseTenantId(tenantId)?.name ?? '未知租户';
     const room = rooms.find((item) => item.id === event.roomId);
     if (!room) {
         throw new Error(`Room ${event.roomId} not found.`);
@@ -90,7 +142,7 @@ async function main(event) {
     const activeLease = leaseHistory.find((lease) => (0, lease_lifecycle_1.deriveLeaseStatus)(lease, now) === statuses_1.LEASE_STATUSES.active) ??
         null;
     const tenantHistory = leaseHistory
-        .map((lease) => tenants.find((tenant) => tenant.id === lease.tenantId))
+        .map((lease) => findTenantByLeaseTenantId(lease.tenantId))
         .filter((tenant) => Boolean(tenant))
         .filter((tenant, index, source) => source.findIndex((item) => item.id === tenant.id) === index);
     const activeBills = activeLease
@@ -118,19 +170,24 @@ async function main(event) {
     });
     const leaseTenantMap = new Map(leaseHistory.map((lease) => [
         lease.id,
-        tenants.find((tenant) => tenant.id === lease.tenantId)?.name ?? '未知租户'
+        resolveTenantName(lease.tenantId)
     ]));
+    const leaseMap = new Map(leaseHistory.map((lease) => [lease.id, lease]));
     const repairHistory = repairs
         .filter((item) => item.roomId === room.id)
         .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.updatedAt.localeCompare(a.updatedAt))
         .map((item) => ({
         ...item,
         categoryLabel: repairs_1.REPAIR_CATEGORY_LABELS[item.category],
-        tenantName: item.tenantId ? tenants.find((tenant) => tenant.id === item.tenantId)?.name ?? '未知租户' : '',
+        tenantName: item.tenantId ? resolveTenantName(item.tenantId) : '',
         leasePeriod: item.leaseId
-            ? leaseHistory
-                .filter((lease) => lease.id === item.leaseId)
-                .map((lease) => `${lease.startDate} 至 ${lease.endDate}`)[0] ?? ''
+            ? (() => {
+                const matchedLease = leaseMap.get(item.leaseId);
+                if (!matchedLease) {
+                    return '';
+                }
+                return `${matchedLease.startDate} 至 ${resolveLeaseActualEndDate(matchedLease)}`;
+            })()
             : ''
     }));
     const tenantPeriodRepairs = repairStats.perLeaseCounts.map((item) => ({
@@ -143,6 +200,12 @@ async function main(event) {
         activeLease,
         leaseHistory: historicalLeases.map((lease) => ({
             ...lease,
+            originalEndDate: lease.endDate,
+            actualEndDate: resolveLeaseActualEndDate(lease),
+            originalPeriodLabel: `${lease.startDate} 至 ${lease.endDate}`,
+            actualPeriodLabel: `${lease.startDate} 至 ${resolveLeaseActualEndDate(lease)}`,
+            isEarlyTerminated: isLeaseEarlyTerminated(lease),
+            terminationRemark: resolveLeaseTerminationRemark(lease),
             tenantName: leaseTenantMap.get(lease.id) ?? '未知租户'
         })),
         tenantHistory,

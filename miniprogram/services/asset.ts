@@ -7,3 +7,7 @@ export function saveAsset(payload: Record<string, unknown>) {
 export function listAssets() {
   return callCloudFunction('assets-list');
 }
+
+export function deleteAsset(payload: Record<string, unknown>) {
+  return callCloudFunction('assets-delete', payload);
+}

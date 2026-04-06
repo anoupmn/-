@@ -53,6 +53,10 @@ function buildPageTitle(filters) {
     return '当前空置';
   }
 
+  if (filters.mainStatus === 'occupied') {
+    return '在租房屋列表';
+  }
+
   if (filters.bucket === 'abnormal') {
     return '异常房间';
   }

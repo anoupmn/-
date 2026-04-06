@@ -1,4 +1,23 @@
-import { listAssets, saveAsset } from '../../services/asset';
+import { deleteAsset, listAssets, saveAsset } from '../../services/asset';
+
+type AssetDisplay = Record<string, unknown> & {
+  id: string;
+  name: string;
+  address: string;
+  rentalMode: string;
+  latestLeaseRentLabel: string;
+  latestLeasePropertyLabel: string;
+  latestLeaseHint: string;
+};
+
+function showModalAsync(options: WechatMiniprogram.ShowModalOption) {
+  return new Promise<WechatMiniprogram.ShowModalSuccessCallbackResult>((resolve) => {
+    wx.showModal({
+      ...options,
+      success: resolve
+    });
+  });
+}
 
 function parseRegionFromAddress(address: string, currentRegion: string[]) {
   const fallback = Array.isArray(currentRegion) && currentRegion.length === 3
@@ -40,6 +59,34 @@ function parseRegionFromAddress(address: string, currentRegion: string[]) {
   return fallback;
 }
 
+function formatAmountLabel(value: unknown) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? `¥${amount}` : '未录入';
+}
+
+function formatLatestLeaseHint(value: unknown) {
+  const text = String(value || '').trim();
+  const matched = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (!matched) {
+    return '最近录入租约：暂无';
+  }
+
+  return `最近录入租约：${matched[1]}`;
+}
+
+function normalizeAssets(rawAssets: Array<Record<string, unknown>>) {
+  return rawAssets.map<AssetDisplay>((item) => ({
+    ...item,
+    id: String(item.id || ''),
+    name: String(item.name || ''),
+    address: String(item.address || ''),
+    rentalMode: String(item.rentalMode || ''),
+    latestLeaseRentLabel: formatAmountLabel(item.latestLeaseRentAmount),
+    latestLeasePropertyLabel: formatAmountLabel(item.latestLeasePropertyAmount),
+    latestLeaseHint: formatLatestLeaseHint(item.latestLeaseAt)
+  }));
+}
+
 Page({
   data: {
     name: '',
@@ -51,21 +98,56 @@ Page({
     longitude: null as number | null,
     rentalMode: 'whole',
     message: '',
-    assets: [] as Array<Record<string, unknown>>
+    assets: [] as AssetDisplay[],
+    assetSearchKeyword: '',
+    visibleAssets: [] as AssetDisplay[],
+    assetListExpanded: false
   },
   async onShow() {
     await this.loadAssets();
   },
   async loadAssets() {
-    const assets = (await listAssets()) as Array<Record<string, unknown>>;
+    const rawAssets = (await listAssets()) as Array<Record<string, unknown>>;
+    const assets = normalizeAssets(rawAssets || []);
     this.setData({
-      assets: assets ?? []
+      assets
     });
+    this.applyAssetFilter(assets, this.data.assetSearchKeyword, this.data.assetListExpanded);
   },
   handleInputChange(event: WechatMiniprogram.Input) {
     const field = event.currentTarget.dataset.field as string;
     this.setData({
       [field]: event.detail.value
+    });
+  },
+  handleAssetSearch(event: WechatMiniprogram.Input) {
+    const keyword = String(event.detail.value || '');
+    this.setData({
+      assetSearchKeyword: keyword
+    });
+    this.applyAssetFilter(this.data.assets, keyword, this.data.assetListExpanded);
+  },
+  toggleAssetList() {
+    const nextExpanded = !this.data.assetListExpanded;
+    this.setData({
+      assetListExpanded: nextExpanded
+    });
+    this.applyAssetFilter(this.data.assets, this.data.assetSearchKeyword, nextExpanded);
+  },
+  applyAssetFilter(assets: AssetDisplay[], keyword: string, expanded: boolean) {
+    const normalized = String(keyword || '').trim().toLowerCase();
+    const filtered = !normalized
+      ? assets
+      : assets.filter((item) => {
+          const text = [item.name, item.address, item.id, item.rentalMode, item.latestLeaseHint]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+          return text.indexOf(normalized) >= 0;
+        });
+
+    this.setData({
+      visibleAssets: expanded || normalized ? filtered : filtered.slice(0, 8)
     });
   },
   handleRegionChange(event: WechatMiniprogram.CustomEvent) {
@@ -132,10 +214,34 @@ Page({
     await this.loadAssets();
   },
   openRoomsForm(event: WechatMiniprogram.BaseEvent) {
-    const assetId = event.currentTarget.dataset.assetId as string;
-    const assetName = event.currentTarget.dataset.assetName as string;
+    const assetId = String(event.currentTarget.dataset.assetId || '');
+    const assetName = String(event.currentTarget.dataset.assetName || '');
     wx.navigateTo({
       url: `/pages/rooms-form/index?assetId=${assetId}&assetName=${encodeURIComponent(assetName)}`
     });
+  },
+  async handleDeleteAsset(event: WechatMiniprogram.BaseEvent) {
+    const assetId = String(event.currentTarget.dataset.assetId || '');
+    const assetName = String(event.currentTarget.dataset.assetName || '');
+
+    if (!assetId) {
+      return;
+    }
+
+    const confirmation = await showModalAsync({
+      title: '删除房源',
+      content: `确认删除“${assetName}”吗？关联的房间、租约和账单也会一起删除。`
+    });
+
+    if (!confirmation.confirm) {
+      return;
+    }
+
+    await deleteAsset({ assetId });
+    wx.showToast({
+      title: '房源已删除',
+      icon: 'success'
+    });
+    await this.loadAssets();
   }
 });

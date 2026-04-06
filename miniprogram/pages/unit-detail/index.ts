@@ -29,7 +29,9 @@ type LeaseHistoryView = {
   tenantPhone: string;
   startDate: string;
   endDate: string;
-  periodLabel: string;
+  originalPeriodLabel: string;
+  actualPeriodLabel: string;
+  terminationRemark: string;
   repairCount: number;
   repairs: Array<{
     id: string;
@@ -59,6 +61,60 @@ function formatDateLabel(date: string) {
   return `${matched[1]}年${matched[2]}月${matched[3]}日`;
 }
 
+function formatPeriodLabel(startDate: string, endDate: string) {
+  return `${formatDateLabel(startDate)} - ${formatDateLabel(endDate)}`;
+}
+
+function normalizeClosedDate(raw: unknown) {
+  const source = String(raw || '').trim();
+  if (!source) {
+    return '';
+  }
+
+  const matched = source.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+  if (!matched) {
+    return '';
+  }
+
+  return `${matched[1]}-${matched[2]}-${matched[3]}`;
+}
+
+function hasOutstandingActiveBills(detail: DetailPayload | null) {
+  const monthlyBillGroups = Array.isArray(detail?.monthlyBillGroups) ? detail.monthlyBillGroups : [];
+
+  return monthlyBillGroups.some((group) =>
+    Array.isArray(group.items) &&
+    group.items.some((item) => String(item.status || '').toLowerCase() !== 'paid')
+  );
+}
+
+function getLocalDateKey() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function shouldPromptExpiryEndLease(detail: DetailPayload | null) {
+  const activeLease = detail?.activeLease;
+  if (!activeLease?.id) {
+    return false;
+  }
+
+  const contractEndDate = String(activeLease.endDate || '').slice(0, 10);
+  if (!contractEndDate) {
+    return false;
+  }
+
+  const todayDate = getLocalDateKey();
+  if (todayDate < contractEndDate) {
+    return false;
+  }
+
+  return !hasOutstandingActiveBills(detail);
+}
+
 function buildLeaseHistoryViews(detail: DetailPayload): LeaseHistoryView[] {
   const leaseHistory = Array.isArray(detail.leaseHistory) ? detail.leaseHistory : [];
   const tenantHistory = Array.isArray(detail.tenantHistory) ? detail.tenantHistory : [];
@@ -66,9 +122,21 @@ function buildLeaseHistoryViews(detail: DetailPayload): LeaseHistoryView[] {
   const tenantPeriodRepairs = Array.isArray(detail.tenantPeriodRepairs) ? detail.tenantPeriodRepairs : [];
   const activeLeaseId = String(detail.activeLease?.id || '');
 
-  const tenantPhoneMap = new Map<string, string>(
-    tenantHistory.map((tenant) => [String(tenant.id || ''), String(tenant.phone || '')])
-  );
+  const tenantPhoneMap = tenantHistory.reduce<Map<string, string>>((acc, tenant) => {
+    const phone = String(tenant.phone || '');
+    const businessId = String(tenant.id || '').trim();
+    const legacyDocId = String(tenant._id || '').trim();
+
+    if (businessId) {
+      acc.set(businessId, phone);
+    }
+
+    if (legacyDocId) {
+      acc.set(legacyDocId, phone);
+    }
+
+    return acc;
+  }, new Map<string, string>());
   const perLeaseCountMap = new Map<string, number>(
     tenantPeriodRepairs.map((item) => [String(item.leaseId || ''), Number(item.count || 0)])
   );
@@ -78,7 +146,12 @@ function buildLeaseHistoryViews(detail: DetailPayload): LeaseHistoryView[] {
     .map((lease) => {
       const leaseId = String(lease.id || '');
       const startDate = String(lease.startDate || '');
-      const endDate = String(lease.endDate || '');
+      const originalEndDate = String(lease.originalEndDate || lease.endDate || '');
+      const closedDate = normalizeClosedDate(lease.closedAt);
+      const actualEndDate = String(lease.actualEndDate || closedDate || lease.endDate || '');
+      const inferredEarlyTermination = Boolean(actualEndDate && originalEndDate && actualEndDate < originalEndDate);
+      const terminationRemark = String(lease.terminationRemark || '')
+        || (inferredEarlyTermination ? '提前结束租约' : '');
       const repairs = repairHistory
         .filter((repair) => String(repair.leaseId || '') === leaseId)
         .map((repair) => ({
@@ -93,8 +166,10 @@ function buildLeaseHistoryViews(detail: DetailPayload): LeaseHistoryView[] {
         tenantName: String(lease.tenantName || '未知租户'),
         tenantPhone: tenantPhoneMap.get(String(lease.tenantId || '')) || '',
         startDate,
-        endDate,
-        periodLabel: `${formatDateLabel(startDate)} - ${formatDateLabel(endDate)}`,
+        endDate: actualEndDate,
+        originalPeriodLabel: String(lease.originalPeriodLabel || formatPeriodLabel(startDate, originalEndDate)),
+        actualPeriodLabel: String(lease.actualPeriodLabel || formatPeriodLabel(startDate, actualEndDate)),
+        terminationRemark,
         repairCount: perLeaseCountMap.get(leaseId) ?? repairs.length,
         repairs
       };
@@ -315,6 +390,38 @@ Page({
       icon: 'success'
     });
     await this.loadDetail();
+
+    if (!shouldPromptExpiryEndLease(this.data.detail)) {
+      return;
+    }
+
+    const latestLeaseId = String(this.data.detail?.activeLease?.id || '');
+    if (!latestLeaseId) {
+      return;
+    }
+
+    const confirmation = await wx.showModal({
+      title: '期满结束租约',
+      content: '最后一期已登记收款，且租约已到期。是否立即按“期满结束租约”处理？'
+    });
+
+    if (!confirmation.confirm) {
+      return;
+    }
+
+    const closeResult = await this.endLeaseWithRetry(latestLeaseId);
+    if (!closeResult.success) {
+      wx.showToast({
+        title: closeResult.isTimeout ? '请求超时，请稍后重试' : '期满结束失败，请稍后重试',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.showToast({
+      title: '租约已期满结束',
+      icon: 'success'
+    });
   },
 
   openManualBillDialog(event: WechatMiniprogram.BaseEvent) {
@@ -514,6 +621,21 @@ Page({
       return;
     }
 
+    const closeResult = await this.endLeaseWithRetry(String(leaseId));
+    if (!closeResult.success) {
+      wx.showToast({
+        title: closeResult.isTimeout ? '请求超时，请稍后重试' : '结束租约失败，请稍后重试',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.showToast({
+      title: '租约已结束',
+      icon: 'success'
+    });
+  },
+  async endLeaseWithRetry(leaseId: string) {
     const confirmLeaseClosed = async () => {
       for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
@@ -534,6 +656,7 @@ Page({
     };
 
     let leaseClosed = false;
+    let isTimeout = false;
     try {
       await endLease({ leaseId });
       leaseClosed = await confirmLeaseClosed();
@@ -543,24 +666,16 @@ Page({
       const message = `${payload?.errMsg ?? ''} ${payload?.message ?? ''} ${
         error instanceof Error ? error.message : ''
       }`.toLowerCase();
-      const isTimeout = message.includes('timeout');
+      isTimeout = message.includes('timeout');
       leaseClosed = await confirmLeaseClosed();
 
       if (!leaseClosed) {
-        wx.showToast({
-          title: isTimeout ? '请求超时，请稍后重试' : '结束租约失败，请稍后重试',
-          icon: 'none'
-        });
-        return;
+        return { success: false, isTimeout };
       }
     }
 
     if (!leaseClosed) {
-      wx.showToast({
-        title: '结束租约失败，请稍后重试',
-        icon: 'none'
-      });
-      return;
+      return { success: false, isTimeout: false };
     }
 
     const pages = getCurrentPages();
@@ -578,9 +693,6 @@ Page({
       }
     }
 
-    wx.showToast({
-      title: '租约已结束',
-      icon: 'success'
-    });
+    return { success: true, isTimeout: false };
   }
 });

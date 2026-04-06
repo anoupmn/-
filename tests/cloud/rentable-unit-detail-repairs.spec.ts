@@ -163,4 +163,96 @@ describe('rentable-unit-detail repairs archive', () => {
     expect(result.repairHistory[0]?.categoryLabel).toBe('水路');
     expect(result.repairHistory[0]?.note).toContain('阳台地漏返味');
   });
+
+  it('uses actual end date for per-lease repair counts after early termination', async () => {
+    const store = createMockStore();
+    store.assets.push({
+      id: 'asset_2',
+      landlordOpenId: 'openid',
+      name: '金色家园',
+      rentalMode: 'room',
+      address: '',
+      note: '',
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.rooms.push({
+      id: 'room_2',
+      landlordOpenId: 'openid',
+      assetId: 'asset_2',
+      name: 'A2',
+      note: '',
+      isWholeUnitDefault: false,
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.tenants.push({
+      id: 'tenant_early',
+      landlordOpenId: 'openid',
+      name: '提前退租租客',
+      phone: '',
+      note: '',
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.leases.push({
+      id: 'lease_early',
+      landlordOpenId: 'openid',
+      roomId: 'room_2',
+      tenantId: 'tenant_early',
+      startDate: '2026-01-01',
+      endDate: '2026-06-30',
+      billingCycleDays: 30,
+      rentAmount: 2200,
+      depositAmount: 2200,
+      note: '',
+      closedAt: '2026-03-15T00:00:00.000Z',
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.repairRecords.push(
+      {
+        id: 'repair_early_1',
+        landlordOpenId: 'openid',
+        assetId: 'asset_2',
+        roomId: 'room_2',
+        leaseId: 'lease_early',
+        tenantId: 'tenant_early',
+        category: 'plumbing',
+        note: '退租前维修',
+        occurredAt: '2026-03-10',
+        createdAt: '',
+        updatedAt: ''
+      },
+      {
+        id: 'repair_early_2',
+        landlordOpenId: 'openid',
+        assetId: 'asset_2',
+        roomId: 'room_2',
+        leaseId: 'lease_early',
+        tenantId: 'tenant_early',
+        category: 'plumbing',
+        note: '退租后维修',
+        occurredAt: '2026-04-01',
+        createdAt: '',
+        updatedAt: ''
+      }
+    );
+
+    const result = await rentableUnitDetailMain({
+      roomId: 'room_2',
+      __mockDb: createMockDb(store),
+      now: '2026-04-10T00:00:00.000Z'
+    });
+
+    expect(result.tenantPeriodRepairs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          leaseId: 'lease_early',
+          endDate: '2026-03-15',
+          count: 1
+        })
+      ])
+    );
+  });
 });

@@ -26,6 +26,16 @@
   padding: 14rpx;
 }
 
+.search-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  padding: 12rpx 14rpx;
+  border-radius: 14rpx;
+  background: #f8fafc;
+  border: 1rpx dashed #cbd5e1;
+}
+
 .picker-field {
   border-radius: 16rpx;
   padding: 16rpx;
@@ -52,8 +62,26 @@
   border-radius: 16rpx;
 }
 
+.asset-item-selected {
+  background: #2563eb;
+  border-color: #1d4ed8;
+  box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, 0.2);
+}
+
 .asset-name {
   font-size: 30rpx;
+}
+
+.asset-select-hint {
+  font-size: 24rpx;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.asset-item-selected .asset-name,
+.asset-item-selected .text-muted,
+.asset-item-selected .asset-select-hint {
+  color: #ffffff;
 }
 
 .tip-block {

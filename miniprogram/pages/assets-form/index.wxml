@@ -58,27 +58,53 @@
       </view>
 
       <view wx:for="{{visibleAssets}}" wx:key="id" class="asset-item">
-        <view class="sub-title asset-name">{{item.name}}</view>
-        <view class="text-muted">地址：{{item.address || '未填写'}}</view>
-        <view class="text-muted">出租方式：{{item.rentalMode === 'whole' ? '整租' : item.rentalMode === 'room' ? '分租' : '未设置'}}</view>
+        <view class="asset-top-row">
+          <view class="asset-main">
+            <view class="sub-title asset-name">{{item.name}}</view>
+            <view class="text-muted">地址：{{item.address || '未填写'}}</view>
+            <view class="text-muted">出租方式：{{item.rentalMode === 'whole' ? '整租' : item.rentalMode === 'room' ? '分租' : '未设置'}}</view>
+          </view>
+        </view>
         <view class="asset-actions">
-          <button
-            class="primary-button"
+          <view
+            class="asset-mini-button asset-mini-primary"
             data-asset-id="{{item.id}}"
             data-asset-name="{{item.name}}"
             bindtap="openRoomsForm"
           >
-            给这个房源添加房间
-          </button>
-          <button
-            class="danger-button"
+            <view class="plus-icon">
+              <view class="plus-line plus-line-x"></view>
+              <view class="plus-line plus-line-y"></view>
+            </view>
+          </view>
+          <view
+            class="asset-mini-button asset-mini-danger"
             data-asset-id="{{item.id}}"
             data-asset-name="{{item.name}}"
             bindtap="handleDeleteAsset"
           >
-            删除房源
-          </button>
+            <view class="trash-icon">
+              <view class="trash-lid"></view>
+              <view class="trash-handle"></view>
+              <view class="trash-body">
+                <view class="trash-line"></view>
+                <view class="trash-line"></view>
+                <view class="trash-line"></view>
+              </view>
+            </view>
+          </view>
         </view>
+        <view class="asset-rent-row">
+          <view class="asset-metric">
+            <view class="asset-metric-label">最近租金</view>
+            <view class="asset-metric-value">{{item.latestLeaseRentLabel}}</view>
+          </view>
+          <view class="asset-metric">
+            <view class="asset-metric-label">最近管理费</view>
+            <view class="asset-metric-value">{{item.latestLeasePropertyLabel}}</view>
+          </view>
+        </view>
+        <view class="text-muted">{{item.latestLeaseHint}}</view>
       </view>
 
       <button

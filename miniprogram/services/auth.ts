@@ -25,7 +25,7 @@ export async function requireAuthSession(): Promise<LandlordSession | null> {
   return session;
 }
 
-export async function loginAsLandlord(displayName = '房东'): Promise<LandlordSession> {
+export async function loginAsLandlord(displayName = '用户'): Promise<LandlordSession> {
   const response = await wx.cloud.callFunction({
     name: 'login',
     data: {

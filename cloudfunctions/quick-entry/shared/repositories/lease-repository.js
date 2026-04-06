@@ -9,6 +9,36 @@ const lease_lifecycle_1 = require("../calculators/lease-lifecycle");
 const lease_1 = require("../schemas/lease");
 const runtime_1 = require("../runtime");
 const bill_repository_1 = require("./bill-repository");
+function normalizeDateKey(value) {
+    return String(value ?? '').slice(0, 10);
+}
+function resolveEffectiveLeaseEndDate(lease) {
+    const contractEndDate = normalizeDateKey(lease.endDate);
+    const closedDate = normalizeDateKey(lease.closedAt);
+    if (closedDate && closedDate < contractEndDate) {
+        return closedDate;
+    }
+    return contractEndDate;
+}
+function isDateRangeOverlapped(leftStartDate, leftEndDate, rightStartDate, rightEndDate) {
+    return leftStartDate <= rightEndDate && rightStartDate <= leftEndDate;
+}
+function assertNoLeaseDateOverlap(leases, nextLease, excludeLeaseId) {
+    const nextStartDate = normalizeDateKey(nextLease.startDate);
+    const nextEndDate = normalizeDateKey(nextLease.endDate);
+    if (!nextStartDate || !nextEndDate) {
+        throw new Error('租约日期不完整，请填写开始和结束日期后再保存。');
+    }
+    if (nextStartDate > nextEndDate) {
+        throw new Error('租约开始日期不能晚于结束日期。');
+    }
+    const conflictLease = leases
+        .filter((lease) => lease.id !== excludeLeaseId && lease.roomId === nextLease.roomId && lease.landlordOpenId === nextLease.landlordOpenId)
+        .find((lease) => isDateRangeOverlapped(normalizeDateKey(lease.startDate), resolveEffectiveLeaseEndDate(lease), nextStartDate, nextEndDate));
+    if (conflictLease) {
+        throw new Error(`租约时间冲突：该房间已存在租约 ${normalizeDateKey(conflictLease.startDate)} 至 ${resolveEffectiveLeaseEndDate(conflictLease)}，请调整租期后再保存。`);
+    }
+}
 function resolveNextFeeRules(currentLease, changes) {
     const baseFeeRules = (0, lease_1.getLeaseFeeRules)(currentLease);
     if (changes.feeRules) {
@@ -50,6 +80,7 @@ async function createLease(db, landlordOpenId, input, event) {
         createdAt: (0, runtime_1.resolveNow)(event),
         updatedAt: (0, runtime_1.resolveNow)(event)
     });
+    assertNoLeaseDateOverlap(leases, lease);
     (0, lease_lifecycle_1.assertSingleActiveLease)(leases, lease, (0, runtime_1.resolveNow)(event));
     await (0, runtime_1.insertRecord)(db, collections_1.COLLECTIONS.leases, lease);
     await (0, bill_repository_1.syncBillsForLease)(db, lease, event);
@@ -57,6 +88,7 @@ async function createLease(db, landlordOpenId, input, event) {
 }
 async function updateLease(db, leaseId, changes, event) {
     const currentLease = await (0, runtime_1.findById)(db, collections_1.COLLECTIONS.leases, leaseId);
+    const leases = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.leases);
     if (!currentLease) {
         throw new Error(`Lease ${leaseId} not found.`);
     }
@@ -66,6 +98,8 @@ async function updateLease(db, leaseId, changes, event) {
         feeRules: resolveNextFeeRules(currentLease, changes),
         updatedAt: (0, runtime_1.resolveNow)(event)
     });
+    assertNoLeaseDateOverlap(leases, nextLease, leaseId);
+    (0, lease_lifecycle_1.assertSingleActiveLease)(leases.filter((lease) => lease.id !== leaseId), nextLease, (0, runtime_1.resolveNow)(event));
     const updatedLease = await (0, runtime_1.updateRecord)(db, collections_1.COLLECTIONS.leases, leaseId, {
         ...changes,
         feeRules: nextLease.feeRules,

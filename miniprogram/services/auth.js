@@ -22,7 +22,7 @@ async function loginAsLandlord(displayName) {
   const response = await wx.cloud.callFunction({
     name: 'login',
     data: {
-      displayName: displayName || '房东'
+      displayName: displayName || '用户'
     }
   });
   const result = response.result || {};

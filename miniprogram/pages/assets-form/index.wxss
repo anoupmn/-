@@ -52,10 +52,11 @@
 }
 
 .asset-item {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
-  padding: 16rpx;
+  gap: 12rpx;
+  padding: 18rpx 92rpx 18rpx 18rpx;
   background: #f7f9fc;
   border: 1rpx solid #dce4ee;
   border-radius: 16rpx;
@@ -65,9 +66,146 @@
   font-size: 30rpx;
 }
 
-.asset-actions {
+.asset-top-row {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0;
+}
+
+.asset-main {
+  width: 100%;
   display: flex;
   flex-direction: column;
+  gap: 8rpx;
+}
+
+.asset-actions {
+  position: absolute;
+  right: 14rpx;
+  top: 14rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 10rpx;
+  flex-shrink: 0;
+}
+
+.asset-mini-button {
+  width: 44rpx;
+  height: 44rpx;
+  min-width: 44rpx;
+  min-height: 44rpx;
+  line-height: 44rpx;
+  padding: 0;
+  border-radius: 10rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.asset-mini-primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.asset-mini-danger {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1rpx solid #fecaca;
+}
+
+.plus-icon {
+  position: relative;
+  width: 18rpx;
+  height: 18rpx;
+}
+
+.plus-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16rpx;
+  height: 3rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  transform: translate(-50%, -50%);
+}
+
+.plus-line-y {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.trash-icon {
+  position: relative;
+  width: 20rpx;
+  height: 22rpx;
+}
+
+.trash-lid {
+  position: absolute;
+  left: 3rpx;
+  top: 3rpx;
+  width: 14rpx;
+  height: 2rpx;
+  border-radius: 999rpx;
+  background: #dc2626;
+}
+
+.trash-handle {
+  position: absolute;
+  left: 7rpx;
+  top: 1rpx;
+  width: 6rpx;
+  height: 2rpx;
+  border: 1rpx solid #dc2626;
+  border-bottom: none;
+  border-radius: 4rpx 4rpx 0 0;
+}
+
+.trash-body {
+  position: absolute;
+  left: 4rpx;
+  top: 7rpx;
+  width: 12rpx;
+  height: 12rpx;
+  border: 1rpx solid #dc2626;
+  border-top: 2rpx solid #dc2626;
+  border-radius: 0 0 3rpx 3rpx;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.trash-line {
+  width: 1rpx;
+  height: 6rpx;
+  background: #dc2626;
+  border-radius: 999rpx;
+}
+
+.asset-rent-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12rpx;
+}
+
+.asset-metric {
+  padding: 12rpx 14rpx;
+  border-radius: 12rpx;
+  background: #ffffff;
+  border: 1rpx solid #e2e8f0;
+}
+
+.asset-metric-label {
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.asset-metric-value {
   margin-top: 6rpx;
+  font-size: 28rpx;
+  line-height: 1.2;
+  color: #0f172a;
+  font-weight: 600;
 }

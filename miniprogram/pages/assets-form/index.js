@@ -24,7 +24,6 @@ function parseRegionFromAddress(address, currentRegion) {
     const city = municipalityMatch[1];
     const rest = normalized.slice(city.length);
     const districtMatch = rest.match(/^(.*?(?:区|县|市|旗))/);
-
     return [city, city, districtMatch ? districtMatch[1] : fallback[2]];
   }
 
@@ -36,7 +35,6 @@ function parseRegionFromAddress(address, currentRegion) {
     const city = cityMatch ? cityMatch[1] : fallback[1];
     const districtSource = cityMatch ? rest.slice(city.length) : rest;
     const districtMatch = districtSource.match(/^(.*?(?:区|县|市|旗))/);
-
     return [province, city, districtMatch ? districtMatch[1] : fallback[2]];
   }
 
@@ -49,6 +47,34 @@ function parseRegionFromAddress(address, currentRegion) {
   }
 
   return fallback;
+}
+
+function formatAmountLabel(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? `¥${amount}` : '未录入';
+}
+
+function formatLatestLeaseHint(value) {
+  const text = String(value || '').trim();
+  const matched = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (!matched) {
+    return '最近录入租约：暂无';
+  }
+
+  return `最近录入租约：${matched[1]}`;
+}
+
+function normalizeAssets(rawAssets) {
+  return rawAssets.map((item) => ({
+    ...item,
+    id: String(item.id || ''),
+    name: String(item.name || ''),
+    address: String(item.address || ''),
+    rentalMode: String(item.rentalMode || ''),
+    latestLeaseRentLabel: formatAmountLabel(item.latestLeaseRentAmount),
+    latestLeasePropertyLabel: formatAmountLabel(item.latestLeasePropertyAmount),
+    latestLeaseHint: formatLatestLeaseHint(item.latestLeaseAt)
+  }));
 }
 
 Page({
@@ -71,11 +97,13 @@ Page({
     await this.loadAssets();
   },
   async loadAssets() {
-    const assets = await listAssets();
+    const rawAssets = await listAssets();
+    const assets = normalizeAssets(rawAssets || []);
+
     this.setData({
-      assets: assets || []
+      assets
     });
-    this.applyAssetFilter(assets || [], this.data.assetSearchKeyword, this.data.assetListExpanded);
+    this.applyAssetFilter(assets, this.data.assetSearchKeyword, this.data.assetListExpanded);
   },
   handleInputChange(event) {
     const field = event.currentTarget.dataset.field;
@@ -84,7 +112,7 @@ Page({
     });
   },
   handleAssetSearch(event) {
-    const keyword = event.detail.value || '';
+    const keyword = String(event.detail.value || '');
     this.setData({
       assetSearchKeyword: keyword
     });
@@ -102,7 +130,10 @@ Page({
     const filtered = !normalized
       ? assets
       : assets.filter((item) => {
-          const text = [item.name, item.address, item.id, item.rentalMode].filter(Boolean).join(' ').toLowerCase();
+          const text = [item.name, item.address, item.id, item.rentalMode, item.latestLeaseHint]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
           return text.indexOf(normalized) >= 0;
         });
 
@@ -124,7 +155,7 @@ Page({
     try {
       const result = await wx.chooseLocation({});
       const locationName = (result.name || '').trim();
-      const nextRegion = parseRegionFromAddress(result.address, this.data.region);
+      const nextRegion = parseRegionFromAddress(result.address || '', this.data.region);
 
       this.setData({
         name: locationName || this.data.name,
@@ -135,33 +166,28 @@ Page({
         longitude: result.longitude
       });
     } catch (error) {
-      if (error && error.errMsg && error.errMsg.indexOf('cancel') >= 0) {
+      const errMsg = error && typeof error === 'object' && 'errMsg' in error ? String(error.errMsg) : '';
+      if (errMsg.includes('cancel')) {
         return;
       }
 
-      const errMsg = error && error.errMsg ? error.errMsg : '未知错误';
       wx.showModal({
         title: '地图选点暂不可用',
-        content: '当前环境地图选点失败。请稍后重试或在真机调试中使用地图选点。\n\n错误信息：' + errMsg,
+        content: `当前环境地图选点失败。请稍后重试或在真机调试中使用地图选点。\n\n错误信息：${errMsg || '未知错误'}`,
         showCancel: false
       });
     }
   },
   buildAddress() {
-    return [
-      (this.data.region || []).join(''),
-      this.data.selectedAddress,
-      this.data.addressDetail
-    ]
+    return [this.data.region.join(''), this.data.selectedAddress, this.data.addressDetail]
       .filter(Boolean)
       .join(' ');
   },
   async handleSubmit() {
-    const finalAddress = this.buildAddress();
     const result = await saveAsset({
       asset: {
         name: this.data.name,
-        address: finalAddress,
+        address: this.buildAddress(),
         rentalMode: this.data.rentalMode,
         note: ''
       }
@@ -174,20 +200,20 @@ Page({
       locationName: '',
       latitude: null,
       longitude: null,
-      message: '房源已保存：' + result.asset.name
+      message: `房源已保存：${String((result && result.asset && result.asset.name) || '')}`
     });
     await this.loadAssets();
   },
   openRoomsForm(event) {
-    const assetId = event.currentTarget.dataset.assetId;
-    const assetName = event.currentTarget.dataset.assetName;
+    const assetId = String(event.currentTarget.dataset.assetId || '');
+    const assetName = String(event.currentTarget.dataset.assetName || '');
     wx.navigateTo({
-      url: '/pages/rooms-form/index?assetId=' + assetId + '&assetName=' + encodeURIComponent(assetName)
+      url: `/pages/rooms-form/index?assetId=${assetId}&assetName=${encodeURIComponent(assetName)}`
     });
   },
   async handleDeleteAsset(event) {
-    const assetId = event.currentTarget.dataset.assetId;
-    const assetName = event.currentTarget.dataset.assetName;
+    const assetId = String(event.currentTarget.dataset.assetId || '');
+    const assetName = String(event.currentTarget.dataset.assetName || '');
 
     if (!assetId) {
       return;
@@ -195,7 +221,7 @@ Page({
 
     const confirmation = await showModalAsync({
       title: '删除房源',
-      content: '确认删除“' + assetName + '”吗？关联的房间、租约和账单也会一起删除。'
+      content: `确认删除“${assetName}”吗？关联的房间、租约和账单也会一起删除。`
     });
 
     if (!confirmation.confirm) {

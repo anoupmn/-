@@ -3,7 +3,7 @@
     <view class="card intro-card">
       <view class="section-head-main">
         <view class="page-title">首页</view>
-        <view class="text-body">你好，{{displayName || '房东'}}。先看经营概览，再按异常摘要和今日建议安排处理顺序。</view>
+        <view class="text-body">你好，{{displayName || '用户'}}。先看经营概览，再按异常摘要和今日建议安排处理顺序。</view>
         <view class="text-muted">状态口径统一：即将到期 / 已逾期 / 空置过久 / 人工异常（含维修高频异常）。</view>
       </view>
       <view class="status-line text-muted">{{status}}</view>

@@ -1,4 +1,5 @@
 import { requireAuthSession } from '../../services/auth';
+import { setPendingUnitListDrilldownQuery } from '../../services/rentable-unit';
 
 Page({
   data: {
@@ -27,6 +28,15 @@ Page({
     });
   },
   openUnitsTab() {
+    wx.switchTab({
+      url: '/pages/units/index'
+    });
+  },
+  openLeaseList() {
+    setPendingUnitListDrilldownQuery({
+      mainStatus: 'occupied'
+    });
+
     wx.switchTab({
       url: '/pages/units/index'
     });

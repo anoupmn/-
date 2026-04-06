@@ -14,31 +14,27 @@
         bindinput="handleAssetSearch"
         value="{{assetSearchKeyword}}"
       />
+      <view class="search-guide">
+        <view class="text-muted">默认仅展示 3 条房源，请先输入关键词模糊搜索。</view>
+        <view class="text-muted">找到后直接点击整条房源卡片，卡片变蓝即选中。</view>
+      </view>
       <view class="tip-row">
         <view class="field-label">当前房源</view>
         <view class="picker-value">{{selectedAssetName || '请先选择房源'}}</view>
       </view>
 
-      <view wx:for="{{visibleAssets}}" wx:key="id" class="asset-item">
+      <view
+        wx:for="{{visibleAssets}}"
+        wx:key="id"
+        class="asset-item {{selectedAssetId === item.id ? 'asset-item-selected' : ''}}"
+        data-asset-id="{{item.id}}"
+        data-asset-name="{{item.name}}"
+        bindtap="selectAsset"
+      >
         <view class="sub-title asset-name">{{item.name}}</view>
         <view class="text-muted">{{item.address || '未填写地址'}}</view>
-        <button
-          class="secondary-button"
-          data-asset-id="{{item.id}}"
-          data-asset-name="{{item.name}}"
-          bindtap="selectAsset"
-        >
-          选择这个房源
-        </button>
+        <view class="asset-select-hint">{{selectedAssetId === item.id ? '已选中' : '点击卡片选中'}}</view>
       </view>
-
-      <button
-        wx:if="{{!assetSearchKeyword && assets.length > 8}}"
-        class="secondary-button"
-        bindtap="toggleAssetList"
-      >
-        {{assetListExpanded ? '收起部分房源' : '查看更多房源'}}
-      </button>
 
       <picker range="{{rooms}}" range-key="name" value="{{roomIndex}}" bindchange="handleRoomChange">
         <view class="picker-field">
@@ -87,7 +83,7 @@
         <view class="text-muted">请在“房源列表 > 单元详情 > 月度账单”按当月实际金额逐月补录。</view>
       </view>
 
-      <button class="primary-button" bindtap="handleSubmit">保存租约</button>
+      <button class="primary-button" bindtap="handleSubmit" loading="{{submitting}}" disabled="{{submitting}}">保存租约</button>
       <view wx:if="{{message}}" class="submit-message">{{message}}</view>
     </view>
   </view>

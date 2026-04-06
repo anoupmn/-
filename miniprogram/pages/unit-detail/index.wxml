@@ -35,26 +35,6 @@
       <view class="hint" wx:if="{{!detail.activeLease}}">当前没有生效中的租约。</view>
     </view>
 
-    <view class="card action-card">
-      <view class="section-subtitle">维修记录</view>
-      <view class="hint">固定分类 + 备注，系统会自动关联到对应租住期间。</view>
-      <button class="secondary-button single-action" bindtap="openRepairDialog">记录维修</button>
-    </view>
-
-    <view class="card history-card">
-      <view class="section-subtitle">维修统计</view>
-      <view class="field">累计维修：{{detail.repairStats.totalCount || 0}} 次</view>
-      <view class="field">近 30 天：{{detail.repairStats.recent30dCount || 0}} 次</view>
-      <view class="field" wx:if="{{detail.repairStats.abnormal.active}}">
-        异常识别：{{detail.repairStats.abnormal.reason}}
-      </view>
-      <view class="field-label">主要维修类别</view>
-      <view wx:if="{{!detail.repairStats.topCategories.length}}" class="hint">暂无维修记录</view>
-      <view wx:for="{{detail.repairStats.topCategories}}" wx:key="category" class="field">
-        {{item.label}}：{{item.count}} 次
-      </view>
-    </view>
-
     <view class="card">
       <view class="section-subtitle">月度账单</view>
       <view wx:for="{{detail.monthlyBillGroups}}" wx:key="monthKey" class="month-card">
@@ -106,6 +86,26 @@
       </view>
     </view>
 
+    <view class="card action-card">
+      <view class="section-subtitle">维修记录</view>
+      <view class="hint">固定分类 + 备注，系统会自动关联到对应租住期间。</view>
+      <button class="secondary-button single-action" bindtap="openRepairDialog">记录维修</button>
+    </view>
+
+    <view class="card history-card">
+      <view class="section-subtitle">维修统计</view>
+      <view class="field">累计维修：{{detail.repairStats.totalCount || 0}} 次</view>
+      <view class="field">近 30 天：{{detail.repairStats.recent30dCount || 0}} 次</view>
+      <view class="field" wx:if="{{detail.repairStats.abnormal.active}}">
+        异常识别：{{detail.repairStats.abnormal.reason}}
+      </view>
+      <view class="field-label">主要维修类别</view>
+      <view wx:if="{{!detail.repairStats.topCategories.length}}" class="hint">暂无维修记录</view>
+      <view wx:for="{{detail.repairStats.topCategories}}" wx:key="category" class="field">
+        {{item.label}}：{{item.count}} 次
+      </view>
+    </view>
+
     <view class="card history-card">
       <view class="history-head">
         <view>
@@ -121,7 +121,9 @@
           <view class="lease-main">
             <view class="lease-tenant">{{item.tenantName}}</view>
             <view class="field">联系方式：{{item.tenantPhone || '未记录'}}</view>
-            <view class="field">租约时间：{{item.periodLabel}}</view>
+            <view class="field">原租约：{{item.originalPeriodLabel}}</view>
+            <view class="field">实际租约：{{item.actualPeriodLabel}}</view>
+            <view wx:if="{{item.terminationRemark}}" class="lease-remark">{{item.terminationRemark}}</view>
           </view>
           <view class="lease-side">
             <view class="lease-count">{{item.repairCount}} 次维修</view>

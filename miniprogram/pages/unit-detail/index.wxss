@@ -164,6 +164,18 @@
   color: #111827;
 }
 
+.lease-remark {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 22rpx;
+}
+
 .lease-side {
   display: flex;
   flex-direction: column;

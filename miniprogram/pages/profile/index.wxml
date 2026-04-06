@@ -2,9 +2,9 @@
   <view class="profile-shell page-stack">
     <view class="card account-card">
       <view class="page-title">我的</view>
-      <view class="sub-title account-name">{{displayName || '房东账号'}}</view>
+      <view class="sub-title account-name">{{displayName || '用户'}}</view>
       <view class="text-muted">账号标识：{{openidMasked || '未获取'}}</view>
-      <view class="text-weak">账号信息用于识别当前房东工作空间。</view>
+      <view class="text-weak">账号信息用于识别当前用户工作空间。</view>
     </view>
 
     <view class="card subscription-card">

@@ -1,5 +1,36 @@
 import { bootstrapAuthSession, loginAsLandlord } from '../../services/auth';
 
+function resolveLoginDisplayName() {
+  return new Promise<string>((resolve, reject) => {
+    if (typeof wx.getUserProfile !== 'function') {
+      resolve('用户');
+      return;
+    }
+
+    wx.getUserProfile({
+      desc: '用于设置你的登录用户名',
+      success: (result) => {
+        const displayName = String(result.userInfo?.nickName || '').trim();
+        resolve(displayName || '用户');
+      },
+      fail: (error) => {
+        reject(error);
+      }
+    });
+  });
+}
+
+function resolveLoginErrorMessage(error: unknown) {
+  const payload = error as { message?: string; errMsg?: string } | undefined;
+  const rawMessage = `${payload?.message ?? ''} ${payload?.errMsg ?? ''}`.toLowerCase();
+
+  if (rawMessage.includes('auth deny') || rawMessage.includes('authorize deny')) {
+    return '需要同意微信昵称授权后才能登录';
+  }
+
+  return payload?.message || '登录失败，请稍后重试';
+}
+
 Page({
   data: {
     loading: true,
@@ -19,18 +50,22 @@ Page({
     });
   },
   async handleLogin() {
+    if (this.data.loading || this.data.submitting) {
+      return;
+    }
+
     this.setData({
       submitting: true,
       errorMessage: ''
     });
 
     try {
-      await loginAsLandlord();
+      const displayName = await resolveLoginDisplayName();
+      await loginAsLandlord(displayName);
       await wx.reLaunch({ url: '/pages/workbench/index' });
     } catch (error) {
-      const message = error instanceof Error ? error.message : '登录失败，请稍后重试';
       this.setData({
-        errorMessage: message,
+        errorMessage: resolveLoginErrorMessage(error),
         submitting: false
       });
       return;
