@@ -82,7 +82,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Current State
 
-Phase 1 and Phase 2 complete. Phase 3 is in progress (2/3 plans complete). 项目已经具备 landlord 登录、核心数据骨架、手动建档、经营列表、详情历史、结束租约闭环、账单与房态视图，以及首页驾驶舱和按规则分组的提醒中心。
+Phase 1, Phase 2, and Phase 3 complete. 项目已经具备 landlord 登录、核心数据骨架、手动建档、经营列表、详情历史、结束租约闭环、账单与房态视图、首页驾驶舱、按规则分组的提醒中心，以及提醒订阅引导与规则开关设置页。
 
 ---
-*Last updated: 2026-04-06 after Phase 3 Plan 02 completion*
+*Last updated: 2026-04-06 after Phase 3 completion*
