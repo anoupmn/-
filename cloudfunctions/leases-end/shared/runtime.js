@@ -46,6 +46,11 @@ function isCollectionMissingError(error) {
     const message = payload?.message ?? '';
     return payload?.errCode === -502005 || message.includes('collection not exists') || message.includes('Db or Table not exist');
 }
+function isDocumentNotFoundError(error) {
+    const payload = error;
+    const message = payload?.message ?? '';
+    return payload?.errCode === -504002 || message.includes('document.get:fail document with _id');
+}
 function isCollectionAlreadyExistsError(error) {
     const payload = error;
     const message = payload?.message ?? '';
@@ -113,8 +118,20 @@ async function listAll(db, collectionName) {
     }
 }
 async function findById(db, collectionName, id) {
-    const result = await db.collection(collectionName).doc(id).get();
-    return result.data;
+    try {
+        const result = await db.collection(collectionName).doc(id).get();
+        if (result.data) {
+            return result.data;
+        }
+    }
+    catch (error) {
+        if (!isDocumentNotFoundError(error)) {
+            throw error;
+        }
+    }
+    const byBusinessId = await db.collection(collectionName).where({ id }).get();
+    const firstMatch = (byBusinessId.data || [])[0];
+    return firstMatch ?? null;
 }
 async function insertRecord(db, collectionName, record) {
     try {
@@ -155,7 +172,20 @@ async function clearCollection(db, collectionName) {
     }
 }
 async function updateRecord(db, collectionName, id, changes) {
-    await db.collection(collectionName).doc(id).update({ data: changes });
+    try {
+        await db.collection(collectionName).doc(id).update({ data: changes });
+    }
+    catch (error) {
+        if (!isDocumentNotFoundError(error)) {
+            throw error;
+        }
+        const byBusinessId = await db.collection(collectionName).where({ id }).get();
+        const target = (byBusinessId.data || [])[0];
+        if (!target?._id) {
+            throw new Error(`Record ${id} was not found by _id or business id.`);
+        }
+        await db.collection(collectionName).doc(target._id).update({ data: changes });
+    }
     const updated = await findById(db, collectionName, id);
     if (!updated) {
         throw new Error(`Record ${id} was not found after update.`);

@@ -80,6 +80,12 @@ function isCollectionMissingError(error: unknown) {
   return payload?.errCode === -502005 || message.includes('collection not exists') || message.includes('Db or Table not exist');
 }
 
+function isDocumentNotFoundError(error: unknown) {
+  const payload = error as { errCode?: number; message?: string } | undefined;
+  const message = payload?.message ?? '';
+  return payload?.errCode === -504002 || message.includes('document.get:fail document with _id');
+}
+
 function isCollectionAlreadyExistsError(error: unknown) {
   const payload = error as { message?: string } | undefined;
   const message = payload?.message ?? '';
@@ -159,8 +165,20 @@ export async function listAll<T extends DbRecord>(db: DbLike, collectionName: st
 }
 
 export async function findById<T extends DbRecord>(db: DbLike, collectionName: string, id: string) {
-  const result = await db.collection(collectionName).doc(id).get();
-  return result.data as T | null;
+  try {
+    const result = await db.collection(collectionName).doc(id).get();
+    if (result.data) {
+      return result.data as T;
+    }
+  } catch (error) {
+    if (!isDocumentNotFoundError(error)) {
+      throw error;
+    }
+  }
+
+  const byBusinessId = await db.collection(collectionName).where({ id }).get();
+  const firstMatch = (byBusinessId.data || [])[0] as T | undefined;
+  return firstMatch ?? null;
 }
 
 export async function insertRecord<T extends DbRecord>(db: DbLike, collectionName: string, record: T) {
@@ -216,7 +234,22 @@ export async function updateRecord<T extends DbRecord>(
   id: string,
   changes: Partial<T>
 ) {
-  await db.collection(collectionName).doc(id).update({ data: changes as Partial<DbRecord> });
+  try {
+    await db.collection(collectionName).doc(id).update({ data: changes as Partial<DbRecord> });
+  } catch (error) {
+    if (!isDocumentNotFoundError(error)) {
+      throw error;
+    }
+
+    const byBusinessId = await db.collection(collectionName).where({ id }).get();
+    const target = (byBusinessId.data || [])[0] as (DbRecord & { _id?: string }) | undefined;
+    if (!target?._id) {
+      throw new Error(`Record ${id} was not found by _id or business id.`);
+    }
+
+    await db.collection(collectionName).doc(target._id).update({ data: changes as Partial<DbRecord> });
+  }
+
   const updated = await findById<T>(db, collectionName, id);
   if (!updated) {
     throw new Error(`Record ${id} was not found after update.`);
