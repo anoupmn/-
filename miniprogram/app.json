@@ -15,9 +15,9 @@
     "pages/unit-detail/index"
   ],
   "tabBar": {
-    "color": "#7b8796",
-    "selectedColor": "#1f6feb",
-    "backgroundColor": "#f7f9fc",
+    "color": "#5f6672",
+    "selectedColor": "#22272f",
+    "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [
       {
