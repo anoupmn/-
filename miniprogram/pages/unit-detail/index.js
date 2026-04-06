@@ -13,6 +13,46 @@ function formatStatusLabel(status) {
     };
     return mapping[status] ?? status;
 }
+function formatDateLabel(date) {
+    const matched = String(date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!matched) {
+        return date || '';
+    }
+    return `${matched[1]}年${matched[2]}月${matched[3]}日`;
+}
+function buildLeaseHistoryViews(detail) {
+    const leaseHistory = Array.isArray(detail.leaseHistory) ? detail.leaseHistory : [];
+    const tenantHistory = Array.isArray(detail.tenantHistory) ? detail.tenantHistory : [];
+    const repairHistory = Array.isArray(detail.repairHistory) ? detail.repairHistory : [];
+    const tenantPeriodRepairs = Array.isArray(detail.tenantPeriodRepairs) ? detail.tenantPeriodRepairs : [];
+    const tenantPhoneMap = new Map(tenantHistory.map((tenant) => [String(tenant.id || ''), String(tenant.phone || '')]));
+    const perLeaseCountMap = new Map(tenantPeriodRepairs.map((item) => [String(item.leaseId || ''), Number(item.count || 0)]));
+    return leaseHistory
+        .map((lease) => {
+        const leaseId = String(lease.id || '');
+        const startDate = String(lease.startDate || '');
+        const endDate = String(lease.endDate || '');
+        const repairs = repairHistory
+            .filter((repair) => String(repair.leaseId || '') === leaseId)
+            .map((repair) => ({
+            id: String(repair.id || `${leaseId}-${repair.occurredAt || ''}-${repair.note || ''}`),
+            occurredAt: String(repair.occurredAt || ''),
+            categoryLabel: String(repair.categoryLabel || '维修'),
+            note: String(repair.note || '')
+        }));
+        return {
+            leaseId,
+            tenantName: String(lease.tenantName || '未知租户'),
+            tenantPhone: tenantPhoneMap.get(String(lease.tenantId || '')) || '',
+            startDate,
+            endDate,
+            periodLabel: `${formatDateLabel(startDate)} - ${formatDateLabel(endDate)}`,
+            repairCount: perLeaseCountMap.get(leaseId) ?? repairs.length,
+            repairs
+        };
+    })
+        .sort((a, b) => b.startDate.localeCompare(a.startDate));
+}
 const MANUAL_BILL_TYPE_KEYS = ['water', 'electricity', 'repair', 'custom'];
 const MANUAL_BILL_TYPE_LABELS = ['水费', '电费', '维修费', '其他费用'];
 const REPAIR_CATEGORY_OPTIONS = [
@@ -48,7 +88,8 @@ Page({
     data: {
         roomId: '',
         detail: null,
-        historyCollapsed: true,
+        leaseHistoryViews: [],
+        expandedLeaseHistory: {},
         expandedMonths: {},
         paymentDialogVisible: false,
         paymentForm: {
@@ -88,6 +129,20 @@ Page({
                 statusLabel: formatStatusLabel(item.status)
             }))
         }));
+        const leaseHistoryViews = buildLeaseHistoryViews(detail);
+        const previousExpandedState = this.data.expandedLeaseHistory ?? {};
+        let hasExpandedItem = false;
+        const expandedLeaseHistory = leaseHistoryViews.reduce((acc, item) => {
+            const expanded = Boolean(previousExpandedState[item.leaseId]);
+            if (expanded) {
+                hasExpandedItem = true;
+            }
+            acc[item.leaseId] = expanded;
+            return acc;
+        }, {});
+        if (!hasExpandedItem && leaseHistoryViews.length) {
+            expandedLeaseHistory[leaseHistoryViews[0].leaseId] = true;
+        }
         const expandedMonths = monthlyBillGroups.reduce((acc, group) => {
             acc[group.monthKey] = group.expandedByDefault;
             return acc;
@@ -98,17 +153,30 @@ Page({
                 ...detail,
                 monthlyBillGroups
             },
+            leaseHistoryViews,
+            expandedLeaseHistory,
             expandedMonths,
-            historyCollapsed: detail.historyCollapsedByDefault ?? true
         });
     },
     async onLoad(query) {
         const roomId = query.roomId;
         await this.loadDetail(roomId);
     },
-    toggleHistory() {
+    toggleLeaseHistoryItem(event) {
+        const leaseId = String(event.currentTarget.dataset.leaseId || '');
+        if (!leaseId) {
+            return;
+        }
+        const nextExpanded = !this.data.expandedLeaseHistory[leaseId];
+        const resetState = Object.keys(this.data.expandedLeaseHistory).reduce((acc, id) => {
+            acc[id] = false;
+            return acc;
+        }, {});
+        if (nextExpanded) {
+            resetState[leaseId] = true;
+        }
         this.setData({
-            historyCollapsed: !this.data.historyCollapsed
+            expandedLeaseHistory: resetState
         });
     },
     toggleMonth(event) {

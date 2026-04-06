@@ -108,53 +108,33 @@
 
     <view class="card history-card">
       <view class="history-head">
-        <view class="section-subtitle">历史租约</view>
-        <button class="text-button" bindtap="toggleHistory">
-          {{historyCollapsed ? '展开历史' : '收起历史'}}
-        </button>
-      </view>
-      <view wx:if="{{!historyCollapsed}}">
-        <view wx:for="{{detail.leaseHistory}}" wx:key="id" class="field">
-          {{item.startDate}} 至 {{item.endDate}} / {{item.tenantName}}
+        <view>
+          <view class="section-subtitle">历史租约</view>
+          <view class="hint">每条租约可展开查看该租约内的维修明细。</view>
         </view>
       </view>
-    </view>
 
-    <view class="card history-card">
-      <view class="history-head">
-        <view class="section-subtitle">历任租户</view>
-      </view>
-      <view wx:if="{{!historyCollapsed}}">
-        <view wx:for="{{detail.tenantHistory}}" wx:key="id" class="field">
-          {{item.name}}
+      <view wx:if="{{!leaseHistoryViews.length}}" class="hint">暂无历史租约记录</view>
+
+      <view wx:for="{{leaseHistoryViews}}" wx:key="leaseId" class="lease-item">
+        <view class="lease-head" data-lease-id="{{item.leaseId}}" bindtap="toggleLeaseHistoryItem">
+          <view class="lease-main">
+            <view class="lease-tenant">{{item.tenantName}}</view>
+            <view class="field">联系方式：{{item.tenantPhone || '未记录'}}</view>
+            <view class="field">租约时间：{{item.periodLabel}}</view>
+          </view>
+          <view class="lease-side">
+            <view class="lease-count">{{item.repairCount}} 次维修</view>
+            <view class="lease-toggle">{{expandedLeaseHistory[item.leaseId] ? '收起' : '展开'}}</view>
+          </view>
         </view>
-      </view>
-    </view>
 
-    <view class="card history-card">
-      <view class="history-head">
-        <view class="section-subtitle">每任租户期间维修次数</view>
-      </view>
-      <view wx:if="{{!historyCollapsed}}">
-        <view wx:if="{{!detail.tenantPeriodRepairs.length}}" class="hint">暂无租住期间维修记录</view>
-        <view wx:for="{{detail.tenantPeriodRepairs}}" wx:key="leaseId" class="field">
-          {{item.tenantName}}（{{item.startDate}} 至 {{item.endDate}}）：{{item.count}} 次
-        </view>
-      </view>
-    </view>
-
-    <view class="card history-card">
-      <view class="history-head">
-        <view class="section-subtitle">历史维修</view>
-      </view>
-      <view wx:if="{{!historyCollapsed}}">
-        <view wx:if="{{!detail.repairHistory.length}}" class="hint">暂无历史维修记录</view>
-        <view wx:for="{{detail.repairHistory}}" wx:key="id" class="history-item">
-          <view class="field">{{item.occurredAt}} / {{item.categoryLabel}}</view>
-          <view class="field">{{item.note}}</view>
-          <view class="hint" wx:if="{{item.tenantName}}">关联租户：{{item.tenantName}}</view>
-          <view class="hint" wx:if="{{item.leasePeriod}}">租期：{{item.leasePeriod}}</view>
-          <view class="hint" wx:if="{{!item.tenantName}}">未关联租住期间</view>
+        <view wx:if="{{expandedLeaseHistory[item.leaseId]}}" class="lease-detail">
+          <view wx:if="{{!item.repairs.length}}" class="hint">该租约期间暂无维修记录</view>
+          <view wx:for="{{item.repairs}}" wx:key="id" class="lease-repair-item">
+            <view class="field">{{item.occurredAt}} / {{item.categoryLabel}}</view>
+            <view class="field">{{item.note || '未填写备注'}}</view>
+          </view>
         </view>
       </view>
     </view>
