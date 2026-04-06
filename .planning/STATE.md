@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready for Phase 04
-last_updated: "2026-04-06T10:40:00.000Z"
+last_updated: "2026-04-06T11:00:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 3
@@ -30,6 +30,7 @@ progress:
 - 第 3 阶段已完成 `03-01`，提醒评估、首页聚合与人工异常底座已落地
 - 第 3 阶段已完成 `03-02`，首页驾驶舱与按规则分组的提醒中心已落地
 - 第 3 阶段已完成 `03-03`，订阅引导、提醒设置页和规则开关持久化已落地
+- 第 3 阶段联调修复已完成：云函数可独立部署、缺集合自动创建、提醒设置保存与订阅模板配置已打通
 
 ## 阶段状态
 
@@ -61,6 +62,8 @@ progress:
 - 页面层采用预生成 URL 的导航模式，避免在小程序 dataset 里传对象造成跳转不稳定
 - 提醒偏好采用 `consentState + hasRequested + enabledRuleTypes` 持久化，首页只做一次性引导
 - 提醒设置页只提供规则类型开关，不扩展阈值编辑、收件人管理或发送日志
+- 提醒模板 ID 改为 `miniprogram/config/notification.*` 配置输入，避免在 service 文件硬编码占位值
+- 工作台已补齐业务维护入口，支持直接进入房源、房间、租户、租约和房态总览
 
 ## 下一个动作
 
@@ -69,4 +72,4 @@ progress:
 
 ---
 *状态创建于：2026-04-01*  
-*最后更新：2026-04-06，完成第 3 阶段*
+*最后更新：2026-04-06，完成第 3 阶段并完成联调修复*

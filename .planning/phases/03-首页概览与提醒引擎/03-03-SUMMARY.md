@@ -34,6 +34,8 @@ key-files:
     - miniprogram/pages/workbench/index.wxml
     - miniprogram/services/dashboard.ts
     - miniprogram/app.json
+    - miniprogram/config/notification.ts
+    - miniprogram/config/notification.js
 key-decisions:
   - "首页只承担订阅引导与设置入口，持续性规则管理放到 reminder-settings 页面。"
   - "提醒偏好以 consentState + hasRequested + enabledRuleTypes 持久化，不引入发送日志或阈值编辑。"
@@ -86,7 +88,14 @@ None - plan executed within scope.
 
 ## User Setup Required
 
-- 真实联调时，需要把 `miniprogram/services/notification.ts` 中占位模板 ID（`PHASE5_TEMPLATE_PENDING`）替换为实际模板 ID。
+- 真实联调时，需要在 `miniprogram/config/notification.*` 中配置模板 ID；不再在 `services/notification.ts` 内硬编码占位值。
+
+## Post-debug Follow-ups (2026-04-06)
+
+- 追加完成云函数部署稳定性修复：依赖共享逻辑的函数支持独立部署，避免单函数上传时缺少 `shared` 模块。
+- 追加完成提醒链路联调修复：缺集合自动创建、空查询删除兼容、提醒偏好更新避免写入 `_id`。
+- 首页已补齐业务维护入口（房源、房间、租户、租约、房态总览），减少联调时的操作跳转成本。
+- 当前仓库已在 `miniprogram/config/notification.*` 配置真实模板 ID；切换环境时需替换为目标环境模板 ID。
 
 ## Next Phase Readiness
 

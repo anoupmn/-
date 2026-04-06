@@ -117,7 +117,7 @@ None - no external service configuration required.
 - 首页已经保留提醒入口与轻量订阅状态，后续设置页只需承接长期规则管理。
 
 ## Self-Check
-Pending
+PASSED
 
 ---
 *Phase: 03-首页概览与提醒引擎*

@@ -38,9 +38,9 @@ created: 2026-04-03
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 03-01-01 | 01 | 1 | DASH-01, DASH-02, DASH-03, ALRT-01, ALRT-02, ALRT-03, ALRT-04, ALRT-05 | unit + cloud | `npm test -- --runInBand --runTestsByPath tests/domain/alert-evaluator.spec.ts tests/cloud/dashboard-home.spec.ts tests/cloud/alerts-list.spec.ts tests/cloud/manual-abnormal.spec.ts` | ❌ W0 | ⬜ pending |
-| 03-02-01 | 02 | 2 | DASH-04, ALRT-05 | static + typecheck | `npm run typecheck` | ✅ | ⬜ pending |
-| 03-03-01 | 03 | 3 | NOTF-01, NOTF-03 | cloud + typecheck | `npm test -- --runInBand --runTestsByPath tests/cloud/notification-preferences.spec.ts && npm run typecheck` | ❌ W0 | ⬜ pending |
+| 03-01-01 | 01 | 1 | DASH-01, DASH-02, DASH-03, ALRT-01, ALRT-02, ALRT-03, ALRT-04, ALRT-05 | unit + cloud | `npm test -- --runInBand --runTestsByPath tests/domain/alert-evaluator.spec.ts tests/cloud/dashboard-home.spec.ts tests/cloud/alerts-list.spec.ts tests/cloud/manual-abnormal.spec.ts` | ✅ | ❌ red (2026-04-06 local) |
+| 03-02-01 | 02 | 2 | DASH-04, ALRT-05 | static + typecheck | `npm run typecheck` | ✅ | ✅ green (2026-04-06 local) |
+| 03-03-01 | 03 | 3 | NOTF-01, NOTF-03 | cloud + typecheck | `npm test -- --runInBand --runTestsByPath tests/cloud/notification-preferences.spec.ts && npm run typecheck` | ✅ | ❌ red (2026-04-06 local) |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -48,13 +48,21 @@ created: 2026-04-03
 
 ## Wave 0 Requirements
 
-- [ ] `tests/domain/alert-evaluator.spec.ts` — lock alert classification and recommendation priority
-- [ ] `tests/cloud/dashboard-home.spec.ts` — lock home aggregate payload
-- [ ] `tests/cloud/alerts-list.spec.ts` — lock reminder grouping and filters
-- [ ] `tests/cloud/manual-abnormal.spec.ts` — lock manual abnormal save/clear behavior
-- [ ] `tests/cloud/notification-preferences.spec.ts` — lock consent/preference persistence
+- [x] `tests/domain/alert-evaluator.spec.ts` — lock alert classification and recommendation priority
+- [x] `tests/cloud/dashboard-home.spec.ts` — lock home aggregate payload
+- [x] `tests/cloud/alerts-list.spec.ts` — lock reminder grouping and filters
+- [x] `tests/cloud/manual-abnormal.spec.ts` — lock manual abnormal save/clear behavior
+- [x] `tests/cloud/notification-preferences.spec.ts` — lock consent/preference persistence
 
 *If none: "Existing infrastructure covers all phase requirements."*
+
+---
+
+## Latest Execution Snapshot (2026-04-06)
+
+- ✅ `npm run typecheck` passed.
+- ❌ `npm test -- --runInBand --runTestsByPath tests/domain/alert-evaluator.spec.ts tests/cloud/dashboard-home.spec.ts tests/cloud/alerts-list.spec.ts tests/cloud/manual-abnormal.spec.ts tests/cloud/notification-preferences.spec.ts` failed.
+- Root cause in local Jest runtime: `cloudfunctions/*/shared/runtime.ts` now `require('wx-server-sdk')`, but root-level test environment does not provide this module, causing cloud-spec bootstrap failure before assertions.
 
 ---
 
