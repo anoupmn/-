@@ -75,12 +75,14 @@ async function updateLease(db, leaseId, changes, event) {
     return updatedLease;
 }
 async function endLease(db, leaseId, event) {
-    const leases = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.leases);
-    const currentLease = leases.find((lease) => lease.id === leaseId);
+    const currentLeaseSnapshot = await db.collection(collections_1.COLLECTIONS.leases).where({ id: leaseId }).get();
+    const currentLease = currentLeaseSnapshot.data?.[0] ?? null;
     if (!currentLease) {
         throw new Error(`Lease ${leaseId} not found.`);
     }
-    const result = (0, lease_lifecycle_1.closeLeaseAndDeriveUnitStatus)(currentLease, leases.filter((lease) => lease.roomId === currentLease.roomId), (0, runtime_1.resolveNow)(event));
+    const roomLeasesSnapshot = await db.collection(collections_1.COLLECTIONS.leases).where({ roomId: currentLease.roomId }).get();
+    const roomLeases = roomLeasesSnapshot.data ?? [];
+    const result = (0, lease_lifecycle_1.closeLeaseAndDeriveUnitStatus)(currentLease, roomLeases, (0, runtime_1.resolveNow)(event));
     const updatedLease = await (0, runtime_1.updateRecord)(db, collections_1.COLLECTIONS.leases, leaseId, {
         closedAt: result.closedLease.closedAt,
         updatedAt: result.closedLease.updatedAt

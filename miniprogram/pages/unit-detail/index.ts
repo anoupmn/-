@@ -512,7 +512,45 @@ Page({
       return;
     }
 
-    await endLease({ leaseId });
+    try {
+      await endLease({ leaseId });
+    } catch (error) {
+      console.error('end lease failed', error);
+      const payload = error as { errMsg?: string; message?: string } | undefined;
+      const message = `${payload?.errMsg ?? ''} ${payload?.message ?? ''} ${
+        error instanceof Error ? error.message : ''
+      }`.toLowerCase();
+      const isTimeout = message.includes('timeout');
+
+      if (!isTimeout) {
+        wx.showToast({
+          title: '结束租约失败，请稍后重试',
+          icon: 'none'
+        });
+        return;
+      }
+
+      let leaseClosed = false;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        await this.loadDetail();
+        if (!this.data.detail?.activeLease?.id) {
+          leaseClosed = true;
+          break;
+        }
+        if (attempt < 2) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 600));
+        }
+      }
+
+      if (!leaseClosed) {
+        wx.showToast({
+          title: '请求超时，请稍后重试',
+          icon: 'none'
+        });
+        return;
+      }
+    }
+
     wx.showToast({
       title: '租约已结束',
       icon: 'success'

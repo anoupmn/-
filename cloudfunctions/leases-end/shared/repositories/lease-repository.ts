@@ -79,16 +79,19 @@ export async function updateLease(db: DbLike, leaseId: string, changes: Partial<
 }
 
 export async function endLease(db: DbLike, leaseId: string, event: CloudEventBase) {
-  const leases = await listAll<Lease>(db, COLLECTIONS.leases);
-  const currentLease = leases.find((lease) => lease.id === leaseId);
+  const currentLeaseSnapshot = await db.collection(COLLECTIONS.leases).where({ id: leaseId }).get();
+  const currentLease = (currentLeaseSnapshot.data?.[0] as Lease | undefined) ?? null;
 
   if (!currentLease) {
     throw new Error(`Lease ${leaseId} not found.`);
   }
 
+  const roomLeasesSnapshot = await db.collection(COLLECTIONS.leases).where({ roomId: currentLease.roomId }).get();
+  const roomLeases = (roomLeasesSnapshot.data ?? []) as Lease[];
+
   const result = closeLeaseAndDeriveUnitStatus(
     currentLease,
-    leases.filter((lease) => lease.roomId === currentLease.roomId),
+    roomLeases,
     resolveNow(event)
   );
 
