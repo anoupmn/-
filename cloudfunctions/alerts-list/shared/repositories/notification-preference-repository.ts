@@ -17,6 +17,10 @@ const DEFAULT_ENABLED_RULE_TYPES = [
   ALERT_TYPES.manualAbnormal
 ] as NotificationPreference['enabledRuleTypes'];
 
+type NotificationPreferenceRecord = NotificationPreference & {
+  _id?: string;
+};
+
 function buildDefaultPreference(landlordOpenId: string): NotificationPreference {
   return {
     id: '',
@@ -30,7 +34,7 @@ function buildDefaultPreference(landlordOpenId: string): NotificationPreference 
 }
 
 export async function getNotificationPreference(db: DbLike, landlordOpenId: string) {
-  const preferences = await listAll<NotificationPreference>(db, COLLECTIONS.notificationPreferences);
+  const preferences = await listAll<NotificationPreferenceRecord>(db, COLLECTIONS.notificationPreferences);
   return preferences.find((item) => item.landlordOpenId === landlordOpenId) ?? buildDefaultPreference(landlordOpenId);
 }
 
@@ -62,14 +66,20 @@ export async function saveNotificationPreference(
     return created;
   }
 
+  const { _id, ...currentData } = current as NotificationPreferenceRecord;
   const next: NotificationPreference = {
-    ...current,
+    ...currentData,
     consentState: input.consentState ?? current.consentState,
     hasRequested: input.hasRequested ?? current.hasRequested,
     enabledRuleTypes: (input.enabledRuleTypes ?? current.enabledRuleTypes).slice(),
     updatedAt: now
   };
 
-  await db.collection(COLLECTIONS.notificationPreferences).doc(current.id).update({ data: next });
+  if (_id) {
+    await db.collection(COLLECTIONS.notificationPreferences).doc(_id).update({ data: next });
+  } else {
+    await db.collection(COLLECTIONS.notificationPreferences).where({ id: current.id }).update({ data: next });
+  }
+
   return next;
 }

@@ -42,13 +42,19 @@ async function saveNotificationPreference(db, input, event) {
         await (0, runtime_1.insertRecord)(db, collections_1.COLLECTIONS.notificationPreferences, created);
         return created;
     }
+    const { _id, ...currentData } = current;
     const next = {
-        ...current,
+        ...currentData,
         consentState: input.consentState ?? current.consentState,
         hasRequested: input.hasRequested ?? current.hasRequested,
         enabledRuleTypes: (input.enabledRuleTypes ?? current.enabledRuleTypes).slice(),
         updatedAt: now
     };
-    await db.collection(collections_1.COLLECTIONS.notificationPreferences).doc(current.id).update({ data: next });
+    if (_id) {
+        await db.collection(collections_1.COLLECTIONS.notificationPreferences).doc(_id).update({ data: next });
+    }
+    else {
+        await db.collection(collections_1.COLLECTIONS.notificationPreferences).where({ id: current.id }).update({ data: next });
+    }
     return next;
 }
