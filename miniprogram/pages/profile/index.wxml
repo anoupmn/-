@@ -1,0 +1,27 @@
+<view class="page-shell">
+  <view class="profile-shell">
+    <view class="card account-card">
+      <view class="section-title">我的</view>
+      <view class="account-name">{{displayName || '房东账号'}}</view>
+      <view class="hint">账号标识：{{openidMasked || '未获取'}}</view>
+    </view>
+
+    <view class="card subscription-card">
+      <view class="section-title">订阅状态</view>
+      <view wx:if="{{isLoading}}" class="hint">正在加载订阅状态...</view>
+      <block wx:else>
+        <view class="hint">{{statusCopy}}</view>
+        <view class="hint">当前启用规则：{{enabledRuleCopy}}</view>
+        <view class="hint">状态口径固定：即将到期、已逾期、空置过久、人工异常（含维修高频触发）。</view>
+      </block>
+      <button class="primary-button" bindtap="requestSubscription">发起/重新授权</button>
+    </view>
+
+    <view class="card action-card">
+      <view class="section-title">设置与入口</view>
+      <button class="secondary-button" bindtap="openReminderSettings">提醒设置</button>
+      <button class="secondary-button" bindtap="openAlertCenter">提醒中心</button>
+      <button class="logout-button" bindtap="handleLogout">退出登录</button>
+    </view>
+  </view>
+</view>

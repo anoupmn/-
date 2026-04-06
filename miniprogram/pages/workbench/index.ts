@@ -1,4 +1,4 @@
-import { bootstrapAuthSession, clearSession } from '../../services/auth';
+import { requireAuthSession } from '../../services/auth';
 import {
   getHomeDashboard,
   type DashboardAbnormalRow,
@@ -7,7 +7,11 @@ import {
   type DashboardRecommendation
 } from '../../services/dashboard';
 import { requestSubscribeMessage, SUBSCRIBE_TEMPLATE_CONFIG_ERROR } from '../../services/notification';
-import { stringifyUnitListQuery } from '../../services/rentable-unit';
+import {
+  parseUnitListUrl,
+  setPendingUnitListDrilldownQuery,
+  stringifyUnitListQuery
+} from '../../services/rentable-unit';
 
 function buildUnitsUrl(query: Record<string, string>) {
   const queryString = stringifyUnitListQuery(query);
@@ -86,10 +90,9 @@ Page({
     }
   },
   async onShow() {
-    const session = await bootstrapAuthSession();
+    const session = await requireAuthSession();
 
     if (!session) {
-      await wx.reLaunch({ url: '/pages/auth/index' });
       return;
     }
 
@@ -107,15 +110,6 @@ Page({
 
     await this.loadDashboard();
     wx.stopPullDownRefresh();
-  },
-  async handleLogout() {
-    await clearSession();
-    await wx.reLaunch({ url: '/pages/auth/index' });
-  },
-  openQuickEntry() {
-    wx.navigateTo({
-      url: '/pages/quick-entry/index'
-    });
   },
   async handleReminderEntry() {
     if (this.data.subscriptionState.hasRequested) {
@@ -161,27 +155,35 @@ Page({
 
     wx.navigateTo({ url });
   },
+  openUnitsByUrl(url: string) {
+    setPendingUnitListDrilldownQuery(parseUnitListUrl(url));
+    wx.switchTab({
+      url: '/pages/units/index'
+    });
+  },
   openOverviewCard(event: WechatMiniprogram.BaseEvent) {
     const url = event.currentTarget.dataset.url as string;
 
-    wx.navigateTo({
-      url
-    });
+    if (!url) {
+      return;
+    }
+
+    this.openUnitsByUrl(url);
   },
   openAbnormalRow(event: WechatMiniprogram.BaseEvent) {
     const url = event.currentTarget.dataset.url as string;
 
-    wx.navigateTo({
-      url
-    });
+    if (!url) {
+      return;
+    }
+
+    this.openUnitsByUrl(url);
   },
   openRecommendation() {
     if (!this.data.recommendationUrl) {
       return;
     }
 
-    wx.navigateTo({
-      url: this.data.recommendationUrl
-    });
+    this.openUnitsByUrl(this.data.recommendationUrl);
   }
 });

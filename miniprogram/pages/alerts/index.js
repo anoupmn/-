@@ -1,5 +1,10 @@
+const { requireAuthSession } = require('../../services/auth');
 const { listAlertGroups } = require('../../services/alert');
-const { stringifyUnitListQuery } = require('../../services/rentable-unit');
+const {
+  parseUnitListUrl,
+  setPendingUnitListDrilldownQuery,
+  stringifyUnitListQuery
+} = require('../../services/rentable-unit');
 
 const GROUP_ORDER = ['overdue', 'expiring', 'vacancy_long', 'manual_abnormal'];
 
@@ -26,6 +31,10 @@ function sortGroups(groups) {
         url: buildNavigationUrl(item.actionTarget.page, item.actionTarget.query)
       }))
     }));
+}
+
+function isUnitsUrl(url) {
+  return String(url || '').indexOf('/pages/units/index') === 0;
 }
 
 Page({
@@ -59,6 +68,12 @@ Page({
     }
   },
   async onShow() {
+    const session = await requireAuthSession();
+
+    if (!session) {
+      return;
+    }
+
     await this.loadGroups();
   },
   toggleGroup(event) {
@@ -68,11 +83,25 @@ Page({
       groups: this.data.groups.map((group) => (group.type === type ? { ...group, collapsed: !group.collapsed } : group))
     });
   },
+  openUnitsByUrl(url) {
+    setPendingUnitListDrilldownQuery(parseUnitListUrl(url));
+    wx.switchTab({
+      url: '/pages/units/index'
+    });
+  },
   navigateTo(event) {
     const url = event.currentTarget.dataset.url;
     if (!url) {
       return;
     }
-    wx.navigateTo({ url });
+
+    if (isUnitsUrl(url)) {
+      this.openUnitsByUrl(url);
+      return;
+    }
+
+    wx.navigateTo({
+      url
+    });
   }
 });

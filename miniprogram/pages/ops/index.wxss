@@ -1,0 +1,47 @@
+@import "../quick-entry/index.wxss";
+
+.ops-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.intro-card,
+.action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.section-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.hint {
+  font-size: 24rpx;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.primary-button,
+.secondary-button {
+  border-radius: 999rpx;
+}
+
+.primary-button {
+  background: #111827;
+  color: #ffffff;
+}
+
+.secondary-button {
+  background: #f3f4f6;
+  color: #111827;
+}

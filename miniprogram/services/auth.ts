@@ -13,6 +13,18 @@ export async function bootstrapAuthSession(): Promise<LandlordSession | null> {
   return getStorage<LandlordSession>(RZB_SESSION_KEY);
 }
 
+export async function requireAuthSession(): Promise<LandlordSession | null> {
+  const session = await bootstrapAuthSession();
+  if (!session) {
+    await wx.reLaunch({
+      url: '/pages/auth/index'
+    });
+    return null;
+  }
+
+  return session;
+}
+
 export async function loginAsLandlord(displayName = '房东'): Promise<LandlordSession> {
   const response = await wx.cloud.callFunction({
     name: 'login',

@@ -3,6 +3,7 @@ const {
   REMINDER_RULE_OPTIONS,
   saveNotificationPreferences
 } = require('../../services/notification');
+const { requireAuthSession } = require('../../services/auth');
 
 function buildRules(enabledRuleTypes) {
   const enabledSet = new Set(enabledRuleTypes || []);
@@ -61,6 +62,11 @@ Page({
     }
   },
   async onShow() {
+    const session = await requireAuthSession();
+    if (!session) {
+      return;
+    }
+
     await this.loadPreferences();
   },
   handleRuleToggle(event) {

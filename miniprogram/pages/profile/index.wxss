@@ -1,0 +1,50 @@
+@import "../quick-entry/index.wxss";
+
+.profile-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.account-card,
+.subscription-card,
+.action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.section-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.account-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.hint {
+  font-size: 24rpx;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.primary-button,
+.secondary-button,
+.logout-button {
+  border-radius: 999rpx;
+}
+
+.primary-button,
+.logout-button {
+  background: #111827;
+  color: #ffffff;
+}
+
+.secondary-button {
+  background: #f3f4f6;
+  color: #111827;
+}

@@ -1,5 +1,10 @@
+import { requireAuthSession } from '../../services/auth';
 import { listAlertGroups, type AlertGroup } from '../../services/alert';
-import { stringifyUnitListQuery } from '../../services/rentable-unit';
+import {
+  parseUnitListUrl,
+  setPendingUnitListDrilldownQuery,
+  stringifyUnitListQuery
+} from '../../services/rentable-unit';
 
 type AlertGroupView = AlertGroup & {
   collapsed: boolean;
@@ -38,6 +43,10 @@ function buildNavigationUrl(page: 'units' | 'unit-detail', query: Record<string,
   return queryString ? `/pages/units/index?${queryString}` : '/pages/units/index';
 }
 
+function isUnitsUrl(url: string) {
+  return url.startsWith('/pages/units/index');
+}
+
 Page({
   data: {
     isLoading: true,
@@ -69,6 +78,12 @@ Page({
     }
   },
   async onShow() {
+    const session = await requireAuthSession();
+
+    if (!session) {
+      return;
+    }
+
     await this.loadGroups();
   },
   toggleGroup(event: WechatMiniprogram.BaseEvent) {
@@ -78,8 +93,23 @@ Page({
       groups: this.data.groups.map((group) => (group.type === type ? { ...group, collapsed: !group.collapsed } : group))
     });
   },
+  openUnitsByUrl(url: string) {
+    setPendingUnitListDrilldownQuery(parseUnitListUrl(url));
+    wx.switchTab({
+      url: '/pages/units/index'
+    });
+  },
   navigateTo(event: WechatMiniprogram.BaseEvent) {
     const url = event.currentTarget.dataset.url as string;
+
+    if (!url) {
+      return;
+    }
+
+    if (isUnitsUrl(url)) {
+      this.openUnitsByUrl(url);
+      return;
+    }
 
     wx.navigateTo({
       url

@@ -6,6 +6,18 @@ async function bootstrapAuthSession() {
   return getStorage(RZB_SESSION_KEY);
 }
 
+async function requireAuthSession() {
+  const session = await bootstrapAuthSession();
+  if (!session) {
+    await wx.reLaunch({
+      url: '/pages/auth/index'
+    });
+    return null;
+  }
+
+  return session;
+}
+
 async function loginAsLandlord(displayName) {
   const response = await wx.cloud.callFunction({
     name: 'login',
@@ -30,6 +42,7 @@ async function clearSession() {
 module.exports = {
   RZB_SESSION_KEY,
   bootstrapAuthSession,
+  requireAuthSession,
   loginAsLandlord,
   clearSession
 };

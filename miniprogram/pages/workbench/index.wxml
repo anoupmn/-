@@ -1,9 +1,9 @@
 <view class="page-shell">
   <view class="dashboard-shell">
     <view class="card intro-card">
-      <view class="headline">首页概览</view>
-      <view class="copy">你好，{{displayName || '房东'}}。先看概览卡，再看异常和今日建议，保持每天处理顺序稳定。</view>
-      <view class="hint">固定概览卡：15 天内到期、当前空置、异常。</view>
+      <view class="headline">首页</view>
+      <view class="copy">你好，{{displayName || '房东'}}。先看经营概览，再看异常摘要和今日建议，保持每天处理顺序稳定。</view>
+      <view class="hint">异常口径固定：即将到期、已逾期、空置过久、人工异常（含维修高频触发）。</view>
       <view class="status">{{status}}</view>
     </view>
 
@@ -23,7 +23,7 @@
     <view class="card abnormal-card">
       <view class="section-head">
         <view>
-          <view class="section-title">异常房间</view>
+          <view class="section-title">异常摘要</view>
           <view class="hint">默认只展示最值得先看的几条，避免首页拉成长表。</view>
         </view>
         <button class="text-button" data-url="/pages/alerts/index" bindtap="navigateTo">查看全部</button>
@@ -50,7 +50,7 @@
 
       <view wx:else class="empty-state">
         <view class="empty-heading">当前暂无异常</view>
-        <view class="hint">今日没有到期、逾期或异常房间。你可以继续查看全部房屋或检查提醒设置。</view>
+        <view class="hint">今日没有到期、逾期或异常房间。你可以继续查看提醒中心或房源列表。</view>
       </view>
     </view>
 
@@ -61,15 +61,15 @@
         <view class="recommendation-title">{{recommendation.title}}</view>
         <button class="primary-button" bindtap="openRecommendation">{{recommendation.actionLabel}}</button>
       </view>
-      <view wx:else class="hint">先去房屋列表看一遍当前盘面，今天暂无需要系统优先推送的动作。</view>
+      <view wx:else class="hint">先去房源列表看一遍当前盘面，今天暂无需要系统优先推送的动作。</view>
     </view>
 
-    <view class="card settings-card">
+    <view class="card reminder-card">
       <view class="section-head">
         <view>
-          <view class="section-title">提醒中心</view>
+          <view class="section-title">提醒入口</view>
           <view class="hint">
-            {{subscriptionState.hasRequested ? '已接入提醒规则管理，可继续调整规则开关。' : '先完成一次订阅授权，再到设置页长期管理提醒类型。'}}
+            {{subscriptionState.hasRequested ? '已接入提醒规则管理，可继续调整规则开关。' : '先完成一次订阅授权，再到提醒设置里长期管理提醒类型。'}}
           </view>
         </view>
         <button class="nav-button" bindtap="handleReminderEntry">
@@ -77,17 +77,6 @@
         </button>
       </view>
       <button class="secondary-button" data-url="/pages/alerts/index" bindtap="navigateTo">打开提醒中心</button>
-      <button class="secondary-button" bindtap="openQuickEntry">快速录入</button>
-
-      <view class="section-title">业务维护</view>
-      <view class="ops-grid">
-        <button class="secondary-button" data-url="/pages/assets-form/index" bindtap="navigateTo">房源维护</button>
-        <button class="secondary-button" data-url="/pages/assets-form/index" bindtap="navigateTo">房间维护</button>
-        <button class="secondary-button" data-url="/pages/tenants-form/index" bindtap="navigateTo">租户维护</button>
-        <button class="secondary-button" data-url="/pages/leases-form/index" bindtap="navigateTo">租约维护</button>
-      </view>
-      <button class="secondary-button" data-url="/pages/units/index" bindtap="navigateTo">房态总览</button>
-      <button class="logout-button" bindtap="handleLogout">退出登录</button>
     </view>
   </view>
 </view>

@@ -5,6 +5,7 @@ import {
   type ConsentState,
   type ReminderRuleType
 } from '../../services/notification';
+import { requireAuthSession } from '../../services/auth';
 
 type RuleView = {
   key: ReminderRuleType;
@@ -69,6 +70,11 @@ Page({
     }
   },
   async onShow() {
+    const session = await requireAuthSession();
+    if (!session) {
+      return;
+    }
+
     await this.loadPreferences();
   },
   handleRuleToggle(event: WechatMiniprogram.SwitchChange) {

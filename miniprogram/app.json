@@ -2,6 +2,9 @@
   "pages": [
     "pages/auth/index",
     "pages/workbench/index",
+    "pages/ops/index",
+    "pages/units/index",
+    "pages/profile/index",
     "pages/alerts/index",
     "pages/reminder-settings/index",
     "pages/quick-entry/index",
@@ -9,9 +12,40 @@
     "pages/rooms-form/index",
     "pages/tenants-form/index",
     "pages/leases-form/index",
-    "pages/units/index",
     "pages/unit-detail/index"
   ],
+  "tabBar": {
+    "color": "#6b7280",
+    "selectedColor": "#111827",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/workbench/index",
+        "text": "首页",
+        "iconPath": "assets/tabbar/home.png",
+        "selectedIconPath": "assets/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/ops/index",
+        "text": "业务维护",
+        "iconPath": "assets/tabbar/ops.png",
+        "selectedIconPath": "assets/tabbar/ops-active.png"
+      },
+      {
+        "pagePath": "pages/units/index",
+        "text": "房源列表",
+        "iconPath": "assets/tabbar/units.png",
+        "selectedIconPath": "assets/tabbar/units-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "assets/tabbar/profile.png",
+        "selectedIconPath": "assets/tabbar/profile-active.png"
+      }
+    ]
+  },
   "window": {
     "navigationBarTitleText": "收租吧",
     "navigationBarBackgroundColor": "#ffffff",

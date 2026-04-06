@@ -1,0 +1,26 @@
+<view class="page-shell">
+  <view class="ops-shell">
+    <view class="card intro-card">
+      <view class="section-title">业务维护</view>
+      <view class="hint">你好，{{displayName || '房东'}}。这里统一处理新增、录入与维护动作。</view>
+      <view class="hint">维护入口归位后，首页仅保留经营概览、异常摘要、今日建议和提醒入口。</view>
+    </view>
+
+    <view class="card action-card">
+      <view class="section-title">快速录入</view>
+      <view class="hint">适合当天新增一套房源并直接落租的轻量流程。</view>
+      <button class="primary-button" data-url="/pages/quick-entry/index" bindtap="navigateTo">打开快速录入</button>
+    </view>
+
+    <view class="card action-card">
+      <view class="section-title">维护中心</view>
+      <view class="ops-grid">
+        <button class="secondary-button" data-url="/pages/assets-form/index" bindtap="navigateTo">房源维护</button>
+        <button class="secondary-button" data-url="/pages/rooms-form/index" bindtap="navigateTo">房间维护</button>
+        <button class="secondary-button" data-url="/pages/tenants-form/index" bindtap="navigateTo">租户维护</button>
+        <button class="secondary-button" data-url="/pages/leases-form/index" bindtap="navigateTo">租约维护</button>
+      </view>
+      <button class="secondary-button" bindtap="openUnitsTab">前往房源列表处理详情</button>
+    </view>
+  </view>
+</view>

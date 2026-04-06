@@ -1,7 +1,11 @@
-const { bootstrapAuthSession, clearSession } = require('../../services/auth');
+const { requireAuthSession } = require('../../services/auth');
 const { getHomeDashboard } = require('../../services/dashboard');
 const { requestSubscribeMessage, SUBSCRIBE_TEMPLATE_CONFIG_ERROR } = require('../../services/notification');
-const { stringifyUnitListQuery } = require('../../services/rentable-unit');
+const {
+  parseUnitListUrl,
+  setPendingUnitListDrilldownQuery,
+  stringifyUnitListQuery
+} = require('../../services/rentable-unit');
 
 function buildUnitsUrl(query) {
   const queryString = stringifyUnitListQuery(query);
@@ -81,10 +85,9 @@ Page({
     }
   },
   async onShow() {
-    const session = await bootstrapAuthSession();
+    const session = await requireAuthSession();
 
     if (!session) {
-      await wx.reLaunch({ url: '/pages/auth/index' });
       return;
     }
 
@@ -102,15 +105,6 @@ Page({
 
     await this.loadDashboard();
     wx.stopPullDownRefresh();
-  },
-  async handleLogout() {
-    await clearSession();
-    await wx.reLaunch({ url: '/pages/auth/index' });
-  },
-  openQuickEntry() {
-    wx.navigateTo({
-      url: '/pages/quick-entry/index'
-    });
   },
   async handleReminderEntry() {
     if (this.data.subscriptionState.hasRequested) {
@@ -153,27 +147,35 @@ Page({
     }
     wx.navigateTo({ url });
   },
+  openUnitsByUrl(url) {
+    setPendingUnitListDrilldownQuery(parseUnitListUrl(url));
+    wx.switchTab({
+      url: '/pages/units/index'
+    });
+  },
   openOverviewCard(event) {
     const url = event.currentTarget.dataset.url;
+
     if (!url) {
       return;
     }
-    wx.navigateTo({ url });
+
+    this.openUnitsByUrl(url);
   },
   openAbnormalRow(event) {
     const url = event.currentTarget.dataset.url;
+
     if (!url) {
       return;
     }
-    wx.navigateTo({ url });
+
+    this.openUnitsByUrl(url);
   },
   openRecommendation() {
     if (!this.data.recommendationUrl) {
       return;
     }
 
-    wx.navigateTo({
-      url: this.data.recommendationUrl
-    });
+    this.openUnitsByUrl(this.data.recommendationUrl);
   }
 });
