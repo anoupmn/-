@@ -28,6 +28,7 @@ export type DashboardPayload = {
   abnormalRows: DashboardAbnormalRow[];
   recommendation: DashboardRecommendation;
   subscriptionState: {
+    consentState: 'unknown' | 'accepted' | 'rejected';
     hasRequested: boolean;
     enabledRuleTypes: string[];
   };

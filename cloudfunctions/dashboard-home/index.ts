@@ -61,6 +61,7 @@ export async function main(event: CloudEventBase) {
     alerts: alerts.filter((item) => item.landlordOpenId === landlordOpenId),
     units,
     subscriptionState: {
+      consentState: preference.consentState,
       hasRequested: preference.hasRequested,
       enabledRuleTypes: preference.enabledRuleTypes
     }

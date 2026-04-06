@@ -69,13 +69,14 @@
         <view>
           <view class="section-title">提醒中心</view>
           <view class="hint">
-            {{subscriptionState.hasRequested ? '已接入提醒规则管理，继续按问题类型查看。' : '先去提醒中心看分组问题，再决定是否订阅提醒。'}}
+            {{subscriptionState.hasRequested ? '已接入提醒规则管理，可继续调整规则开关。' : '先完成一次订阅授权，再到设置页长期管理提醒类型。'}}
           </view>
         </view>
-        <button class="nav-button" data-url="/pages/alerts/index" bindtap="navigateTo">
-          {{subscriptionState.hasRequested ? '提醒设置入口' : '订阅入口'}}
+        <button class="nav-button" bindtap="handleReminderEntry">
+          {{subscriptionState.hasRequested ? '提醒设置' : '开启提醒'}}
         </button>
       </view>
+      <button class="secondary-button" data-url="/pages/alerts/index" bindtap="navigateTo">打开提醒中心</button>
       <button class="secondary-button" bindtap="openQuickEntry">继续录入</button>
       <button class="logout-button" bindtap="handleLogout">退出登录</button>
     </view>

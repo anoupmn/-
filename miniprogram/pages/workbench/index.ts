@@ -4,8 +4,9 @@ import {
   type DashboardAbnormalRow,
   type DashboardOverviewCard,
   type DashboardPayload,
-type DashboardRecommendation
+  type DashboardRecommendation
 } from '../../services/dashboard';
+import { requestSubscribeMessage } from '../../services/notification';
 import { stringifyUnitListQuery } from '../../services/rentable-unit';
 
 function buildUnitsUrl(query: Record<string, string>) {
@@ -25,6 +26,7 @@ Page({
     recommendation: null as DashboardRecommendation,
     recommendationUrl: '',
     subscriptionState: {
+      consentState: 'unknown' as 'unknown' | 'accepted' | 'rejected',
       hasRequested: false,
       enabledRuleTypes: [] as string[]
     }
@@ -38,8 +40,11 @@ Page({
     try {
       const payload = (await getHomeDashboard()) as DashboardPayload;
       const enabledCount = payload.subscriptionState.enabledRuleTypes.length;
-      const status = payload.subscriptionState.hasRequested
-        ? `已开启 ${enabledCount} 类提醒，继续按首页建议推进今天的处理顺序。`
+      const { hasRequested, consentState } = payload.subscriptionState;
+      const status = hasRequested
+        ? consentState === 'accepted'
+          ? `已记录授权状态，当前启用 ${enabledCount} 类提醒规则。`
+          : '已记录授权状态，可在提醒设置中调整规则并稍后重新授权。'
         : '提醒尚未订阅，但首页盘面已可直接进入处理列表。';
 
       this.setData({
@@ -100,6 +105,30 @@ Page({
     wx.navigateTo({
       url: '/pages/quick-entry/index'
     });
+  },
+  async handleReminderEntry() {
+    if (this.data.subscriptionState.hasRequested) {
+      wx.navigateTo({
+        url: '/pages/reminder-settings/index'
+      });
+      return;
+    }
+
+    try {
+      const result = await requestSubscribeMessage();
+      wx.showToast({
+        title: result.consentState === 'accepted' ? '已记录授权状态' : '已记录授权结果',
+        icon: 'none'
+      });
+      await this.loadDashboard();
+    } catch (error) {
+      console.error('request subscribe message failed', error);
+      wx.showToast({
+        title: '授权过程出现问题，请稍后重试',
+        icon: 'none'
+      });
+      await this.loadDashboard();
+    }
   },
   navigateTo(event: WechatMiniprogram.BaseEvent) {
     const url = event.currentTarget.dataset.url as string;

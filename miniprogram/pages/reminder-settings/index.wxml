@@ -1,0 +1,33 @@
+<view class="page-shell">
+  <view class="settings-shell">
+    <view class="card intro-card">
+      <view class="section-title">提醒设置</view>
+      <view class="hint">这里只管理提醒类型开关，不包含阈值、收件人或发送日志配置。</view>
+      <view class="hint">{{statusCopy}}</view>
+    </view>
+
+    <view wx:if="{{isLoading}}" class="card state-card">
+      <view class="hint">正在加载提醒规则…</view>
+    </view>
+
+    <view wx:else class="card rules-card">
+      <view class="section-title">启用提醒类型</view>
+      <view class="rules-list">
+        <view wx:for="{{rules}}" wx:key="key" class="rule-row">
+          <view class="rule-main">
+            <view class="rule-label">{{item.label}}</view>
+            <view class="hint">按规则类型控制提醒启用状态</view>
+          </view>
+          <switch
+            class="rule-switch"
+            color="#2563eb"
+            checked="{{item.enabled}}"
+            data-key="{{item.key}}"
+            bindchange="handleRuleToggle"
+          />
+        </view>
+      </view>
+      <button class="primary-button" loading="{{isSaving}}" bindtap="saveRules">保存设置</button>
+    </view>
+  </view>
+</view>

@@ -22,7 +22,7 @@ export function recommend(alerts: Alert[]) {
 export function buildDashboardPayload(input: {
   alerts: Alert[];
   units: RentableUnitSummary[];
-  subscriptionState: Pick<NotificationPreference, 'hasRequested' | 'enabledRuleTypes'>;
+  subscriptionState: Pick<NotificationPreference, 'consentState' | 'hasRequested' | 'enabledRuleTypes'>;
 }) {
   const abnormalAlerts = input.alerts.filter((item) => item.type !== ALERT_TYPES.expiring);
   const abnormalRoomIds = Array.from(new Set(abnormalAlerts.map((item) => item.roomId)));

@@ -1,0 +1,60 @@
+@import "../quick-entry/index.wxss";
+
+.settings-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.intro-card,
+.state-card,
+.rules-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.section-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.hint {
+  font-size: 24rpx;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.rule-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #f9fafb;
+}
+
+.rule-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.rule-label {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.rule-switch {
+  transform: scale(0.9);
+  transform-origin: center;
+}
