@@ -11,7 +11,7 @@
         <view class="section-title">快速录入</view>
         <view class="text-muted">适合新增房源并快速形成可管理房间与租约的轻流程。</view>
       </view>
-      <view class="action-buttons grid-2">
+      <view class="action-buttons">
         <button class="primary-button" data-url="/pages/quick-entry/index" bindtap="navigateTo">打开快速录入</button>
         <button class="secondary-button" bindtap="openUnitsTab">前往房源列表</button>
       </view>
@@ -22,7 +22,7 @@
         <view class="section-title">维护中心</view>
         <view class="text-muted">按对象维护基础资料，保证提醒、列表与详情链路数据完整。</view>
       </view>
-      <view class="ops-grid grid-2">
+      <view class="ops-grid">
         <button class="secondary-button" data-url="/pages/assets-form/index" bindtap="navigateTo">房源维护</button>
         <button class="secondary-button" data-url="/pages/rooms-form/index" bindtap="navigateTo">房间维护</button>
         <button class="secondary-button" data-url="/pages/tenants-form/index" bindtap="navigateTo">租户维护</button>

@@ -20,6 +20,8 @@
 
 .action-buttons,
 .ops-grid {
+  display: flex;
+  flex-direction: column;
   gap: 12rpx;
 }
 

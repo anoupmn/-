@@ -31,5 +31,7 @@
 }
 
 .action-grid {
+  display: flex;
+  flex-direction: column;
   gap: 12rpx;
 }

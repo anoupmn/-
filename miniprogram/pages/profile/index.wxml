@@ -21,7 +21,7 @@
           <view class="text-muted">当前启用规则：{{enabledRuleCopy}}</view>
         </view>
       </block>
-      <view class="action-grid grid-2">
+      <view class="action-grid">
         <button class="primary-button" bindtap="requestSubscription">发起/重新授权</button>
         <button class="secondary-button" bindtap="openAlertCenter">打开提醒中心</button>
       </view>

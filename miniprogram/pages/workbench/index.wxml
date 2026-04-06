@@ -76,19 +76,5 @@
       </view>
     </view>
 
-    <view class="card reminder-card">
-      <view class="section-head">
-        <view class="section-head-main">
-          <view class="section-title">提醒入口</view>
-          <view class="text-muted">
-            {{subscriptionState.hasRequested ? '已接入提醒规则管理，可持续调整规则。' : '先完成一次订阅授权，再长期管理提醒类型。'}}
-          </view>
-        </view>
-        <button class="nav-button" bindtap="handleReminderEntry">
-          {{subscriptionState.hasRequested ? '提醒设置' : '开启提醒'}}
-        </button>
-      </view>
-      <button class="secondary-button" data-url="/pages/alerts/index" bindtap="navigateTo">打开提醒中心</button>
-    </view>
   </view>
 </view>

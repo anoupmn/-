@@ -15,10 +15,10 @@
     "pages/unit-detail/index"
   ],
   "tabBar": {
-    "color": "#6b7280",
-    "selectedColor": "#111827",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "black",
+    "color": "#7b8796",
+    "selectedColor": "#1f6feb",
+    "backgroundColor": "#f7f9fc",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/workbench/index",
