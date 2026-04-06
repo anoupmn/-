@@ -82,6 +82,7 @@ describe('alert evaluator', () => {
       id: 'flag_1',
       landlordOpenId: 'openid',
       roomId: room.id,
+      source: 'manual',
       active: true,
       reason: '租客反馈空调漏水',
       createdAt: '2026-04-01T00:00:00.000Z',
@@ -134,6 +135,7 @@ describe('alert evaluator', () => {
           id: 'flag_1',
           landlordOpenId: 'openid',
           roomId: room.id,
+          source: 'manual',
           active: true,
           reason: '门锁损坏',
           createdAt: '2026-04-01T00:00:00.000Z',
@@ -147,5 +149,33 @@ describe('alert evaluator', () => {
     expect(alerts.find((item) => item.type === 'expiring')).toBeTruthy();
     expect(alerts.find((item) => item.type === 'manual_abnormal')).toBeTruthy();
     expect(recommend(alerts)?.type).toBe('manual_abnormal');
+  });
+
+  it('falls back to repair_frequency abnormal source when no manual flag exists', () => {
+    const alerts = evaluateAlerts({
+      assets: [asset],
+      rooms: [room],
+      leases: [activeLease],
+      tenants: [tenant],
+      bills: [],
+      abnormalFlags: [
+        {
+          id: 'flag_repair',
+          landlordOpenId: 'openid',
+          roomId: room.id,
+          source: 'repair_frequency',
+          active: true,
+          reason: '近 30 天维修 3 次',
+          createdAt: '2026-04-01T00:00:00.000Z',
+          updatedAt: '2026-04-01T00:00:00.000Z',
+          clearedAt: null
+        }
+      ],
+      now: '2026-04-01T00:00:00.000Z'
+    });
+
+    const abnormal = alerts.find((item) => item.type === 'manual_abnormal');
+    expect(abnormal?.summary).toContain('近 30 天维修 3 次');
+    expect(abnormal?.title).toContain('异常提醒');
   });
 });

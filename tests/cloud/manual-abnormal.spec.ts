@@ -26,6 +26,7 @@ describe('alert-manual-flag-save cloud function', () => {
     });
 
     expect(result.flag.reason).toBe('窗户渗水');
+    expect(result.flag.source).toBe('manual');
     expect(store.rooms[0]?.note).toBe('原始备注');
     expect(store.abnormalFlags?.[0]?.roomId).toBe('room_1');
     expect(result.collectionName).toBe(COLLECTIONS.abnormalFlags);

@@ -1,5 +1,6 @@
 import { endLease } from '../../services/lease';
 import { receiveBill, saveBill } from '../../services/bill';
+import { saveRepairRecord } from '../../services/repair';
 import { getRentableUnitDetail } from '../../services/rentable-unit';
 
 type MonthlyBillItem = {
@@ -35,6 +36,14 @@ function formatStatusLabel(status: string) {
 
 const MANUAL_BILL_TYPE_KEYS = ['water', 'electricity', 'repair', 'custom'] as const;
 const MANUAL_BILL_TYPE_LABELS = ['水费', '电费', '维修费', '其他费用'];
+const REPAIR_CATEGORY_OPTIONS = [
+  { key: 'plumbing', label: '水路' },
+  { key: 'electrical', label: '电路' },
+  { key: 'appliance', label: '家电' },
+  { key: 'structure', label: '结构' },
+  { key: 'safety', label: '安全' },
+  { key: 'other', label: '其他' }
+] as const;
 
 function buildManualBillMeta(typeIndex: number, currentLabel = '') {
   if (typeIndex === 2) {
@@ -75,6 +84,8 @@ Page({
     },
     manualBillTypeOptions: MANUAL_BILL_TYPE_LABELS,
     manualBillDialogVisible: false,
+    repairCategoryOptions: REPAIR_CATEGORY_OPTIONS.map((item) => item.label),
+    repairDialogVisible: false,
     manualBillMeta: {
       showLabelInput: false,
       labelPlaceholder: ''
@@ -85,6 +96,11 @@ Page({
       typeIndex: 0,
       itemLabel: '',
       amount: ''
+    },
+    repairForm: {
+      categoryIndex: 0,
+      note: '',
+      occurredAt: ''
     }
   },
   async loadDetail(roomId?: string) {
@@ -299,6 +315,85 @@ Page({
     });
     wx.showToast({
       title: '费用已补录',
+      icon: 'success'
+    });
+    await this.loadDetail();
+  },
+  openRepairDialog() {
+    this.setData({
+      repairDialogVisible: true,
+      repairForm: {
+        categoryIndex: 0,
+        note: '',
+        occurredAt: new Date().toISOString().slice(0, 10)
+      }
+    });
+  },
+  closeRepairDialog() {
+    this.setData({
+      repairDialogVisible: false
+    });
+  },
+  handleRepairCategoryChange(event: WechatMiniprogram.PickerChange) {
+    const categoryIndex = Number(event.detail.value || 0);
+    this.setData({
+      repairForm: {
+        ...this.data.repairForm,
+        categoryIndex
+      }
+    });
+  },
+  handleRepairInputChange(event: WechatMiniprogram.Input) {
+    const field = event.currentTarget.dataset.field as 'note' | 'occurredAt';
+    this.setData({
+      repairForm: {
+        ...this.data.repairForm,
+        [field]: event.detail.value
+      }
+    });
+  },
+  handleRepairDateChange(event: WechatMiniprogram.PickerChange) {
+    const occurredAt = String(event.detail.value || '');
+    this.setData({
+      repairForm: {
+        ...this.data.repairForm,
+        occurredAt
+      }
+    });
+  },
+  async confirmRepairRecord() {
+    const selectedCategory = REPAIR_CATEGORY_OPTIONS[this.data.repairForm.categoryIndex]?.key ?? 'other';
+    const note = String(this.data.repairForm.note || '').trim();
+    const occurredAt = String(this.data.repairForm.occurredAt || '').trim();
+
+    if (!note) {
+      wx.showToast({
+        title: '请填写维修备注',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (!occurredAt) {
+      wx.showToast({
+        title: '请选择发生日期',
+        icon: 'none'
+      });
+      return;
+    }
+
+    await saveRepairRecord({
+      roomId: this.data.roomId,
+      category: selectedCategory,
+      note,
+      occurredAt
+    });
+
+    this.setData({
+      repairDialogVisible: false
+    });
+    wx.showToast({
+      title: '维修记录已保存',
       icon: 'success'
     });
     await this.loadDetail();

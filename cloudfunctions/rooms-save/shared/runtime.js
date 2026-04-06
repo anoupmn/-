@@ -13,13 +13,23 @@ exports.clearCollection = clearCollection;
 exports.updateRecord = updateRecord;
 exports.getAllDomainData = getAllDomainData;
 const collections_1 = require("./constants/collections");
-const cloudSdk = require("wx-server-sdk");
+const cloudSdk = (() => {
+    try {
+        return require("wx-server-sdk");
+    }
+    catch {
+        return null;
+    }
+})();
 let cloudSdkReady = false;
 let fallbackDb = null;
 function setFallbackDb(db) {
     fallbackDb = db;
 }
 function resolveCloudDb() {
+    if (!cloudSdk) {
+        return null;
+    }
     try {
         if (!cloudSdkReady) {
             cloudSdk.init({ env: cloudSdk.DYNAMIC_CURRENT_ENV });
@@ -71,7 +81,7 @@ function resolveLandlordOpenId(event) {
     const openid = event.__mockContext?.getWXContext?.().OPENID ??
         (() => {
             try {
-                return cloudSdk.getWXContext?.().OPENID;
+                return cloudSdk?.getWXContext?.().OPENID;
             }
             catch {
                 return undefined;
@@ -153,18 +163,20 @@ async function updateRecord(db, collectionName, id, changes) {
     return updated;
 }
 async function getAllDomainData(db) {
-    const [assets, rooms, tenants, leases, bills] = await Promise.all([
+    const [assets, rooms, tenants, leases, bills, repairs] = await Promise.all([
         listAll(db, collections_1.COLLECTIONS.assets),
         listAll(db, collections_1.COLLECTIONS.rooms),
         listAll(db, collections_1.COLLECTIONS.tenants),
         listAll(db, collections_1.COLLECTIONS.leases),
-        listAll(db, collections_1.COLLECTIONS.bills)
+        listAll(db, collections_1.COLLECTIONS.bills),
+        listAll(db, collections_1.COLLECTIONS.repairRecords)
     ]);
     return {
         assets,
         rooms,
         tenants,
         leases,
-        bills
+        bills,
+        repairs
     };
 }

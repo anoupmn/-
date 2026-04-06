@@ -6,10 +6,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = main;
 const dayjs_1 = __importDefault(require("dayjs"));
 const rentable_unit_1 = require("./shared/calculators/rentable-unit");
+const repairs_1 = require("./shared/constants/repairs");
 const statuses_1 = require("./shared/constants/statuses");
 const bill_status_1 = require("./shared/calculators/bill-status");
 const lease_lifecycle_1 = require("./shared/calculators/lease-lifecycle");
 const bill_repository_1 = require("./shared/repositories/bill-repository");
+const repair_record_repository_1 = require("./shared/repositories/repair-record-repository");
 const runtime_1 = require("./shared/runtime");
 function getBillTypeLabel(bill) {
     if (bill.itemLabel) {
@@ -66,7 +68,7 @@ function buildMonthlyBillGroups(bills, now) {
 async function main(event) {
     const db = (0, runtime_1.resolveDb)(event);
     const now = event.now ?? new Date().toISOString();
-    const { assets, rooms, tenants, leases, bills } = await (0, runtime_1.getAllDomainData)(db);
+    const { assets, rooms, tenants, leases, bills, repairs } = await (0, runtime_1.getAllDomainData)(db);
     const room = rooms.find((item) => item.id === event.roomId);
     if (!room) {
         throw new Error(`Room ${event.roomId} not found.`);
@@ -82,7 +84,8 @@ async function main(event) {
         null;
     const tenantHistory = leaseHistory
         .map((lease) => tenants.find((tenant) => tenant.id === lease.tenantId))
-        .filter((tenant) => Boolean(tenant));
+        .filter((tenant) => Boolean(tenant))
+        .filter((tenant, index, source) => source.findIndex((item) => item.id === tenant.id) === index);
     const activeBills = activeLease
         ? bills.filter((bill) => bill.leaseId === activeLease.id).length > 0
             ? bills.filter((bill) => bill.leaseId === activeLease.id)
@@ -100,11 +103,41 @@ async function main(event) {
         now
     });
     const overdueCount = activeBills.filter((bill) => (0, bill_status_1.deriveBillStatus)(bill, now) === statuses_1.BILL_STATUSES.overdue).length;
+    const repairStats = (0, repair_record_repository_1.buildRoomRepairStats)({
+        roomId: room.id,
+        leases,
+        records: repairs,
+        now
+    });
+    const leaseTenantMap = new Map(leaseHistory.map((lease) => [
+        lease.id,
+        tenants.find((tenant) => tenant.id === lease.tenantId)?.name ?? '未知租户'
+    ]));
+    const repairHistory = repairs
+        .filter((item) => item.roomId === room.id)
+        .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.updatedAt.localeCompare(a.updatedAt))
+        .map((item) => ({
+        ...item,
+        categoryLabel: repairs_1.REPAIR_CATEGORY_LABELS[item.category],
+        tenantName: item.tenantId ? tenants.find((tenant) => tenant.id === item.tenantId)?.name ?? '未知租户' : '',
+        leasePeriod: item.leaseId
+            ? leaseHistory
+                .filter((lease) => lease.id === item.leaseId)
+                .map((lease) => `${lease.startDate} 至 ${lease.endDate}`)[0] ?? ''
+            : ''
+    }));
+    const tenantPeriodRepairs = repairStats.perLeaseCounts.map((item) => ({
+        ...item,
+        tenantName: leaseTenantMap.get(item.leaseId) ?? '未知租户'
+    }));
     return {
         asset,
         room,
         activeLease,
-        leaseHistory,
+        leaseHistory: leaseHistory.map((lease) => ({
+            ...lease,
+            tenantName: leaseTenantMap.get(lease.id) ?? '未知租户'
+        })),
         tenantHistory,
         summaryCard: {
             displayName: summary.displayName,
@@ -120,6 +153,9 @@ async function main(event) {
             generatedAt: (0, dayjs_1.default)(now).format('YYYY-MM-DD')
         },
         monthlyBillGroups: buildMonthlyBillGroups(activeBills, now),
+        repairStats,
+        tenantPeriodRepairs,
+        repairHistory,
         historyCollapsedByDefault: true
     };
 }

@@ -1,10 +1,12 @@
 import dayjs from 'dayjs';
 
 import { buildRentableUnitSummary } from './shared/calculators/rentable-unit';
+import { REPAIR_CATEGORY_LABELS } from './shared/constants/repairs';
 import { BILL_STATUSES, LEASE_STATUSES } from './shared/constants/statuses';
 import { deriveBillStatus } from './shared/calculators/bill-status';
 import { deriveLeaseStatus } from './shared/calculators/lease-lifecycle';
 import { ensureBillsForLease } from './shared/repositories/bill-repository';
+import { buildRoomRepairStats } from './shared/repositories/repair-record-repository';
 import { getAllDomainData, type CloudEventBase, resolveDb } from './shared/runtime';
 import type { Bill } from './shared/schemas/bill';
 
@@ -94,7 +96,7 @@ function buildMonthlyBillGroups(bills: Bill[], now: string) {
 export async function main(event: RentableUnitDetailEvent) {
   const db = resolveDb(event);
   const now = event.now ?? new Date().toISOString();
-  const { assets, rooms, tenants, leases, bills } = await getAllDomainData(db);
+  const { assets, rooms, tenants, leases, bills, repairs } = await getAllDomainData(db);
   const room = rooms.find((item) => item.id === event.roomId);
 
   if (!room) {
@@ -114,7 +116,8 @@ export async function main(event: RentableUnitDetailEvent) {
     null;
   const tenantHistory = leaseHistory
     .map((lease) => tenants.find((tenant) => tenant.id === lease.tenantId))
-    .filter((tenant): tenant is NonNullable<typeof tenant> => Boolean(tenant));
+    .filter((tenant): tenant is NonNullable<typeof tenant> => Boolean(tenant))
+    .filter((tenant, index, source) => source.findIndex((item) => item.id === tenant.id) === index);
   const activeBills = activeLease
     ? bills.filter((bill) => bill.leaseId === activeLease.id).length > 0
       ? bills.filter((bill) => bill.leaseId === activeLease.id)
@@ -132,12 +135,44 @@ export async function main(event: RentableUnitDetailEvent) {
     now
   });
   const overdueCount = activeBills.filter((bill) => deriveBillStatus(bill, now) === BILL_STATUSES.overdue).length;
+  const repairStats = buildRoomRepairStats({
+    roomId: room.id,
+    leases,
+    records: repairs,
+    now
+  });
+  const leaseTenantMap = new Map(
+    leaseHistory.map((lease) => [
+      lease.id,
+      tenants.find((tenant) => tenant.id === lease.tenantId)?.name ?? '未知租户'
+    ])
+  );
+  const repairHistory = repairs
+    .filter((item) => item.roomId === room.id)
+    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.updatedAt.localeCompare(a.updatedAt))
+    .map((item) => ({
+      ...item,
+      categoryLabel: REPAIR_CATEGORY_LABELS[item.category],
+      tenantName: item.tenantId ? tenants.find((tenant) => tenant.id === item.tenantId)?.name ?? '未知租户' : '',
+      leasePeriod: item.leaseId
+        ? leaseHistory
+            .filter((lease) => lease.id === item.leaseId)
+            .map((lease) => `${lease.startDate} 至 ${lease.endDate}`)[0] ?? ''
+        : ''
+    }));
+  const tenantPeriodRepairs = repairStats.perLeaseCounts.map((item) => ({
+    ...item,
+    tenantName: leaseTenantMap.get(item.leaseId) ?? '未知租户'
+  }));
 
   return {
     asset,
     room,
     activeLease,
-    leaseHistory,
+    leaseHistory: leaseHistory.map((lease) => ({
+      ...lease,
+      tenantName: leaseTenantMap.get(lease.id) ?? '未知租户'
+    })),
     tenantHistory,
     summaryCard: {
       displayName: summary.displayName,
@@ -153,6 +188,9 @@ export async function main(event: RentableUnitDetailEvent) {
       generatedAt: dayjs(now).format('YYYY-MM-DD')
     },
     monthlyBillGroups: buildMonthlyBillGroups(activeBills, now),
+    repairStats,
+    tenantPeriodRepairs,
+    repairHistory,
     historyCollapsedByDefault: true
   };
 }

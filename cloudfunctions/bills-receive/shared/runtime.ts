@@ -2,10 +2,17 @@ import { COLLECTIONS } from './constants/collections';
 import type { Asset } from './schemas/asset';
 import type { Bill } from './schemas/bill';
 import type { Lease } from './schemas/lease';
+import type { RepairRecord } from './schemas/repair-record';
 import type { Room } from './schemas/room';
 import type { Tenant } from './schemas/tenant';
 
-const cloudSdk = require('wx-server-sdk');
+const cloudSdk = (() => {
+  try {
+    return require('wx-server-sdk');
+  } catch {
+    return null;
+  }
+})();
 let cloudSdkReady = false;
 
 export interface DbRecord {
@@ -52,6 +59,10 @@ export function setFallbackDb(db: DbLike | null) {
 }
 
 function resolveCloudDb(): DbLike | null {
+  if (!cloudSdk) {
+    return null;
+  }
+
   try {
     if (!cloudSdkReady) {
       cloudSdk.init({ env: cloudSdk.DYNAMIC_CURRENT_ENV });
@@ -111,7 +122,7 @@ export function resolveLandlordOpenId(event: CloudEventBase) {
     event.__mockContext?.getWXContext?.().OPENID ??
     (() => {
       try {
-        return cloudSdk.getWXContext?.().OPENID;
+        return cloudSdk?.getWXContext?.().OPENID;
       } catch {
         return undefined;
       }
@@ -214,12 +225,13 @@ export async function updateRecord<T extends DbRecord>(
 }
 
 export async function getAllDomainData(db: DbLike) {
-  const [assets, rooms, tenants, leases, bills] = await Promise.all([
+  const [assets, rooms, tenants, leases, bills, repairs] = await Promise.all([
     listAll<Asset>(db, COLLECTIONS.assets),
     listAll<Room>(db, COLLECTIONS.rooms),
     listAll<Tenant>(db, COLLECTIONS.tenants),
     listAll<Lease>(db, COLLECTIONS.leases),
-    listAll<Bill>(db, COLLECTIONS.bills)
+    listAll<Bill>(db, COLLECTIONS.bills),
+    listAll<RepairRecord>(db, COLLECTIONS.repairRecords)
   ]);
 
   return {
@@ -227,6 +239,7 @@ export async function getAllDomainData(db: DbLike) {
     rooms,
     tenants,
     leases,
-    bills
+    bills,
+    repairs
   };
 }

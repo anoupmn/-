@@ -8,6 +8,7 @@ exports.COLLECTIONS = {
     tenants: 'tenants',
     leases: 'leases',
     bills: 'bills',
+    repairRecords: 'repair_records',
     alerts: 'alerts',
     abnormalFlags: 'abnormal_flags',
     notificationPreferences: 'notification_preferences'

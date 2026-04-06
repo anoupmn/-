@@ -128,9 +128,16 @@ export function evaluateAlerts(input: AlertEvaluationInput) {
       );
     }
 
-    const manualFlag =
-      abnormalFlags.find((item) => item.roomId === room.id && item.active && item.landlordOpenId === room.landlordOpenId) ?? null;
-    if (manualFlag) {
+    const abnormalFlagCandidates = abnormalFlags.filter(
+      (item) => item.roomId === room.id && item.active && item.landlordOpenId === room.landlordOpenId
+    );
+    const abnormalFlag =
+      abnormalFlagCandidates.sort((a, b) => {
+        const sourceRank = (value: string) => (value === 'manual' ? 2 : value === 'repair_frequency' ? 1 : 0);
+        return sourceRank(b.source ?? 'manual') - sourceRank(a.source ?? 'manual');
+      })[0] ?? null;
+
+    if (abnormalFlag) {
       alerts.push(
         buildBaseAlert({
           room,
@@ -138,10 +145,10 @@ export function evaluateAlerts(input: AlertEvaluationInput) {
           landlordOpenId: room.landlordOpenId,
           type: ALERT_TYPES.manualAbnormal,
           level: ALERT_LEVELS.warning,
-          title: `${summary.displayName} 人工异常`,
-          summary: manualFlag.reason,
-          reason: manualFlag.reason,
-          sourceId: manualFlag.id,
+          title: `${summary.displayName} 异常提醒`,
+          summary: abnormalFlag.reason,
+          reason: abnormalFlag.reason,
+          sourceId: abnormalFlag.id,
           now
         })
       );

@@ -10,6 +10,7 @@ async function main(event) {
     const flag = await (0, abnormal_flag_repository_1.saveAbnormalFlag)(db, {
         landlordOpenId,
         roomId: event.roomId,
+        source: 'manual',
         reason: event.reason,
         active: event.active
     }, event);

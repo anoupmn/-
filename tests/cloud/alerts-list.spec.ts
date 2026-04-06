@@ -44,6 +44,16 @@ describe('alerts-list cloud function', () => {
         isWholeUnitDefault: false,
         createdAt: '',
         updatedAt: ''
+      },
+      {
+        id: 'room_4',
+        landlordOpenId: 'openid',
+        assetId: 'asset_1',
+        name: 'A104',
+        note: '',
+        isWholeUnitDefault: false,
+        createdAt: '',
+        updatedAt: ''
       }
     );
     store.tenants.push({
@@ -89,12 +99,54 @@ describe('alerts-list cloud function', () => {
       id: 'flag_1',
       landlordOpenId: 'openid',
       roomId: 'room_2',
+      source: 'manual',
       active: true,
       reason: '手动报修',
       createdAt: '',
       updatedAt: '',
       clearedAt: null
     });
+    store.repairRecords.push(
+      {
+        id: 'repair_1',
+        landlordOpenId: 'openid',
+        assetId: 'asset_1',
+        roomId: 'room_4',
+        leaseId: null,
+        tenantId: null,
+        category: 'plumbing',
+        note: '厨房水管漏水',
+        occurredAt: '2026-03-10',
+        createdAt: '',
+        updatedAt: ''
+      },
+      {
+        id: 'repair_2',
+        landlordOpenId: 'openid',
+        assetId: 'asset_1',
+        roomId: 'room_4',
+        leaseId: null,
+        tenantId: null,
+        category: 'electrical',
+        note: '墙插短路',
+        occurredAt: '2026-03-20',
+        createdAt: '',
+        updatedAt: ''
+      },
+      {
+        id: 'repair_3',
+        landlordOpenId: 'openid',
+        assetId: 'asset_1',
+        roomId: 'room_4',
+        leaseId: null,
+        tenantId: null,
+        category: 'appliance',
+        note: '热水器维修',
+        occurredAt: '2026-03-25',
+        createdAt: '',
+        updatedAt: ''
+      }
+    );
 
     const result = await alertsListMain({
       __mockDb: createMockDb(store),
@@ -107,5 +159,10 @@ describe('alerts-list cloud function', () => {
     expect(result.groups.find((group: { type: string }) => group.type === 'manual_abnormal')?.items[0]?.summary).toContain(
       '手动报修'
     );
+    expect(
+      result.groups
+        .find((group: { type: string }) => group.type === 'manual_abnormal')
+        ?.items.some((item: { summary: string }) => item.summary.includes('近 30 天维修 3 次'))
+    ).toBe(true);
   });
 });

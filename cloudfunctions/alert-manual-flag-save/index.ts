@@ -16,6 +16,7 @@ export async function main(event: AlertManualFlagSaveEvent) {
     {
       landlordOpenId,
       roomId: event.roomId,
+      source: 'manual',
       reason: event.reason,
       active: event.active
     },

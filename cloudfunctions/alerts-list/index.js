@@ -11,8 +11,7 @@ const runtime_1 = require("./shared/runtime");
 async function main(event) {
     const db = (0, runtime_1.resolveDb)(event);
     const now = event.now ?? new Date().toISOString();
-    const { assets, rooms, tenants, leases, bills } = await (0, runtime_1.getAllDomainData)(db);
-    const abnormalFlags = await (0, abnormal_flag_repository_1.listAbnormalFlags)(db);
+    const { assets, rooms, tenants, leases, bills, repairs } = await (0, runtime_1.getAllDomainData)(db);
     const ensuredBills = [...bills];
     for (const lease of leases) {
         if ((0, lease_lifecycle_1.deriveLeaseStatus)(lease, now) !== statuses_2.LEASE_STATUSES.active) {
@@ -23,6 +22,13 @@ async function main(event) {
         }
         ensuredBills.push(...(await (0, bill_repository_1.ensureBillsForLease)(db, lease, { ...event, now })));
     }
+    await (0, abnormal_flag_repository_1.syncRepairFrequencyAbnormalFlags)(db, {
+        rooms,
+        leases,
+        repairs,
+        now
+    }, { ...event, now });
+    const abnormalFlags = await (0, abnormal_flag_repository_1.listAbnormalFlags)(db);
     const alerts = await (0, alert_repository_1.rebuildAlerts)(db, {
         assets,
         rooms,

@@ -34,6 +34,16 @@ describe('dashboard-home cloud function', () => {
         isWholeUnitDefault: false,
         createdAt: '',
         updatedAt: ''
+      },
+      {
+        id: 'room_3',
+        landlordOpenId: 'openid',
+        assetId: 'asset_1',
+        name: 'A103',
+        note: '',
+        isWholeUnitDefault: false,
+        createdAt: '',
+        updatedAt: ''
       }
     );
     store.tenants.push({
@@ -92,10 +102,52 @@ describe('dashboard-home cloud function', () => {
       createdAt: '',
       updatedAt: ''
     });
+    store.repairRecords.push(
+      {
+        id: 'repair_1',
+        landlordOpenId: 'openid',
+        assetId: 'asset_1',
+        roomId: 'room_3',
+        leaseId: null,
+        tenantId: null,
+        category: 'plumbing',
+        note: '厨房下水堵塞',
+        occurredAt: '2026-03-20',
+        createdAt: '',
+        updatedAt: ''
+      },
+      {
+        id: 'repair_2',
+        landlordOpenId: 'openid',
+        assetId: 'asset_1',
+        roomId: 'room_3',
+        leaseId: null,
+        tenantId: null,
+        category: 'electrical',
+        note: '空开频繁跳闸',
+        occurredAt: '2026-03-28',
+        createdAt: '',
+        updatedAt: ''
+      },
+      {
+        id: 'repair_3',
+        landlordOpenId: 'openid',
+        assetId: 'asset_1',
+        roomId: 'room_3',
+        leaseId: null,
+        tenantId: null,
+        category: 'appliance',
+        note: '热水器故障',
+        occurredAt: '2026-04-06',
+        createdAt: '',
+        updatedAt: ''
+      }
+    );
     store.abnormalFlags.push({
       id: 'flag_1',
       landlordOpenId: 'openid',
       roomId: 'room_2',
+      source: 'manual',
       active: true,
       reason: '门锁损坏',
       createdAt: '',
@@ -119,8 +171,9 @@ describe('dashboard-home cloud function', () => {
     });
 
     expect(result.overviewCards).toHaveLength(3);
-    expect(result.overviewCards.find((item: { key: string }) => item.key === 'abnormal')?.count).toBe(2);
+    expect(result.overviewCards.find((item: { key: string }) => item.key === 'abnormal')?.count).toBe(3);
     expect(result.abnormalRows[0]?.primaryReason).toContain('逾期');
+    expect(result.abnormalRows.some((item: { supportingText: string }) => item.supportingText.includes('近 30 天维修 3 次'))).toBe(true);
     expect(result.recommendation).not.toBeNull();
     expect(result.recommendation!.title).toContain('优先处理');
     expect(result.recommendation!.actionLabel).toBe('立即处理');
