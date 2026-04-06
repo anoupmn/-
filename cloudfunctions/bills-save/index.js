@@ -1,60 +1,24 @@
-'use strict';
-
-const cloud = require('wx-server-sdk');
-
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-
-const db = cloud.database();
-
-function createId(prefix) {
-  return prefix + '_' + Math.random().toString(36).slice(2, 10);
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.main = main;
+const bill_repository_1 = require("../shared/repositories/bill-repository");
+const runtime_1 = require("../shared/runtime");
+const collections_1 = require("../shared/constants/collections");
+async function main(event) {
+    const db = (0, runtime_1.resolveDb)(event);
+    const leases = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.leases);
+    const lease = leases.find((item) => item.id === event.leaseId);
+    if (!lease) {
+        throw new Error(`Lease ${event.leaseId} not found.`);
+    }
+    const section = event.type === 'rent' ? 'rent' : event.type === 'deposit' ? 'deposit' : 'non_rent';
+    const dueDate = `${event.monthKey}-01`;
+    return (0, bill_repository_1.createManualBill)(db, {
+        lease,
+        type: event.type,
+        section,
+        dueDate,
+        amount: Number(event.amount || 0),
+        itemLabel: event.itemLabel
+    }, event);
 }
-
-exports.main = async (event = {}) => {
-  if (!event.leaseId) {
-    throw new Error('leaseId is required.');
-  }
-
-  if (!event.monthKey) {
-    throw new Error('monthKey is required.');
-  }
-
-  if (!event.type) {
-    throw new Error('type is required.');
-  }
-
-  if (!Number(event.amount)) {
-    throw new Error('amount must be greater than 0.');
-  }
-
-  const leaseRes = await db.collection('leases').where({ id: event.leaseId }).get();
-  const lease = leaseRes.data[0];
-
-  if (!lease) {
-    throw new Error('Lease not found.');
-  }
-
-  const createdAt = new Date().toISOString();
-  const bill = {
-    id: createId('bill'),
-    landlordOpenId: lease.landlordOpenId,
-    leaseId: lease.id,
-    roomId: lease.roomId,
-    type: event.type,
-    section: event.type === 'rent' ? 'rent' : event.type === 'deposit' ? 'deposit' : 'non_rent',
-    dueDate: String(event.monthKey) + '-01',
-    amount: Number(event.amount),
-    status: 'pending',
-    receivedAt: null,
-    receivedAmount: null,
-    note: '',
-    itemKey: event.type === 'custom' ? 'manual_' + Date.now() : undefined,
-    itemLabel: event.itemLabel ? String(event.itemLabel) : undefined,
-    source: 'manual',
-    createdAt,
-    updatedAt: createdAt
-  };
-
-  await db.collection('bills').add({ data: bill });
-  return bill;
-};

@@ -1,41 +1,13 @@
-'use strict';
-
-const cloud = require('wx-server-sdk');
-
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-
-const db = cloud.database();
-
-exports.main = async (event = {}) => {
-  if (!event.billId) {
-    throw new Error('billId is required.');
-  }
-
-  if (!event.receivedAt) {
-    throw new Error('receivedAt is required.');
-  }
-
-  if (!Number(event.receivedAmount)) {
-    throw new Error('receivedAmount is required.');
-  }
-
-  const collection = db.collection('bills');
-  const result = await collection.where({ id: event.billId }).get();
-  const current = result.data[0];
-
-  if (!current) {
-    throw new Error('Bill not found.');
-  }
-
-  await collection.doc(current._id).update({
-    data: {
-      receivedAt: event.receivedAt,
-      receivedAmount: Number(event.receivedAmount),
-      status: 'paid',
-      updatedAt: new Date().toISOString()
-    }
-  });
-
-  const updated = await collection.doc(current._id).get();
-  return updated.data;
-};
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.main = main;
+const bill_repository_1 = require("../shared/repositories/bill-repository");
+const runtime_1 = require("../shared/runtime");
+async function main(event) {
+    const db = (0, runtime_1.resolveDb)(event);
+    return (0, bill_repository_1.markBillReceived)(db, {
+        billId: event.billId,
+        receivedAt: event.receivedAt,
+        receivedAmount: event.receivedAmount
+    }, event);
+}

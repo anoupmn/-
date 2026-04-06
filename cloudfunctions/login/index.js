@@ -1,20 +1,24 @@
-'use strict';
-
-const cloud = require('wx-server-sdk');
-
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-
-exports.main = async (event = {}) => {
-  const { OPENID } = cloud.getWXContext();
-  const displayName = (event.displayName || '房东').trim() || '房东';
-  const now = new Date().toISOString();
-
-  return {
-    session: {
-      openid: OPENID,
-      displayName,
-      lastLoginAt: now,
-      role: 'landlord'
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.main = main;
+function resolveOpenId(event) {
+    const openid = event.__mockContext?.getWXContext?.().OPENID;
+    if (!openid) {
+        throw new Error('Missing OPENID from cloud context.');
     }
-  };
-};
+    return openid;
+}
+async function main(event) {
+    const openid = resolveOpenId(event);
+    const displayName = event.displayName?.trim() || '房东';
+    const now = new Date().toISOString();
+    const session = {
+        openid,
+        displayName,
+        role: 'landlord',
+        lastLoginAt: now
+    };
+    return {
+        session
+    };
+}

@@ -1,0 +1,10 @@
+{
+  "name": "rzb-alert-manual-flag-save",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "dayjs": "^1.11.20",
+    "wx-server-sdk": "latest",
+    "zod": "^4.3.6"
+  }
+}
