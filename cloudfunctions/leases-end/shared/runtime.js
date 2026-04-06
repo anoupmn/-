@@ -48,7 +48,7 @@ function isCollectionMissingError(error) {
 }
 function isDocumentNotFoundError(error) {
     const payload = error;
-    const message = payload?.message ?? '';
+    const message = payload?.message ?? payload?.errMsg ?? '';
     return payload?.errCode === -504002 || message.includes('document.get:fail document with _id');
 }
 function isCollectionAlreadyExistsError(error) {

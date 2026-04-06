@@ -512,6 +512,25 @@ Page({
       return;
     }
 
+    const confirmLeaseClosed = async () => {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          await this.loadDetail();
+          if (!this.data.detail?.activeLease?.id) {
+            return true;
+          }
+        } catch (pollingError) {
+          console.warn('polling lease detail after end failed', pollingError);
+        }
+
+        if (attempt < 2) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 600));
+        }
+      }
+
+      return false;
+    };
+
     try {
       await endLease({ leaseId });
     } catch (error) {
@@ -521,33 +540,29 @@ Page({
         error instanceof Error ? error.message : ''
       }`.toLowerCase();
       const isTimeout = message.includes('timeout');
-
-      if (!isTimeout) {
-        wx.showToast({
-          title: '结束租约失败，请稍后重试',
-          icon: 'none'
-        });
-        return;
-      }
-
-      let leaseClosed = false;
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        await this.loadDetail();
-        if (!this.data.detail?.activeLease?.id) {
-          leaseClosed = true;
-          break;
-        }
-        if (attempt < 2) {
-          await new Promise<void>((resolve) => setTimeout(resolve, 600));
-        }
-      }
+      const leaseClosed = await confirmLeaseClosed();
 
       if (!leaseClosed) {
         wx.showToast({
-          title: '请求超时，请稍后重试',
+          title: isTimeout ? '请求超时，请稍后重试' : '结束租约失败，请稍后重试',
           icon: 'none'
         });
         return;
+      }
+    }
+
+    const pages = getCurrentPages();
+    const previousPage = pages[pages.length - 2] as
+      | {
+          loadUnits?: () => Promise<void>;
+        }
+      | undefined;
+
+    if (previousPage?.loadUnits) {
+      try {
+        await previousPage.loadUnits();
+      } catch (refreshError) {
+        console.warn('refresh units list after end lease failed', refreshError);
       }
     }
 

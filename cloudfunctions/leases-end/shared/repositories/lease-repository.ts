@@ -1,5 +1,6 @@
 import { COLLECTIONS } from '../constants/collections';
-import { assertSingleActiveLease, closeLeaseAndDeriveUnitStatus } from '../calculators/lease-lifecycle';
+import { assertSingleActiveLease, closeLeaseAndDeriveUnitStatus, deriveLeaseStatus } from '../calculators/lease-lifecycle';
+import { LEASE_STATUSES } from '../constants/statuses';
 import { getLeaseFeeRules, leaseSchema, type Lease, type LeaseInput } from '../schemas/lease';
 import { createId, findById, insertRecord, listAll, resolveNow, type CloudEventBase, type DbLike, updateRecord } from '../runtime';
 import { syncBillsForLease } from './bill-repository';
@@ -79,29 +80,59 @@ export async function updateLease(db: DbLike, leaseId: string, changes: Partial<
 }
 
 export async function endLease(db: DbLike, leaseId: string, event: CloudEventBase) {
+  const now = resolveNow(event);
   const currentLeaseSnapshot = await db.collection(COLLECTIONS.leases).where({ id: leaseId }).get();
-  const currentLease = (currentLeaseSnapshot.data?.[0] as Lease | undefined) ?? null;
+  const currentLease = (currentLeaseSnapshot.data?.[0] as (Lease & { _id?: string }) | undefined) ?? null;
 
   if (!currentLease) {
     throw new Error(`Lease ${leaseId} not found.`);
   }
 
   const roomLeasesSnapshot = await db.collection(COLLECTIONS.leases).where({ roomId: currentLease.roomId }).get();
-  const roomLeases = (roomLeasesSnapshot.data ?? []) as Lease[];
+  const roomLeases = (roomLeasesSnapshot.data ?? []) as Array<Lease & { _id?: string }>;
+  const activeRoomLeases = roomLeases.filter((item) => deriveLeaseStatus(item, now) === LEASE_STATUSES.active);
+  const closingLeaseIds = new Set([leaseId, ...activeRoomLeases.map((item) => item.id)]);
 
-  const result = closeLeaseAndDeriveUnitStatus(
-    currentLease,
-    roomLeases,
-    resolveNow(event)
+  const leasesAfterClose = roomLeases.map((item) =>
+    closingLeaseIds.has(item.id)
+      ? {
+          ...item,
+          closedAt: now,
+          updatedAt: now
+        }
+      : item
   );
 
-  const updatedLease = await updateRecord<Lease>(db, COLLECTIONS.leases, leaseId, {
-    closedAt: result.closedLease.closedAt,
-    updatedAt: result.closedLease.updatedAt
-  });
+  const result = closeLeaseAndDeriveUnitStatus(
+    {
+      ...currentLease,
+      closedAt: now,
+      updatedAt: now
+    },
+    leasesAfterClose,
+    now
+  );
+
+  for (const item of roomLeases) {
+    if (!closingLeaseIds.has(item.id)) {
+      continue;
+    }
+
+    const docId = item._id ?? item.id;
+    await db.collection(COLLECTIONS.leases).doc(docId).update({
+      data: {
+        closedAt: now,
+        updatedAt: now
+      }
+    });
+  }
 
   return {
-    lease: updatedLease,
+    lease: {
+      ...currentLease,
+      closedAt: result.closedLease.closedAt,
+      updatedAt: result.closedLease.updatedAt
+    } as Lease,
     currentStatus: result.currentStatus
   };
 }

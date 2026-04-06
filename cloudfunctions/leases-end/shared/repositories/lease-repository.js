@@ -6,6 +6,7 @@ exports.endLease = endLease;
 exports.listLeasesByRoom = listLeasesByRoom;
 const collections_1 = require("../constants/collections");
 const lease_lifecycle_1 = require("../calculators/lease-lifecycle");
+const statuses_1 = require("../constants/statuses");
 const lease_1 = require("../schemas/lease");
 const runtime_1 = require("../runtime");
 const bill_repository_1 = require("./bill-repository");
@@ -75,6 +76,7 @@ async function updateLease(db, leaseId, changes, event) {
     return updatedLease;
 }
 async function endLease(db, leaseId, event) {
+    const now = (0, runtime_1.resolveNow)(event);
     const currentLeaseSnapshot = await db.collection(collections_1.COLLECTIONS.leases).where({ id: leaseId }).get();
     const currentLease = currentLeaseSnapshot.data?.[0] ?? null;
     if (!currentLease) {
@@ -82,13 +84,38 @@ async function endLease(db, leaseId, event) {
     }
     const roomLeasesSnapshot = await db.collection(collections_1.COLLECTIONS.leases).where({ roomId: currentLease.roomId }).get();
     const roomLeases = roomLeasesSnapshot.data ?? [];
-    const result = (0, lease_lifecycle_1.closeLeaseAndDeriveUnitStatus)(currentLease, roomLeases, (0, runtime_1.resolveNow)(event));
-    const updatedLease = await (0, runtime_1.updateRecord)(db, collections_1.COLLECTIONS.leases, leaseId, {
-        closedAt: result.closedLease.closedAt,
-        updatedAt: result.closedLease.updatedAt
-    });
+    const activeRoomLeases = roomLeases.filter((item) => (0, lease_lifecycle_1.deriveLeaseStatus)(item, now) === statuses_1.LEASE_STATUSES.active);
+    const closingLeaseIds = new Set([leaseId, ...activeRoomLeases.map((item) => item.id)]);
+    const leasesAfterClose = roomLeases.map((item) => closingLeaseIds.has(item.id)
+        ? {
+            ...item,
+            closedAt: now,
+            updatedAt: now
+        }
+        : item);
+    const result = (0, lease_lifecycle_1.closeLeaseAndDeriveUnitStatus)({
+        ...currentLease,
+        closedAt: now,
+        updatedAt: now
+    }, leasesAfterClose, now);
+    for (const item of roomLeases) {
+        if (!closingLeaseIds.has(item.id)) {
+            continue;
+        }
+        const docId = item._id ?? item.id;
+        await db.collection(collections_1.COLLECTIONS.leases).doc(docId).update({
+            data: {
+                closedAt: now,
+                updatedAt: now
+            }
+        });
+    }
     return {
-        lease: updatedLease,
+        lease: {
+            ...currentLease,
+            closedAt: result.closedLease.closedAt,
+            updatedAt: result.closedLease.updatedAt
+        },
         currentStatus: result.currentStatus
     };
 }

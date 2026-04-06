@@ -81,8 +81,8 @@ function isCollectionMissingError(error: unknown) {
 }
 
 function isDocumentNotFoundError(error: unknown) {
-  const payload = error as { errCode?: number; message?: string } | undefined;
-  const message = payload?.message ?? '';
+  const payload = error as { errCode?: number; message?: string; errMsg?: string } | undefined;
+  const message = payload?.message ?? payload?.errMsg ?? '';
   return payload?.errCode === -504002 || message.includes('document.get:fail document with _id');
 }
 
