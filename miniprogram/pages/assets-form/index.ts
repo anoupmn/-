@@ -1,5 +1,45 @@
 import { listAssets, saveAsset } from '../../services/asset';
 
+function parseRegionFromAddress(address: string, currentRegion: string[]) {
+  const fallback = Array.isArray(currentRegion) && currentRegion.length === 3
+    ? currentRegion
+    : ['上海市', '上海市', '松江区'];
+  const normalized = String(address || '').replace(/\s+/g, '');
+
+  if (!normalized) {
+    return fallback;
+  }
+
+  const municipalityMatch = normalized.match(/^(北京市|上海市|天津市|重庆市)/);
+  if (municipalityMatch) {
+    const city = municipalityMatch[1];
+    const rest = normalized.slice(city.length);
+    const districtMatch = rest.match(/^(.*?(?:区|县|市|旗))/);
+    return [city, city, districtMatch ? districtMatch[1] : fallback[2]];
+  }
+
+  const provinceMatch = normalized.match(/^(.*?(?:省|自治区|特别行政区))/);
+  if (provinceMatch) {
+    const province = provinceMatch[1];
+    const rest = normalized.slice(province.length);
+    const cityMatch = rest.match(/^(.*?(?:市|州|地区|盟))/);
+    const city = cityMatch ? cityMatch[1] : fallback[1];
+    const districtSource = cityMatch ? rest.slice(city.length) : rest;
+    const districtMatch = districtSource.match(/^(.*?(?:区|县|市|旗))/);
+    return [province, city, districtMatch ? districtMatch[1] : fallback[2]];
+  }
+
+  const cityMatch = normalized.match(/^(.*?(?:市|州|地区|盟))/);
+  if (cityMatch) {
+    const city = cityMatch[1];
+    const rest = normalized.slice(city.length);
+    const districtMatch = rest.match(/^(.*?(?:区|县|市|旗))/);
+    return [fallback[0] || city, city, districtMatch ? districtMatch[1] : fallback[2]];
+  }
+
+  return fallback;
+}
+
 Page({
   data: {
     name: '',
@@ -9,7 +49,6 @@ Page({
     locationName: '',
     latitude: null as number | null,
     longitude: null as number | null,
-    mapHint: '可先手动选择地区和填写详细门牌；地图选点更适合真机调试。',
     rentalMode: 'whole',
     message: '',
     assets: [] as Array<Record<string, unknown>>
@@ -42,16 +81,16 @@ Page({
   async chooseMapLocation() {
     try {
       const result = await wx.chooseLocation({});
-      const nextName = this.data.name || result.name || '';
+      const locationName = (result.name || '').trim();
+      const nextRegion = parseRegionFromAddress(result.address || '', this.data.region);
 
       this.setData({
-        name: nextName,
+        name: locationName || this.data.name,
+        region: nextRegion,
         selectedAddress: result.address || '',
-        addressDetail: result.address || this.data.addressDetail,
-        locationName: result.name || '',
+        locationName,
         latitude: result.latitude,
-        longitude: result.longitude,
-        mapHint: '地图选点成功，已自动回填地址。'
+        longitude: result.longitude
       });
     } catch (error) {
       const errMsg = error && typeof error === 'object' && 'errMsg' in error ? String(error.errMsg) : '';
@@ -59,12 +98,9 @@ Page({
         return;
       }
 
-      this.setData({
-        mapHint: '地图选点失败，通常是模拟器定位能力不足。请直接手动填写地址，或改用真机调试。'
-      });
       wx.showModal({
         title: '地图选点暂不可用',
-        content: `当前环境地图选点超时。你可以继续用地区 + 详细地址完成录入；如果想用地图选点，建议切到真机调试后再试。\n\n错误信息：${errMsg || '未知错误'}`,
+        content: `当前环境地图选点失败。请稍后重试或在真机调试中使用地图选点。\n\n错误信息：${errMsg || '未知错误'}`,
         showCancel: false
       });
     }

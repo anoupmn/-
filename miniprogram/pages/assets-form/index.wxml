@@ -26,8 +26,7 @@
       </picker>
 
       <button class="secondary-button" bindtap="chooseMapLocation">地图选点并自动回填</button>
-      <view class="tip-block">
-        <view class="text-muted">{{mapHint}}</view>
+      <view wx:if="{{locationName || selectedAddress}}" class="tip-block">
         <view wx:if="{{locationName}}" class="text-muted">位置名称：{{locationName}}</view>
         <view wx:if="{{selectedAddress}}" class="text-muted">地图地址：{{selectedAddress}}</view>
       </view>
