@@ -121,7 +121,21 @@ async function insertRecord(db, collectionName, record) {
 }
 async function clearCollection(db, collectionName) {
     try {
-        await db.collection(collectionName).where({}).remove();
+        const dbWithCommand = db;
+        if (dbWithCommand.command?.exists) {
+            await db.collection(collectionName).where({ id: dbWithCommand.command.exists(true) }).remove();
+            return;
+        }
+        const snapshot = await db.collection(collectionName).get();
+        if (!Array.isArray(snapshot.data) || snapshot.data.length === 0) {
+            return;
+        }
+        for (const item of snapshot.data) {
+            if (!item?.id) {
+                continue;
+            }
+            await db.collection(collectionName).where({ id: item.id }).remove();
+        }
     }
     catch (error) {
         if (!isCollectionMissingError(error)) {

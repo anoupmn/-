@@ -168,7 +168,28 @@ export async function insertRecord<T extends DbRecord>(db: DbLike, collectionNam
 
 export async function clearCollection(db: DbLike, collectionName: string) {
   try {
-    await db.collection(collectionName).where({}).remove();
+    const dbWithCommand = db as DbLike & {
+      command?: {
+        exists?: (value: boolean) => unknown;
+      };
+    };
+
+    if (dbWithCommand.command?.exists) {
+      await db.collection(collectionName).where({ id: dbWithCommand.command.exists(true) as never }).remove();
+      return;
+    }
+
+    const snapshot = await db.collection(collectionName).get();
+    if (!Array.isArray(snapshot.data) || snapshot.data.length === 0) {
+      return;
+    }
+
+    for (const item of snapshot.data) {
+      if (!item?.id) {
+        continue;
+      }
+      await db.collection(collectionName).where({ id: item.id }).remove();
+    }
   } catch (error) {
     if (!isCollectionMissingError(error)) {
       throw error;
