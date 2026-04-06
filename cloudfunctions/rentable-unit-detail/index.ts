@@ -1,12 +1,12 @@
 import dayjs from 'dayjs';
 
-import { buildRentableUnitSummary } from '../shared/calculators/rentable-unit';
-import { BILL_STATUSES, LEASE_STATUSES } from '../shared/constants/statuses';
-import { deriveBillStatus } from '../shared/calculators/bill-status';
-import { deriveLeaseStatus } from '../shared/calculators/lease-lifecycle';
-import { ensureBillsForLease } from '../shared/repositories/bill-repository';
-import { getAllDomainData, type CloudEventBase, resolveDb } from '../shared/runtime';
-import type { Bill } from '../shared/schemas/bill';
+import { buildRentableUnitSummary } from './shared/calculators/rentable-unit';
+import { BILL_STATUSES, LEASE_STATUSES } from './shared/constants/statuses';
+import { deriveBillStatus } from './shared/calculators/bill-status';
+import { deriveLeaseStatus } from './shared/calculators/lease-lifecycle';
+import { ensureBillsForLease } from './shared/repositories/bill-repository';
+import { getAllDomainData, type CloudEventBase, resolveDb } from './shared/runtime';
+import type { Bill } from './shared/schemas/bill';
 
 export interface RentableUnitDetailEvent extends CloudEventBase {
   roomId: string;

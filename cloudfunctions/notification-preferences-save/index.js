@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = main;
-const collections_1 = require("../shared/constants/collections");
-const statuses_1 = require("../shared/constants/statuses");
-const notification_preference_repository_1 = require("../shared/repositories/notification-preference-repository");
-const runtime_1 = require("../shared/runtime");
+const collections_1 = require("./shared/constants/collections");
+const statuses_1 = require("./shared/constants/statuses");
+const notification_preference_repository_1 = require("./shared/repositories/notification-preference-repository");
+const runtime_1 = require("./shared/runtime");
 const RULE_TYPE_SET = new Set([
     statuses_1.ALERT_TYPES.expiring,
     statuses_1.ALERT_TYPES.overdue,

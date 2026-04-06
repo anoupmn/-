@@ -1,6 +1,6 @@
-import { createRoom, updateRoom } from '../shared/repositories/room-repository';
-import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from '../shared/runtime';
-import type { RoomInput } from '../shared/schemas/room';
+import { createRoom, updateRoom } from './shared/repositories/room-repository';
+import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from './shared/runtime';
+import type { RoomInput } from './shared/schemas/room';
 
 export interface RoomSaveEvent extends CloudEventBase {
   roomId?: string;

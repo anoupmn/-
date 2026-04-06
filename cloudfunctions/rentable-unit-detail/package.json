@@ -4,6 +4,7 @@
   "main": "index.js",
   "dependencies": {
     "dayjs": "^1.11.20",
-    "wx-server-sdk": "latest"
+    "wx-server-sdk": "latest",
+    "zod": "^4.3.6"
   }
 }

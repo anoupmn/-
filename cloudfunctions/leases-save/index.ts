@@ -1,6 +1,6 @@
-import { createLease, updateLease } from '../shared/repositories/lease-repository';
-import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from '../shared/runtime';
-import type { LeaseInput } from '../shared/schemas/lease';
+import { createLease, updateLease } from './shared/repositories/lease-repository';
+import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from './shared/runtime';
+import type { LeaseInput } from './shared/schemas/lease';
 
 export interface LeaseSaveEvent extends CloudEventBase {
   leaseId?: string;

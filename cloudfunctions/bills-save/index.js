@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = main;
-const bill_repository_1 = require("../shared/repositories/bill-repository");
-const runtime_1 = require("../shared/runtime");
-const collections_1 = require("../shared/constants/collections");
+const bill_repository_1 = require("./shared/repositories/bill-repository");
+const runtime_1 = require("./shared/runtime");
+const collections_1 = require("./shared/constants/collections");
 async function main(event) {
     const db = (0, runtime_1.resolveDb)(event);
     const leases = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.leases);

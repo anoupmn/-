@@ -1,6 +1,6 @@
-import { createTenant, updateTenant } from '../shared/repositories/tenant-repository';
-import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from '../shared/runtime';
-import type { TenantInput } from '../shared/schemas/tenant';
+import { createTenant, updateTenant } from './shared/repositories/tenant-repository';
+import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from './shared/runtime';
+import type { TenantInput } from './shared/schemas/tenant';
 
 export interface TenantSaveEvent extends CloudEventBase {
   tenantId?: string;

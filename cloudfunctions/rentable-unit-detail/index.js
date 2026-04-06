@@ -5,12 +5,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = main;
 const dayjs_1 = __importDefault(require("dayjs"));
-const rentable_unit_1 = require("../shared/calculators/rentable-unit");
-const statuses_1 = require("../shared/constants/statuses");
-const bill_status_1 = require("../shared/calculators/bill-status");
-const lease_lifecycle_1 = require("../shared/calculators/lease-lifecycle");
-const bill_repository_1 = require("../shared/repositories/bill-repository");
-const runtime_1 = require("../shared/runtime");
+const rentable_unit_1 = require("./shared/calculators/rentable-unit");
+const statuses_1 = require("./shared/constants/statuses");
+const bill_status_1 = require("./shared/calculators/bill-status");
+const lease_lifecycle_1 = require("./shared/calculators/lease-lifecycle");
+const bill_repository_1 = require("./shared/repositories/bill-repository");
+const runtime_1 = require("./shared/runtime");
 function getBillTypeLabel(bill) {
     if (bill.itemLabel) {
         return bill.itemLabel;

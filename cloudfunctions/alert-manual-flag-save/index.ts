@@ -1,6 +1,6 @@
-import { saveAbnormalFlag } from '../shared/repositories/abnormal-flag-repository';
-import { COLLECTIONS } from '../shared/constants/collections';
-import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from '../shared/runtime';
+import { saveAbnormalFlag } from './shared/repositories/abnormal-flag-repository';
+import { COLLECTIONS } from './shared/constants/collections';
+import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from './shared/runtime';
 
 export interface AlertManualFlagSaveEvent extends CloudEventBase {
   roomId: string;

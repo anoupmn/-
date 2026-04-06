@@ -1,5 +1,5 @@
-import { markBillReceived } from '../shared/repositories/bill-repository';
-import { resolveDb, type CloudEventBase } from '../shared/runtime';
+import { markBillReceived } from './shared/repositories/bill-repository';
+import { resolveDb, type CloudEventBase } from './shared/runtime';
 
 export interface BillsReceiveEvent extends CloudEventBase {
   billId: string;

@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = main;
-const room_repository_1 = require("../shared/repositories/room-repository");
-const runtime_1 = require("../shared/runtime");
+const room_repository_1 = require("./shared/repositories/room-repository");
+const runtime_1 = require("./shared/runtime");
 async function main(event) {
     const db = (0, runtime_1.resolveDb)(event);
     if (event.roomId) {

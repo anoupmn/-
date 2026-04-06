@@ -1,8 +1,8 @@
-import { createManualBill } from '../shared/repositories/bill-repository';
-import { resolveDb, type CloudEventBase, listAll } from '../shared/runtime';
-import { COLLECTIONS } from '../shared/constants/collections';
-import type { Lease } from '../shared/schemas/lease';
-import type { BillSection, BillType } from '../shared/schemas/bill';
+import { createManualBill } from './shared/repositories/bill-repository';
+import { resolveDb, type CloudEventBase, listAll } from './shared/runtime';
+import { COLLECTIONS } from './shared/constants/collections';
+import type { Lease } from './shared/schemas/lease';
+import type { BillSection, BillType } from './shared/schemas/bill';
 
 export interface BillsSaveEvent extends CloudEventBase {
   leaseId: string;

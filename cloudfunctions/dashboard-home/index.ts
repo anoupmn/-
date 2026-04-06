@@ -1,12 +1,12 @@
-import { buildDashboardPayload } from '../shared/calculators/dashboard';
-import { buildRentableUnitSummary } from '../shared/calculators/rentable-unit';
-import { deriveLeaseStatus } from '../shared/calculators/lease-lifecycle';
-import { LEASE_STATUSES } from '../shared/constants/statuses';
-import { rebuildAlerts } from '../shared/repositories/alert-repository';
-import { listAbnormalFlags } from '../shared/repositories/abnormal-flag-repository';
-import { ensureBillsForLease } from '../shared/repositories/bill-repository';
-import { getNotificationPreference } from '../shared/repositories/notification-preference-repository';
-import { getAllDomainData, resolveDb, resolveLandlordOpenId, type CloudEventBase } from '../shared/runtime';
+import { buildDashboardPayload } from './shared/calculators/dashboard';
+import { buildRentableUnitSummary } from './shared/calculators/rentable-unit';
+import { deriveLeaseStatus } from './shared/calculators/lease-lifecycle';
+import { LEASE_STATUSES } from './shared/constants/statuses';
+import { rebuildAlerts } from './shared/repositories/alert-repository';
+import { listAbnormalFlags } from './shared/repositories/abnormal-flag-repository';
+import { ensureBillsForLease } from './shared/repositories/bill-repository';
+import { getNotificationPreference } from './shared/repositories/notification-preference-repository';
+import { getAllDomainData, resolveDb, resolveLandlordOpenId, type CloudEventBase } from './shared/runtime';
 
 export async function main(event: CloudEventBase) {
   const db = resolveDb(event);

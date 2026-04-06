@@ -1,6 +1,6 @@
-import { createAssetWithDefaultRoomForWholeMode, updateAsset } from '../shared/repositories/asset-repository';
-import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from '../shared/runtime';
-import type { AssetInput } from '../shared/schemas/asset';
+import { createAssetWithDefaultRoomForWholeMode, updateAsset } from './shared/repositories/asset-repository';
+import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from './shared/runtime';
+import type { AssetInput } from './shared/schemas/asset';
 
 export interface AssetSaveEvent extends CloudEventBase {
   assetId?: string;

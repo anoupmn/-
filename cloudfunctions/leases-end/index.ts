@@ -1,5 +1,5 @@
-import { endLease } from '../shared/repositories/lease-repository';
-import { resolveDb, type CloudEventBase } from '../shared/runtime';
+import { endLease } from './shared/repositories/lease-repository';
+import { resolveDb, type CloudEventBase } from './shared/runtime';
 
 export interface LeaseEndEvent extends CloudEventBase {
   leaseId: string;

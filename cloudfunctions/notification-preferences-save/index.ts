@@ -1,8 +1,8 @@
-import { COLLECTIONS } from '../shared/constants/collections';
-import { ALERT_TYPES } from '../shared/constants/statuses';
-import type { NotificationPreference } from '../shared/schemas/notification-preference';
-import { saveNotificationPreference } from '../shared/repositories/notification-preference-repository';
-import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from '../shared/runtime';
+import { COLLECTIONS } from './shared/constants/collections';
+import { ALERT_TYPES } from './shared/constants/statuses';
+import type { NotificationPreference } from './shared/schemas/notification-preference';
+import { saveNotificationPreference } from './shared/repositories/notification-preference-repository';
+import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from './shared/runtime';
 
 const RULE_TYPE_SET = new Set<string>([
   ALERT_TYPES.expiring,

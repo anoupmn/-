@@ -1,10 +1,10 @@
-import { ALERT_TYPE_LABELS } from '../shared/constants/statuses';
-import { rebuildAlerts } from '../shared/repositories/alert-repository';
-import { listAbnormalFlags } from '../shared/repositories/abnormal-flag-repository';
-import { ensureBillsForLease } from '../shared/repositories/bill-repository';
-import { deriveLeaseStatus } from '../shared/calculators/lease-lifecycle';
-import { LEASE_STATUSES } from '../shared/constants/statuses';
-import { getAllDomainData, resolveDb, type CloudEventBase } from '../shared/runtime';
+import { ALERT_TYPE_LABELS } from './shared/constants/statuses';
+import { rebuildAlerts } from './shared/repositories/alert-repository';
+import { listAbnormalFlags } from './shared/repositories/abnormal-flag-repository';
+import { ensureBillsForLease } from './shared/repositories/bill-repository';
+import { deriveLeaseStatus } from './shared/calculators/lease-lifecycle';
+import { LEASE_STATUSES } from './shared/constants/statuses';
+import { getAllDomainData, resolveDb, type CloudEventBase } from './shared/runtime';
 
 export async function main(event: CloudEventBase) {
   const db = resolveDb(event);

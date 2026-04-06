@@ -1,6 +1,6 @@
-import { COLLECTIONS } from '../shared/constants/collections';
-import { getNotificationPreference } from '../shared/repositories/notification-preference-repository';
-import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from '../shared/runtime';
+import { COLLECTIONS } from './shared/constants/collections';
+import { getNotificationPreference } from './shared/repositories/notification-preference-repository';
+import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from './shared/runtime';
 
 export async function main(event: CloudEventBase) {
   const db = resolveDb(event);
