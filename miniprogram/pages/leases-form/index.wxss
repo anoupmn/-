@@ -1,27 +1,77 @@
-@import "../quick-entry/index.wxss";
-
-.picker-field {
-  background: #f9fafb;
-  border-radius: 16rpx;
-  padding: 20rpx;
+.lease-shell {
+  display: flex;
+  flex-direction: column;
 }
 
-.asset-card {
-  padding-top: 20rpx;
-  border-top: 1rpx solid #e5e7eb;
-}
-
-.section-subtitle {
-  font-size: 28rpx;
-  font-weight: 600;
-  margin-top: 8rpx;
-}
-
-.custom-fee-card {
+.intro-card,
+.selection-card,
+.form-card,
+.fee-card {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
-  padding: 20rpx;
-  border-radius: 20rpx;
-  background: #f9fafb;
+}
+
+.intro-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f4f8ff 100%);
+}
+
+.tip-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  border-radius: 14rpx;
+  background: #f7f9fc;
+  border: 1rpx solid #dce4ee;
+  padding: 14rpx;
+}
+
+.picker-field {
+  border-radius: 16rpx;
+  padding: 16rpx;
+  background: #f7f9fc;
+  border: 1rpx solid #dce4ee;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.picker-value {
+  font-size: 28rpx;
+  color: #1b2430;
+  font-weight: 600;
+}
+
+.asset-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  padding: 16rpx;
+  background: #f7f9fc;
+  border: 1rpx solid #dce4ee;
+  border-radius: 16rpx;
+}
+
+.asset-name {
+  font-size: 30rpx;
+}
+
+.tip-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  background: #f7f9fc;
+  border-radius: 14rpx;
+  border: 1rpx solid #dce4ee;
+  padding: 14rpx;
+}
+
+.submit-message {
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: #1f6feb;
+  background: #edf4ff;
+  border: 1rpx solid #cfe0ff;
+  border-radius: 14rpx;
+  padding: 12rpx 14rpx;
 }

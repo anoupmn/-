@@ -1,32 +1,73 @@
-@import "../quick-entry/index.wxss";
+.asset-shell {
+  display: flex;
+  flex-direction: column;
+}
+
+.intro-card,
+.form-card,
+.list-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.intro-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f4f8ff 100%);
+}
 
 .picker-field {
-  background: #f9fafb;
   border-radius: 16rpx;
-  padding: 20rpx;
+  padding: 16rpx;
+  background: #f7f9fc;
+  border: 1rpx solid #dce4ee;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
 }
 
-.secondary-button {
-  background: #e5e7eb;
-  color: #111827;
-  border-radius: 999rpx;
+.picker-value {
+  font-size: 28rpx;
+  color: #1b2430;
+  font-weight: 600;
 }
 
-.asset-card {
-  padding-top: 20rpx;
-  border-top: 1rpx solid #e5e7eb;
+.tip-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  background: #f7f9fc;
+  border-radius: 14rpx;
+  border: 1rpx solid #dce4ee;
+  padding: 14rpx;
+}
+
+.submit-message {
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: #1f6feb;
+  background: #edf4ff;
+  border: 1rpx solid #cfe0ff;
+  border-radius: 14rpx;
+  padding: 12rpx 14rpx;
+}
+
+.asset-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  padding: 16rpx;
+  background: #f7f9fc;
+  border: 1rpx solid #dce4ee;
+  border-radius: 16rpx;
+}
+
+.asset-name {
+  font-size: 30rpx;
 }
 
 .asset-actions {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
-  margin-top: 16rpx;
-}
-
-.danger-button {
-  background: #ffffff;
-  color: #dc2626;
-  border: 1rpx solid #fecaca;
-  border-radius: 999rpx;
+  gap: 10rpx;
+  margin-top: 6rpx;
 }

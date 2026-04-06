@@ -3,7 +3,7 @@
     <view class="card intro-card">
       <view class="page-title">业务维护</view>
       <view class="text-body">你好，{{displayName || '房东'}}。所有维护动作统一在这里执行，首页只承担经营盘面与提醒入口。</view>
-      <view class="text-muted">维护入口固定：快速录入、房源维护、房间维护、租户维护、租约维护。</view>
+      <view class="text-muted">维护入口固定：快速录入、房源维护、租约维护。</view>
     </view>
 
     <view class="card action-card quick-card">
@@ -24,8 +24,6 @@
       </view>
       <view class="ops-grid">
         <button class="secondary-button" data-url="/pages/assets-form/index" bindtap="navigateTo">房源维护</button>
-        <button class="secondary-button" data-url="/pages/rooms-form/index" bindtap="navigateTo">房间维护</button>
-        <button class="secondary-button" data-url="/pages/tenants-form/index" bindtap="navigateTo">租户维护</button>
         <button class="secondary-button" data-url="/pages/leases-form/index" bindtap="navigateTo">租约维护</button>
       </view>
     </view>

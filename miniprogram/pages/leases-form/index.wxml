@@ -1,59 +1,94 @@
 <view class="page-shell">
-  <view class="card form-card">
-    <view class="section-title">租约维护</view>
-    <input
-      class="input"
-      placeholder="搜索房源名称、地址"
-      bindinput="handleAssetSearch"
-      value="{{assetSearchKeyword}}"
-    />
-    <view class="field">当前房源：{{selectedAssetName || '请先选择房源'}}</view>
-    <view wx:for="{{visibleAssets}}" wx:key="id" class="asset-card">
-      <view class="headline">{{item.name}}</view>
-      <view class="field">{{item.address || '未填写地址'}}</view>
-      <button
-        class="secondary-button"
-        data-asset-id="{{item.id}}"
-        data-asset-name="{{item.name}}"
-        bindtap="selectAsset"
-      >
-        选择这个房源
-      </button>
+  <view class="lease-shell page-stack">
+    <view class="card intro-card">
+      <view class="page-title">租约维护</view>
+      <view class="text-body">先选房源和房间，再录入租户与费用，保存后即可进入账单与提醒链路。</view>
+      <view class="text-muted">所有信息会用于首页建议、异常识别和详情处理。</view>
     </view>
-    <button
-      wx:if="{{!assetSearchKeyword && assets.length > 8}}"
-      class="secondary-button"
-      bindtap="toggleAssetList"
-    >
-      {{assetListExpanded ? '收起部分房源' : '查看更多房源'}}
-    </button>
-    <picker range="{{rooms}}" range-key="name" value="{{roomIndex}}" bindchange="handleRoomChange">
-      <view class="field picker-field">
-        选择房间：{{rooms.length ? rooms[roomIndex].name : roomHint}}
-      </view>
-    </picker>
-    <view class="hint">{{roomHint}}</view>
-    <input class="input" placeholder="租户姓名" data-field="tenantName" bindinput="handleInputChange" value="{{tenantName}}" />
-    <input class="input" placeholder="租户手机号" data-field="tenantPhone" bindinput="handleInputChange" value="{{tenantPhone}}" />
-    <picker mode="date" value="{{startDate}}" bindchange="handleDateChange" data-field="startDate">
-      <view class="field picker-field">开始日期：{{startDate}}</view>
-    </picker>
-    <picker mode="date" value="{{endDate}}" bindchange="handleDateChange" data-field="endDate">
-      <view class="field picker-field">结束日期：{{endDate}}</view>
-    </picker>
-    <picker range="{{billingCycleOptions}}" bindchange="handleBillingCycleChange">
-      <view class="field picker-field">收租周期：{{billingCycleDays}} 天</view>
-    </picker>
-    <view class="section-subtitle">固定费用</view>
-    <input class="input" placeholder="租金" data-field="rentAmount" bindinput="handleInputChange" value="{{rentAmount}}" />
-    <input class="input" placeholder="押金（一次性）" data-field="depositAmount" bindinput="handleInputChange" value="{{depositAmount}}" />
-    <input class="input" placeholder="管理费 / 物业费" data-field="propertyAmount" bindinput="handleInputChange" value="{{propertyAmount}}" />
-    <input class="input" placeholder="其他固定费用" data-field="miscAmount" bindinput="handleInputChange" value="{{miscAmount}}" />
 
-    <view class="section-subtitle">浮动费用说明</view>
-    <view class="hint">水费、电费、维修费都不适合放在租约里维护固定金额。</view>
-    <view class="hint">这类费用应该在“单元详情 -> 月度账单”里按当月实际金额逐月补录。</view>
-    <button class="primary-button" bindtap="handleSubmit">保存租约</button>
-    <view wx:if="{{message}}" class="message">{{message}}</view>
+    <view class="card selection-card">
+      <view class="section-title">选择房源与房间</view>
+      <input
+        class="search-input"
+        placeholder="搜索房源名称、地址或编号"
+        bindinput="handleAssetSearch"
+        value="{{assetSearchKeyword}}"
+      />
+      <view class="tip-row">
+        <view class="field-label">当前房源</view>
+        <view class="picker-value">{{selectedAssetName || '请先选择房源'}}</view>
+      </view>
+
+      <view wx:for="{{visibleAssets}}" wx:key="id" class="asset-item">
+        <view class="sub-title asset-name">{{item.name}}</view>
+        <view class="text-muted">{{item.address || '未填写地址'}}</view>
+        <button
+          class="secondary-button"
+          data-asset-id="{{item.id}}"
+          data-asset-name="{{item.name}}"
+          bindtap="selectAsset"
+        >
+          选择这个房源
+        </button>
+      </view>
+
+      <button
+        wx:if="{{!assetSearchKeyword && assets.length > 8}}"
+        class="secondary-button"
+        bindtap="toggleAssetList"
+      >
+        {{assetListExpanded ? '收起部分房源' : '查看更多房源'}}
+      </button>
+
+      <picker range="{{rooms}}" range-key="name" value="{{roomIndex}}" bindchange="handleRoomChange">
+        <view class="picker-field">
+          <view class="field-label">房间选择</view>
+          <view class="picker-value">{{rooms.length ? rooms[roomIndex].name : roomHint}}</view>
+        </view>
+      </picker>
+      <view class="text-muted">{{roomHint}}</view>
+    </view>
+
+    <view class="card form-card">
+      <view class="section-title">租户与租期</view>
+      <input class="search-input" placeholder="租户姓名" data-field="tenantName" bindinput="handleInputChange" value="{{tenantName}}" />
+      <input class="search-input" placeholder="租户手机号" data-field="tenantPhone" bindinput="handleInputChange" value="{{tenantPhone}}" />
+
+      <picker mode="date" value="{{startDate}}" bindchange="handleDateChange" data-field="startDate">
+        <view class="picker-field">
+          <view class="field-label">开始日期</view>
+          <view class="picker-value">{{startDate}}</view>
+        </view>
+      </picker>
+      <picker mode="date" value="{{endDate}}" bindchange="handleDateChange" data-field="endDate">
+        <view class="picker-field">
+          <view class="field-label">结束日期</view>
+          <view class="picker-value">{{endDate}}</view>
+        </view>
+      </picker>
+
+      <picker range="{{billingCycleOptions}}" bindchange="handleBillingCycleChange">
+        <view class="picker-field">
+          <view class="field-label">收租周期</view>
+          <view class="picker-value">{{billingCycleDays}} 天</view>
+        </view>
+      </picker>
+    </view>
+
+    <view class="card fee-card">
+      <view class="section-title">固定费用</view>
+      <input class="search-input" placeholder="租金（元）" data-field="rentAmount" bindinput="handleInputChange" value="{{rentAmount}}" />
+      <input class="search-input" placeholder="押金（一次性，元）" data-field="depositAmount" bindinput="handleInputChange" value="{{depositAmount}}" />
+      <input class="search-input" placeholder="管理费 / 物业费（元）" data-field="propertyAmount" bindinput="handleInputChange" value="{{propertyAmount}}" />
+      <input class="search-input" placeholder="其他固定费用（元）" data-field="miscAmount" bindinput="handleInputChange" value="{{miscAmount}}" />
+
+      <view class="tip-block">
+        <view class="text-muted">水费、电费、维修费等浮动费用不在这里设置固定金额。</view>
+        <view class="text-muted">请在“房源列表 > 单元详情 > 月度账单”按当月实际金额逐月补录。</view>
+      </view>
+
+      <button class="primary-button" bindtap="handleSubmit">保存租约</button>
+      <view wx:if="{{message}}" class="submit-message">{{message}}</view>
+    </view>
   </view>
 </view>

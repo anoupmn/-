@@ -1,67 +1,94 @@
 <view class="page-shell">
-  <view class="card form-card">
-    <view class="section-title">房源维护</view>
-    <picker range="{{['整租', '分租']}}" bindchange="handleRentalModeChange">
-      <view class="field">rentalMode：{{rentalMode}}</view>
-    </picker>
-    <input class="input" placeholder="房源名称，例如 松江公寓 201" data-field="name" bindinput="handleInputChange" />
-    <picker mode="region" value="{{region}}" bindchange="handleRegionChange">
-      <view class="field picker-field">所在地区：{{region[0]}} {{region[1]}} {{region[2]}}</view>
-    </picker>
-    <button class="secondary-button" bindtap="chooseMapLocation">地图选点并自动回填</button>
-    <view class="hint">{{mapHint}}</view>
-    <view wx:if="{{locationName}}" class="field">位置名称：{{locationName}}</view>
-    <view wx:if="{{selectedAddress}}" class="field">地图地址：{{selectedAddress}}</view>
-    <input
-      class="input"
-      placeholder="补充详细门牌、楼栋、单元，例如 9 弄 3 号楼 201"
-      data-field="addressDetail"
-      bindinput="handleInputChange"
-      value="{{addressDetail}}"
-    />
-    <button class="primary-button" bindtap="handleSubmit">保存房源</button>
-    <view wx:if="{{message}}" class="message">{{message}}</view>
-  </view>
-
-  <view class="card form-card">
-    <view class="section-title">已录入房源</view>
-    <input
-      class="input"
-      placeholder="搜索房源名称、地址、ID"
-      bindinput="handleAssetSearch"
-      value="{{assetSearchKeyword}}"
-    />
-    <view wx:if="{{!assets.length}}" class="hint">还没有房源，先在上面新增一条。</view>
-    <view wx:for="{{visibleAssets}}" wx:key="id" class="asset-card">
-      <view class="headline">{{item.name}}</view>
-      <view class="field">地址：{{item.address || '未填写'}}</view>
-      <view class="field">模式：{{item.rentalMode}}</view>
-      <view class="field">ID：{{item.id}}</view>
-      <view class="asset-actions">
-        <button
-          class="primary-button"
-          data-asset-id="{{item.id}}"
-          data-asset-name="{{item.name}}"
-          bindtap="openRoomsForm"
-        >
-          给这个房源添加房间
-        </button>
-        <button
-          class="danger-button"
-          data-asset-id="{{item.id}}"
-          data-asset-name="{{item.name}}"
-          bindtap="handleDeleteAsset"
-        >
-          删除房源
-        </button>
-      </view>
+  <view class="asset-shell page-stack">
+    <view class="card intro-card">
+      <view class="page-title">房源维护</view>
+      <view class="text-body">在这里新增和管理房源基础信息，保证后续房间、租约与提醒链路可用。</view>
+      <view class="text-muted">房源信息建议包含清晰名称、地区与详细门牌。</view>
     </view>
-    <button
-      wx:if="{{!assetSearchKeyword && assets.length > 8}}"
-      class="secondary-button"
-      bindtap="toggleAssetList"
-    >
-      {{assetListExpanded ? '收起部分房源' : '查看更多房源'}}
-    </button>
+
+    <view class="card form-card">
+      <view class="section-title">新增房源</view>
+
+      <picker range="{{['整租', '分租']}}" bindchange="handleRentalModeChange">
+        <view class="picker-field">
+          <view class="field-label">出租方式</view>
+          <view class="picker-value">{{rentalMode === 'whole' ? '整租' : '分租'}}</view>
+        </view>
+      </picker>
+
+      <input class="search-input" placeholder="房源名称，例如 松江公寓 201" data-field="name" bindinput="handleInputChange" value="{{name}}" />
+
+      <picker mode="region" value="{{region}}" bindchange="handleRegionChange">
+        <view class="picker-field">
+          <view class="field-label">所在地区</view>
+          <view class="picker-value">{{region[0]}} {{region[1]}} {{region[2]}}</view>
+        </view>
+      </picker>
+
+      <button class="secondary-button" bindtap="chooseMapLocation">地图选点并自动回填</button>
+      <view class="tip-block">
+        <view class="text-muted">{{mapHint}}</view>
+        <view wx:if="{{locationName}}" class="text-muted">位置名称：{{locationName}}</view>
+        <view wx:if="{{selectedAddress}}" class="text-muted">地图地址：{{selectedAddress}}</view>
+      </view>
+
+      <input
+        class="search-input"
+        placeholder="补充详细门牌、楼栋、单元，例如 9 弄 3 号楼 201"
+        data-field="addressDetail"
+        bindinput="handleInputChange"
+        value="{{addressDetail}}"
+      />
+
+      <button class="primary-button" bindtap="handleSubmit">保存房源</button>
+      <view wx:if="{{message}}" class="submit-message">{{message}}</view>
+    </view>
+
+    <view class="card list-card">
+      <view class="section-title">已录入房源</view>
+      <input
+        class="search-input"
+        placeholder="搜索房源名称、地址或编号"
+        bindinput="handleAssetSearch"
+        value="{{assetSearchKeyword}}"
+      />
+
+      <view wx:if="{{!assets.length}}" class="empty-state">
+        <view class="empty-heading">还没有房源</view>
+        <view class="text-muted">先在上方新增一条房源记录。</view>
+      </view>
+
+      <view wx:for="{{visibleAssets}}" wx:key="id" class="asset-item">
+        <view class="sub-title asset-name">{{item.name}}</view>
+        <view class="text-muted">地址：{{item.address || '未填写'}}</view>
+        <view class="text-muted">出租方式：{{item.rentalMode === 'whole' ? '整租' : item.rentalMode === 'room' ? '分租' : '未设置'}}</view>
+        <view class="asset-actions">
+          <button
+            class="primary-button"
+            data-asset-id="{{item.id}}"
+            data-asset-name="{{item.name}}"
+            bindtap="openRoomsForm"
+          >
+            给这个房源添加房间
+          </button>
+          <button
+            class="danger-button"
+            data-asset-id="{{item.id}}"
+            data-asset-name="{{item.name}}"
+            bindtap="handleDeleteAsset"
+          >
+            删除房源
+          </button>
+        </view>
+      </view>
+
+      <button
+        wx:if="{{!assetSearchKeyword && assets.length > 8}}"
+        class="secondary-button"
+        bindtap="toggleAssetList"
+      >
+        {{assetListExpanded ? '收起部分房源' : '查看更多房源'}}
+      </button>
+    </view>
   </view>
 </view>
