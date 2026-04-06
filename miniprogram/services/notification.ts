@@ -1,4 +1,5 @@
 import { callCloudFunction } from './cloud';
+import { SUBSCRIBE_TEMPLATE_IDS } from '../config/notification';
 
 export const REMINDER_RULE_OPTIONS = [
   {
@@ -37,7 +38,16 @@ type NotificationPreferenceResponse = {
   preference: NotificationPreference;
 };
 
-const DEFAULT_SUBSCRIBE_TEMPLATE_IDS = ['PHASE5_TEMPLATE_PENDING'];
+export const SUBSCRIBE_TEMPLATE_CONFIG_ERROR = 'SUBSCRIBE_TEMPLATE_IDS_NOT_CONFIGURED';
+
+function isPlaceholderTemplateId(templateId: string) {
+  const normalized = templateId.toUpperCase();
+  return normalized.includes('PENDING') || normalized.includes('PLACEHOLDER') || normalized.startsWith('PHASE');
+}
+
+function normalizeTemplateIds(templateIds: string[]) {
+  return templateIds.map((item) => item.trim()).filter(Boolean);
+}
 
 function extractConsentState(result: WechatMiniprogram.RequestSubscribeMessageSuccessCallbackResult): ConsentState {
   const decisions = Object.values(result);
@@ -62,9 +72,16 @@ export function saveNotificationPreferences(payload: {
   return callCloudFunction<NotificationPreferenceResponse>('notification-preferences-save', payload);
 }
 
-export async function requestSubscribeMessage(templateIds = DEFAULT_SUBSCRIBE_TEMPLATE_IDS) {
+export async function requestSubscribeMessage(templateIds = SUBSCRIBE_TEMPLATE_IDS) {
+  const normalizedTemplateIds = normalizeTemplateIds(templateIds);
+  if (!normalizedTemplateIds.length || normalizedTemplateIds.some((item) => isPlaceholderTemplateId(item))) {
+    const error = new Error(SUBSCRIBE_TEMPLATE_CONFIG_ERROR) as Error & { code?: string };
+    error.code = SUBSCRIBE_TEMPLATE_CONFIG_ERROR;
+    throw error;
+  }
+
   const result = await wx.requestSubscribeMessage({
-    tmplIds: templateIds
+    tmplIds: normalizedTemplateIds
   });
 
   const consentState = extractConsentState(result);

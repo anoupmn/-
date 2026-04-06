@@ -162,3 +162,13 @@
 .text-button::after {
   border: 0;
 }
+
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.ops-grid .secondary-button {
+  margin: 0;
+}

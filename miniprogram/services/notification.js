@@ -1,4 +1,5 @@
 const { callCloudFunction } = require('./cloud');
+const { SUBSCRIBE_TEMPLATE_IDS } = require('../config/notification');
 
 const REMINDER_RULE_OPTIONS = [
   { key: 'expiring', label: '即将到期' },
@@ -7,7 +8,16 @@ const REMINDER_RULE_OPTIONS = [
   { key: 'manual_abnormal', label: '人工异常' }
 ];
 
-const DEFAULT_SUBSCRIBE_TEMPLATE_IDS = ['PHASE5_TEMPLATE_PENDING'];
+const SUBSCRIBE_TEMPLATE_CONFIG_ERROR = 'SUBSCRIBE_TEMPLATE_IDS_NOT_CONFIGURED';
+
+function isPlaceholderTemplateId(templateId) {
+  const normalized = String(templateId || '').toUpperCase();
+  return normalized.includes('PENDING') || normalized.includes('PLACEHOLDER') || normalized.startsWith('PHASE');
+}
+
+function normalizeTemplateIds(templateIds) {
+  return (templateIds || []).map((item) => String(item || '').trim()).filter(Boolean);
+}
 
 function extractConsentState(result) {
   const decisions = Object.values(result || {});
@@ -29,8 +39,15 @@ function saveNotificationPreferences(payload) {
 }
 
 async function requestSubscribeMessage(templateIds) {
+  const normalizedTemplateIds = normalizeTemplateIds(templateIds || SUBSCRIBE_TEMPLATE_IDS);
+  if (!normalizedTemplateIds.length || normalizedTemplateIds.some((item) => isPlaceholderTemplateId(item))) {
+    const error = new Error(SUBSCRIBE_TEMPLATE_CONFIG_ERROR);
+    error.code = SUBSCRIBE_TEMPLATE_CONFIG_ERROR;
+    throw error;
+  }
+
   const result = await wx.requestSubscribeMessage({
-    tmplIds: templateIds || DEFAULT_SUBSCRIBE_TEMPLATE_IDS
+    tmplIds: normalizedTemplateIds
   });
 
   const consentState = extractConsentState(result);
@@ -48,6 +65,7 @@ async function requestSubscribeMessage(templateIds) {
 
 module.exports = {
   REMINDER_RULE_OPTIONS,
+  SUBSCRIBE_TEMPLATE_CONFIG_ERROR,
   getNotificationPreferences,
   saveNotificationPreferences,
   requestSubscribeMessage

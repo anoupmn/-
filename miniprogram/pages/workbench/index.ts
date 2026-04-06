@@ -6,12 +6,23 @@ import {
   type DashboardPayload,
   type DashboardRecommendation
 } from '../../services/dashboard';
-import { requestSubscribeMessage } from '../../services/notification';
+import { requestSubscribeMessage, SUBSCRIBE_TEMPLATE_CONFIG_ERROR } from '../../services/notification';
 import { stringifyUnitListQuery } from '../../services/rentable-unit';
 
 function buildUnitsUrl(query: Record<string, string>) {
   const queryString = stringifyUnitListQuery(query);
   return queryString ? `/pages/units/index?${queryString}` : '/pages/units/index';
+}
+
+function isTemplateConfigError(error: unknown) {
+  const payload = error as { code?: string; errCode?: number; message?: string; errMsg?: string } | undefined;
+  const message = `${payload?.message ?? ''} ${payload?.errMsg ?? ''}`;
+  return (
+    payload?.code === SUBSCRIBE_TEMPLATE_CONFIG_ERROR ||
+    message.includes(SUBSCRIBE_TEMPLATE_CONFIG_ERROR) ||
+    payload?.errCode === 20001 ||
+    message.includes('No template data return')
+  );
 }
 
 Page({
@@ -123,6 +134,17 @@ Page({
       await this.loadDashboard();
     } catch (error) {
       console.error('request subscribe message failed', error);
+      if (isTemplateConfigError(error)) {
+        wx.showModal({
+          title: '先配置订阅模板',
+          content:
+            '当前订阅模板 ID 还是占位值。请先在 miniprogram/config/notification.js 中填入真实模板 ID，再点“开启提醒”。',
+          showCancel: false
+        });
+        await this.loadDashboard();
+        return;
+      }
+
       wx.showToast({
         title: '授权过程出现问题，请稍后重试',
         icon: 'none'

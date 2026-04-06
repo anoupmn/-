@@ -77,7 +77,16 @@
         </button>
       </view>
       <button class="secondary-button" data-url="/pages/alerts/index" bindtap="navigateTo">打开提醒中心</button>
-      <button class="secondary-button" bindtap="openQuickEntry">继续录入</button>
+      <button class="secondary-button" bindtap="openQuickEntry">快速录入</button>
+
+      <view class="section-title">业务维护</view>
+      <view class="ops-grid">
+        <button class="secondary-button" data-url="/pages/assets-form/index" bindtap="navigateTo">房源维护</button>
+        <button class="secondary-button" data-url="/pages/assets-form/index" bindtap="navigateTo">房间维护</button>
+        <button class="secondary-button" data-url="/pages/tenants-form/index" bindtap="navigateTo">租户维护</button>
+        <button class="secondary-button" data-url="/pages/leases-form/index" bindtap="navigateTo">租约维护</button>
+      </view>
+      <button class="secondary-button" data-url="/pages/units/index" bindtap="navigateTo">房态总览</button>
       <button class="logout-button" bindtap="handleLogout">退出登录</button>
     </view>
   </view>
