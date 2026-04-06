@@ -2,7 +2,7 @@ import { main as rentableUnitDetailMain } from '../../cloudfunctions/rentable-un
 import { createMockDb, createMockStore } from '../helpers/mock-cloud';
 
 describe('rentable-unit-detail cloud function', () => {
-  it('returns asset, room, active lease, leaseHistory and tenantHistory', async () => {
+  it('returns asset, room, active lease, historical leaseHistory and tenantHistory', async () => {
     const store = createMockStore();
     store.assets.push({
       id: 'asset_1',
@@ -85,6 +85,7 @@ describe('rentable-unit-detail cloud function', () => {
 
     expect(result.activeLease?.id).toBe('lease_2');
     expect(result.tenantHistory.map((tenant) => tenant.name)).toEqual(['李一', '李二']);
-    expect(result.leaseHistory).toHaveLength(2);
+    expect(result.leaseHistory).toHaveLength(1);
+    expect(result.leaseHistory[0]?.id).toBe('lease_1');
   });
 });

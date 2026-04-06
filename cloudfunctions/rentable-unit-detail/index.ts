@@ -111,6 +111,13 @@ export async function main(event: RentableUnitDetailEvent) {
   const leaseHistory = leases
     .filter((lease) => lease.roomId === room.id)
     .sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const historicalLeases = leaseHistory
+    .filter((lease) => deriveLeaseStatus(lease, now) === LEASE_STATUSES.ended)
+    .sort((a, b) => {
+      const aSortKey = a.closedAt ?? `${a.endDate}T00:00:00.000Z`;
+      const bSortKey = b.closedAt ?? `${b.endDate}T00:00:00.000Z`;
+      return bSortKey.localeCompare(aSortKey);
+    });
   const activeLease =
     leaseHistory.find((lease) => deriveLeaseStatus(lease, now) === LEASE_STATUSES.active) ??
     null;
@@ -169,7 +176,7 @@ export async function main(event: RentableUnitDetailEvent) {
     asset,
     room,
     activeLease,
-    leaseHistory: leaseHistory.map((lease) => ({
+    leaseHistory: historicalLeases.map((lease) => ({
       ...lease,
       tenantName: leaseTenantMap.get(lease.id) ?? '未知租户'
     })),

@@ -80,6 +80,13 @@ async function main(event) {
     const leaseHistory = leases
         .filter((lease) => lease.roomId === room.id)
         .sort((a, b) => a.startDate.localeCompare(b.startDate));
+    const historicalLeases = leaseHistory
+        .filter((lease) => (0, lease_lifecycle_1.deriveLeaseStatus)(lease, now) === statuses_1.LEASE_STATUSES.ended)
+        .sort((a, b) => {
+        const aSortKey = a.closedAt ?? `${a.endDate}T00:00:00.000Z`;
+        const bSortKey = b.closedAt ?? `${b.endDate}T00:00:00.000Z`;
+        return bSortKey.localeCompare(aSortKey);
+    });
     const activeLease = leaseHistory.find((lease) => (0, lease_lifecycle_1.deriveLeaseStatus)(lease, now) === statuses_1.LEASE_STATUSES.active) ??
         null;
     const tenantHistory = leaseHistory
@@ -134,7 +141,7 @@ async function main(event) {
         asset,
         room,
         activeLease,
-        leaseHistory: leaseHistory.map((lease) => ({
+        leaseHistory: historicalLeases.map((lease) => ({
             ...lease,
             tenantName: leaseTenantMap.get(lease.id) ?? '未知租户'
         })),

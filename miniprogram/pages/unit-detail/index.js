@@ -25,9 +25,11 @@ function buildLeaseHistoryViews(detail) {
     const tenantHistory = Array.isArray(detail.tenantHistory) ? detail.tenantHistory : [];
     const repairHistory = Array.isArray(detail.repairHistory) ? detail.repairHistory : [];
     const tenantPeriodRepairs = Array.isArray(detail.tenantPeriodRepairs) ? detail.tenantPeriodRepairs : [];
+    const activeLeaseId = String(detail.activeLease?.id || '');
     const tenantPhoneMap = new Map(tenantHistory.map((tenant) => [String(tenant.id || ''), String(tenant.phone || '')]));
     const perLeaseCountMap = new Map(tenantPeriodRepairs.map((item) => [String(item.leaseId || ''), Number(item.count || 0)]));
     return leaseHistory
+        .filter((lease) => String(lease.id || '') !== activeLeaseId)
         .map((lease) => {
         const leaseId = String(lease.id || '');
         const startDate = String(lease.startDate || '');
@@ -51,7 +53,7 @@ function buildLeaseHistoryViews(detail) {
             repairs
         };
     })
-        .sort((a, b) => b.startDate.localeCompare(a.startDate));
+        .sort((a, b) => b.endDate.localeCompare(a.endDate) || b.startDate.localeCompare(a.startDate));
 }
 const MANUAL_BILL_TYPE_KEYS = ['water', 'electricity', 'repair', 'custom'];
 const MANUAL_BILL_TYPE_LABELS = ['水费', '电费', '维修费', '其他费用'];
@@ -449,15 +451,17 @@ Page({
             }
             return false;
         };
+        let leaseClosed = false;
         try {
             await (0, lease_1.endLease)({ leaseId });
+            leaseClosed = await confirmLeaseClosed();
         }
         catch (error) {
             console.error('end lease failed', error);
             const payload = error;
             const message = `${payload?.errMsg ?? ''} ${payload?.message ?? ''} ${error instanceof Error ? error.message : ''}`.toLowerCase();
             const isTimeout = message.includes('timeout');
-            const leaseClosed = await confirmLeaseClosed();
+            leaseClosed = await confirmLeaseClosed();
             if (!leaseClosed) {
                 wx.showToast({
                     title: isTimeout ? '请求超时，请稍后重试' : '结束租约失败，请稍后重试',
@@ -465,6 +469,13 @@ Page({
                 });
                 return;
             }
+        }
+        if (!leaseClosed) {
+            wx.showToast({
+                title: '结束租约失败，请稍后重试',
+                icon: 'none'
+            });
+            return;
         }
         const pages = getCurrentPages();
         const previousPage = pages[pages.length - 2];
@@ -480,6 +491,5 @@ Page({
             title: '租约已结束',
             icon: 'success'
         });
-        await wx.navigateBack();
     }
 });

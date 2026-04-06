@@ -64,6 +64,7 @@ function buildLeaseHistoryViews(detail: DetailPayload): LeaseHistoryView[] {
   const tenantHistory = Array.isArray(detail.tenantHistory) ? detail.tenantHistory : [];
   const repairHistory = Array.isArray(detail.repairHistory) ? detail.repairHistory : [];
   const tenantPeriodRepairs = Array.isArray(detail.tenantPeriodRepairs) ? detail.tenantPeriodRepairs : [];
+  const activeLeaseId = String(detail.activeLease?.id || '');
 
   const tenantPhoneMap = new Map<string, string>(
     tenantHistory.map((tenant) => [String(tenant.id || ''), String(tenant.phone || '')])
@@ -73,6 +74,7 @@ function buildLeaseHistoryViews(detail: DetailPayload): LeaseHistoryView[] {
   );
 
   return leaseHistory
+    .filter((lease) => String(lease.id || '') !== activeLeaseId)
     .map((lease) => {
       const leaseId = String(lease.id || '');
       const startDate = String(lease.startDate || '');
@@ -97,7 +99,7 @@ function buildLeaseHistoryViews(detail: DetailPayload): LeaseHistoryView[] {
         repairs
       };
     })
-    .sort((a, b) => b.startDate.localeCompare(a.startDate));
+    .sort((a, b) => b.endDate.localeCompare(a.endDate) || b.startDate.localeCompare(a.startDate));
 }
 
 const MANUAL_BILL_TYPE_KEYS = ['water', 'electricity', 'repair', 'custom'] as const;
@@ -531,8 +533,10 @@ Page({
       return false;
     };
 
+    let leaseClosed = false;
     try {
       await endLease({ leaseId });
+      leaseClosed = await confirmLeaseClosed();
     } catch (error) {
       console.error('end lease failed', error);
       const payload = error as { errMsg?: string; message?: string } | undefined;
@@ -540,7 +544,7 @@ Page({
         error instanceof Error ? error.message : ''
       }`.toLowerCase();
       const isTimeout = message.includes('timeout');
-      const leaseClosed = await confirmLeaseClosed();
+      leaseClosed = await confirmLeaseClosed();
 
       if (!leaseClosed) {
         wx.showToast({
@@ -549,6 +553,14 @@ Page({
         });
         return;
       }
+    }
+
+    if (!leaseClosed) {
+      wx.showToast({
+        title: '结束租约失败，请稍后重试',
+        icon: 'none'
+      });
+      return;
     }
 
     const pages = getCurrentPages();
@@ -570,6 +582,5 @@ Page({
       title: '租约已结束',
       icon: 'success'
     });
-    await wx.navigateBack();
   }
 });

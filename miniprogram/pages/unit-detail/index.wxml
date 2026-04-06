@@ -139,7 +139,7 @@
       </view>
     </view>
 
-    <view class="card danger-card">
+    <view class="card danger-card" wx:if="{{detail.activeLease}}">
       <button class="danger-button" bindtap="handleEndLease">结束租约</button>
     </view>
   </view>
