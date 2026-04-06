@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setFallbackDb = setFallbackDb;
+exports.ensureCollectionExists = ensureCollectionExists;
 exports.resolveDb = resolveDb;
 exports.resolveLandlordOpenId = resolveLandlordOpenId;
 exports.resolveNow = resolveNow;
@@ -8,6 +9,7 @@ exports.createId = createId;
 exports.listAll = listAll;
 exports.findById = findById;
 exports.insertRecord = insertRecord;
+exports.clearCollection = clearCollection;
 exports.updateRecord = updateRecord;
 exports.getAllDomainData = getAllDomainData;
 const collections_1 = require("./constants/collections");
@@ -27,6 +29,29 @@ function resolveCloudDb() {
     }
     catch {
         return null;
+    }
+}
+function isCollectionMissingError(error) {
+    const payload = error;
+    const message = payload?.message ?? '';
+    return payload?.errCode === -502005 || message.includes('collection not exists') || message.includes('Db or Table not exist');
+}
+function isCollectionAlreadyExistsError(error) {
+    const payload = error;
+    const message = payload?.message ?? '';
+    return message.includes('already exists');
+}
+async function ensureCollectionExists(db, collectionName) {
+    if (typeof db.createCollection !== 'function') {
+        return;
+    }
+    try {
+        await db.createCollection(collectionName);
+    }
+    catch (error) {
+        if (!isCollectionAlreadyExistsError(error)) {
+            throw error;
+        }
     }
 }
 function resolveDb(event) {
@@ -65,16 +90,45 @@ function createId(prefix) {
     return `${prefix}_${random}`;
 }
 async function listAll(db, collectionName) {
-    const result = await db.collection(collectionName).get();
-    return result.data;
+    try {
+        const result = await db.collection(collectionName).get();
+        return result.data;
+    }
+    catch (error) {
+        if (!isCollectionMissingError(error)) {
+            throw error;
+        }
+        await ensureCollectionExists(db, collectionName);
+        return [];
+    }
 }
 async function findById(db, collectionName, id) {
     const result = await db.collection(collectionName).doc(id).get();
     return result.data;
 }
 async function insertRecord(db, collectionName, record) {
-    await db.collection(collectionName).add({ data: record });
+    try {
+        await db.collection(collectionName).add({ data: record });
+    }
+    catch (error) {
+        if (!isCollectionMissingError(error)) {
+            throw error;
+        }
+        await ensureCollectionExists(db, collectionName);
+        await db.collection(collectionName).add({ data: record });
+    }
     return record;
+}
+async function clearCollection(db, collectionName) {
+    try {
+        await db.collection(collectionName).where({}).remove();
+    }
+    catch (error) {
+        if (!isCollectionMissingError(error)) {
+            throw error;
+        }
+        await ensureCollectionExists(db, collectionName);
+    }
 }
 async function updateRecord(db, collectionName, id, changes) {
     await db.collection(collectionName).doc(id).update({ data: changes });

@@ -11,7 +11,7 @@ async function listAlerts(db, landlordOpenId) {
 }
 async function rebuildAlerts(db, input) {
     const alerts = (0, alert_evaluator_1.evaluateAlerts)(input);
-    await db.collection(collections_1.COLLECTIONS.alerts).where({}).remove();
+    await (0, runtime_1.clearCollection)(db, collections_1.COLLECTIONS.alerts);
     for (const alert of alerts) {
         await (0, runtime_1.insertRecord)(db, collections_1.COLLECTIONS.alerts, alert);
     }

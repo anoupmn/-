@@ -30,6 +30,7 @@ export interface DbCollection {
 
 export interface DbLike {
   collection(name: string): DbCollection;
+  createCollection?: (name: string) => Promise<unknown>;
 }
 
 export interface CloudContextLike {
@@ -59,6 +60,32 @@ function resolveCloudDb(): DbLike | null {
     return cloudSdk.database() as DbLike;
   } catch {
     return null;
+  }
+}
+
+function isCollectionMissingError(error: unknown) {
+  const payload = error as { errCode?: number; message?: string } | undefined;
+  const message = payload?.message ?? '';
+  return payload?.errCode === -502005 || message.includes('collection not exists') || message.includes('Db or Table not exist');
+}
+
+function isCollectionAlreadyExistsError(error: unknown) {
+  const payload = error as { message?: string } | undefined;
+  const message = payload?.message ?? '';
+  return message.includes('already exists');
+}
+
+export async function ensureCollectionExists(db: DbLike, collectionName: string) {
+  if (typeof db.createCollection !== 'function') {
+    return;
+  }
+
+  try {
+    await db.createCollection(collectionName);
+  } catch (error) {
+    if (!isCollectionAlreadyExistsError(error)) {
+      throw error;
+    }
   }
 }
 
@@ -107,8 +134,17 @@ export function createId(prefix: string) {
 }
 
 export async function listAll<T extends DbRecord>(db: DbLike, collectionName: string) {
-  const result = await db.collection(collectionName).get();
-  return result.data as T[];
+  try {
+    const result = await db.collection(collectionName).get();
+    return result.data as T[];
+  } catch (error) {
+    if (!isCollectionMissingError(error)) {
+      throw error;
+    }
+
+    await ensureCollectionExists(db, collectionName);
+    return [];
+  }
 }
 
 export async function findById<T extends DbRecord>(db: DbLike, collectionName: string, id: string) {
@@ -117,8 +153,29 @@ export async function findById<T extends DbRecord>(db: DbLike, collectionName: s
 }
 
 export async function insertRecord<T extends DbRecord>(db: DbLike, collectionName: string, record: T) {
-  await db.collection(collectionName).add({ data: record });
+  try {
+    await db.collection(collectionName).add({ data: record });
+  } catch (error) {
+    if (!isCollectionMissingError(error)) {
+      throw error;
+    }
+
+    await ensureCollectionExists(db, collectionName);
+    await db.collection(collectionName).add({ data: record });
+  }
   return record;
+}
+
+export async function clearCollection(db: DbLike, collectionName: string) {
+  try {
+    await db.collection(collectionName).where({}).remove();
+  } catch (error) {
+    if (!isCollectionMissingError(error)) {
+      throw error;
+    }
+
+    await ensureCollectionExists(db, collectionName);
+  }
 }
 
 export async function updateRecord<T extends DbRecord>(
