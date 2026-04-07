@@ -10,12 +10,13 @@ const runtime_1 = require("../runtime");
 function normalizeSource(value) {
     return value ?? 'manual';
 }
-async function listAbnormalFlags(db) {
+async function listAbnormalFlags(db, landlordOpenId) {
     const records = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.abnormalFlags);
-    return records.map((item) => abnormal_flag_1.abnormalFlagSchema.parse({
+    const normalized = records.map((item) => abnormal_flag_1.abnormalFlagSchema.parse({
         ...item,
         source: normalizeSource(item.source)
     }));
+    return landlordOpenId ? normalized.filter((item) => item.landlordOpenId === landlordOpenId) : normalized;
 }
 async function saveAbnormalFlag(db, input, event) {
     const now = (0, runtime_1.resolveNow)(event);

@@ -134,6 +134,7 @@ describe('rentable-unit-detail repairs archive', () => {
     const result = await rentableUnitDetailMain({
       roomId: 'room_1',
       __mockDb: createMockDb(store),
+      __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) },
       now: '2026-04-10T00:00:00.000Z'
     });
 
@@ -242,6 +243,7 @@ describe('rentable-unit-detail repairs archive', () => {
     const result = await rentableUnitDetailMain({
       roomId: 'room_2',
       __mockDb: createMockDb(store),
+      __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) },
       now: '2026-04-10T00:00:00.000Z'
     });
 

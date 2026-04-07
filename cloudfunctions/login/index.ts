@@ -4,6 +4,14 @@ interface ContextLike {
   };
 }
 
+const cloudSdk = (() => {
+  try {
+    return require('wx-server-sdk');
+  } catch {
+    return null;
+  }
+})();
+
 export interface LoginSession {
   openid: string;
   displayName: string;
@@ -17,7 +25,20 @@ export interface LoginEvent {
 }
 
 function resolveOpenId(event: LoginEvent): string {
-  const openid = event.__mockContext?.getWXContext?.().OPENID;
+  const openid =
+    event.__mockContext?.getWXContext?.().OPENID ??
+    (() => {
+      try {
+        if (!cloudSdk) {
+          return undefined;
+        }
+
+        cloudSdk.init({ env: cloudSdk.DYNAMIC_CURRENT_ENV });
+        return cloudSdk.getWXContext?.().OPENID;
+      } catch {
+        return undefined;
+      }
+    })();
 
   if (!openid) {
     throw new Error('Missing OPENID from cloud context.');
@@ -28,7 +49,7 @@ function resolveOpenId(event: LoginEvent): string {
 
 export async function main(event: LoginEvent): Promise<{ session: LoginSession }> {
   const openid = resolveOpenId(event);
-  const displayName = event.displayName?.trim() || '房东';
+  const displayName = event.displayName?.trim() || '用户';
   const now = new Date().toISOString();
   const session: LoginSession = {
     openid,

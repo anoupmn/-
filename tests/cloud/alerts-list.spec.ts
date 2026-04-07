@@ -150,6 +150,7 @@ describe('alerts-list cloud function', () => {
 
     const result = await alertsListMain({
       __mockDb: createMockDb(store),
+      __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) },
       now: '2026-04-01T00:00:00.000Z'
     });
 

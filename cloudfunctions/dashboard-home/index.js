@@ -14,7 +14,7 @@ async function main(event) {
     const db = (0, runtime_1.resolveDb)(event);
     const landlordOpenId = (0, runtime_1.resolveLandlordOpenId)(event);
     const now = event.now ?? new Date().toISOString();
-    const { assets, rooms, tenants, leases, bills, repairs } = await (0, runtime_1.getAllDomainData)(db);
+    const { assets, rooms, tenants, leases, bills, repairs } = await (0, runtime_1.getAllDomainData)(db, landlordOpenId);
     const ensuredBills = [...bills];
     for (const lease of leases) {
         if ((0, lease_lifecycle_1.deriveLeaseStatus)(lease, now) !== statuses_1.LEASE_STATUSES.active) {
@@ -31,7 +31,7 @@ async function main(event) {
         repairs,
         now
     }, { ...event, now });
-    const abnormalFlags = await (0, abnormal_flag_repository_1.listAbnormalFlags)(db);
+    const abnormalFlags = await (0, abnormal_flag_repository_1.listAbnormalFlags)(db, landlordOpenId);
     const alerts = await (0, alert_repository_1.rebuildAlerts)(db, {
         assets,
         rooms,

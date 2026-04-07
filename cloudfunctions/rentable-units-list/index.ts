@@ -2,12 +2,13 @@ import { buildRentableUnitSummary } from './shared/calculators/rentable-unit';
 import { deriveLeaseStatus } from './shared/calculators/lease-lifecycle';
 import { LEASE_STATUSES } from './shared/constants/statuses';
 import { ensureBillsForLease } from './shared/repositories/bill-repository';
-import { getAllDomainData, type CloudEventBase, resolveDb } from './shared/runtime';
+import { getAllDomainData, resolveLandlordOpenId, type CloudEventBase, resolveDb } from './shared/runtime';
 
 export async function main(event: CloudEventBase) {
   const db = resolveDb(event);
+  const landlordOpenId = resolveLandlordOpenId(event);
   const now = event.now ?? new Date().toISOString();
-  const { assets, rooms, tenants, leases, bills } = await getAllDomainData(db);
+  const { assets, rooms, tenants, leases, bills } = await getAllDomainData(db, landlordOpenId);
   const ensuredBills = [...bills];
 
   for (const lease of leases) {

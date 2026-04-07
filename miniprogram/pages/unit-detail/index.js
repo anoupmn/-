@@ -61,6 +61,46 @@ function shouldPromptExpiryEndLease(detail) {
     }
     return !hasOutstandingActiveBills(detail);
 }
+function resolveBillActionErrorMessage(error) {
+    const payload = error;
+    const rawMessage = `${payload?.message ?? ''} ${payload?.errMsg ?? ''}`.toLowerCase();
+    if (rawMessage.includes('functionname parameter could not be found') || rawMessage.includes('function not found')) {
+        return '云函数未部署，请先上传账单相关函数';
+    }
+    if (rawMessage.includes('missing openid')) {
+        return '登录状态已失效，请重新登录';
+    }
+    if (rawMessage.includes('bill') && rawMessage.includes('not found')) {
+        return '账单不存在或无权限，请刷新后重试';
+    }
+    if (rawMessage.includes('timeout')) {
+        return '请求超时，请稍后重试';
+    }
+    return '保存失败，请稍后再试';
+}
+function resolveRepairSaveErrorMessage(error) {
+    const payload = error;
+    const rawMessage = `${payload?.message ?? ''} ${payload?.errMsg ?? ''}`.toLowerCase();
+    if (rawMessage.includes('missing openid')) {
+        return '登录状态已失效，请重新登录';
+    }
+    if (rawMessage.includes('room') && rawMessage.includes('not found')) {
+        return '当前房间与登录账号不匹配，请刷新后重试';
+    }
+    if (rawMessage.includes('asset') && rawMessage.includes('not found')) {
+        return '房源不存在或无权限，无法保存维修记录';
+    }
+    if (rawMessage.includes('assetid or roomid is required')) {
+        return '缺少房间信息，请返回后重试';
+    }
+    if (rawMessage.includes('invalid repair category')) {
+        return '维修分类无效，请重新选择';
+    }
+    if (rawMessage.includes('timeout')) {
+        return '请求超时，请稍后重试';
+    }
+    return '维修记录保存失败，请稍后重试';
+}
 function buildLeaseHistoryViews(detail) {
     const leaseHistory = Array.isArray(detail.leaseHistory) ? detail.leaseHistory : [];
     const tenantHistory = Array.isArray(detail.tenantHistory) ? detail.tenantHistory : [];
@@ -152,6 +192,7 @@ Page({
         expandedLeaseHistory: {},
         expandedMonths: {},
         paymentDialogVisible: false,
+        paymentSubmitting: false,
         paymentForm: {
             billId: '',
             title: '',
@@ -160,6 +201,8 @@ Page({
         },
         manualBillTypeOptions: MANUAL_BILL_TYPE_LABELS,
         manualBillDialogVisible: false,
+        manualBillSubmitting: false,
+        deletingBillId: '',
         repairCategoryOptions: REPAIR_CATEGORY_OPTIONS.map((item) => item.label),
         repairDialogVisible: false,
         manualBillMeta: {
@@ -186,6 +229,10 @@ Page({
             ...group,
             items: group.items.map((item) => ({
                 ...item,
+                source: item.source === 'manual' ? 'manual' : 'system',
+                isManual: item.source === 'manual',
+                isReceivedAmountMismatch: item.isReceivedAmountMismatch === true
+                    || (item.receivedAmount != null && Math.abs(Number(item.receivedAmount) - Number(item.amount || 0)) >= 0.01),
                 statusLabel: formatStatusLabel(item.status)
             }))
         }));
@@ -220,7 +267,16 @@ Page({
     },
     async onLoad(query) {
         const roomId = query.roomId;
-        await this.loadDetail(roomId);
+        try {
+            await this.loadDetail(roomId);
+        }
+        catch (error) {
+            console.error('load unit detail on page init failed', error);
+            wx.showToast({
+                title: '页面加载失败，请返回重试',
+                icon: 'none'
+            });
+        }
     },
     toggleLeaseHistoryItem(event) {
         const leaseId = String(event.currentTarget.dataset.leaseId || '');
@@ -288,6 +344,9 @@ Page({
         });
     },
     async confirmPayment() {
+        if (this.data.paymentSubmitting) {
+            return;
+        }
         const billId = this.data.paymentForm.billId;
         const receivedAmount = Number(this.data.paymentForm.amount || 0);
         if (!billId || !receivedAmount) {
@@ -297,45 +356,62 @@ Page({
             });
             return;
         }
-        await (0, bill_1.receiveBill)({
-            billId,
-            receivedAt: new Date().toISOString(),
-            receivedAmount
-        });
         this.setData({
-            paymentDialogVisible: false
+            paymentSubmitting: true
         });
-        wx.showToast({
-            title: '已登记收款',
-            icon: 'success'
-        });
-        await this.loadDetail();
-        if (!shouldPromptExpiryEndLease(this.data.detail)) {
-            return;
-        }
-        const latestLeaseId = String(this.data.detail?.activeLease?.id || '');
-        if (!latestLeaseId) {
-            return;
-        }
-        const confirmation = await wx.showModal({
-            title: '期满结束租约',
-            content: '最后一期已登记收款，且租约已到期。是否立即按“期满结束租约”处理？'
-        });
-        if (!confirmation.confirm) {
-            return;
-        }
-        const closeResult = await this.endLeaseWithRetry(latestLeaseId);
-        if (!closeResult.success) {
+        try {
+            await (0, bill_1.receiveBill)({
+                billId,
+                receivedAt: new Date().toISOString(),
+                receivedAmount
+            });
+            this.setData({
+                paymentDialogVisible: false
+            });
             wx.showToast({
-                title: closeResult.isTimeout ? '请求超时，请稍后重试' : '期满结束失败，请稍后重试',
+                title: '已登记收款',
+                icon: 'success'
+            });
+            await this.loadDetail();
+            if (!shouldPromptExpiryEndLease(this.data.detail)) {
+                return;
+            }
+            const latestLeaseId = String(this.data.detail?.activeLease?.id || '');
+            if (!latestLeaseId) {
+                return;
+            }
+            const confirmation = await wx.showModal({
+                title: '期满结束租约',
+                content: '最后一期已登记收款，且租约已到期。是否立即按“期满结束租约”处理？'
+            });
+            if (!confirmation.confirm) {
+                return;
+            }
+            const closeResult = await this.endLeaseWithRetry(latestLeaseId);
+            if (!closeResult.success) {
+                wx.showToast({
+                    title: closeResult.isTimeout ? '请求超时，请稍后重试' : '期满结束失败，请稍后重试',
+                    icon: 'none'
+                });
+                return;
+            }
+            wx.showToast({
+                title: '租约已期满结束',
+                icon: 'success'
+            });
+        }
+        catch (error) {
+            console.error('confirm payment failed', error);
+            wx.showToast({
+                title: resolveBillActionErrorMessage(error),
                 icon: 'none'
             });
-            return;
         }
-        wx.showToast({
-            title: '租约已期满结束',
-            icon: 'success'
-        });
+        finally {
+            this.setData({
+                paymentSubmitting: false
+            });
+        }
     },
     openManualBillDialog(event) {
         const monthKey = event.currentTarget.dataset.monthKey;
@@ -389,6 +465,9 @@ Page({
         });
     },
     async confirmManualBill() {
+        if (this.data.manualBillSubmitting) {
+            return;
+        }
         const leaseId = this.data.detail?.activeLease?.id;
         const { monthKey, typeIndex, itemLabel, amount } = this.data.manualBillForm;
         const numericAmount = Number(amount || 0);
@@ -415,21 +494,74 @@ Page({
             });
             return;
         }
-        await (0, bill_1.saveBill)({
-            leaseId,
-            monthKey,
-            type: selectedType === 'repair' ? 'custom' : selectedType,
-            amount: numericAmount,
-            itemLabel: selectedType === 'repair' ? trimmedLabel || '维修费' : selectedType === 'custom' ? trimmedLabel : undefined
-        });
         this.setData({
-            manualBillDialogVisible: false
+            manualBillSubmitting: true
         });
-        wx.showToast({
-            title: '费用已补录',
-            icon: 'success'
+        try {
+            await (0, bill_1.saveBill)({
+                leaseId,
+                monthKey,
+                type: selectedType === 'repair' ? 'custom' : selectedType,
+                amount: numericAmount,
+                itemLabel: selectedType === 'repair' ? trimmedLabel || '维修费' : selectedType === 'custom' ? trimmedLabel : undefined
+            });
+            this.setData({
+                manualBillDialogVisible: false
+            });
+            wx.showToast({
+                title: '费用已补录',
+                icon: 'success'
+            });
+            await this.loadDetail();
+        }
+        catch (error) {
+            console.error('save manual bill failed', error);
+            wx.showToast({
+                title: resolveBillActionErrorMessage(error),
+                icon: 'none'
+            });
+        }
+        finally {
+            this.setData({
+                manualBillSubmitting: false
+            });
+        }
+    },
+    async handleDeleteManualBill(event) {
+        const billId = String(event.currentTarget.dataset.billId || '');
+        if (!billId || this.data.deletingBillId) {
+            return;
+        }
+        const confirmation = await wx.showModal({
+            title: '删除补录费用',
+            content: '确认删除这条补录费用记录？删除后不可恢复。'
         });
-        await this.loadDetail();
+        if (!confirmation.confirm) {
+            return;
+        }
+        this.setData({
+            deletingBillId: billId
+        });
+        try {
+            await (0, bill_1.deleteBill)({ billId });
+            wx.showToast({
+                title: '已删除补录',
+                icon: 'success'
+            });
+            await this.loadDetail();
+        }
+        catch (error) {
+            console.error('delete manual bill failed', error);
+            wx.showToast({
+                title: resolveBillActionErrorMessage(error),
+                icon: 'none'
+            });
+        }
+        finally {
+            this.setData({
+                deletingBillId: ''
+            });
+        }
     },
     openRepairDialog() {
         this.setData({
@@ -477,6 +609,7 @@ Page({
         const selectedCategory = REPAIR_CATEGORY_OPTIONS[this.data.repairForm.categoryIndex]?.key ?? 'other';
         const note = String(this.data.repairForm.note || '').trim();
         const occurredAt = String(this.data.repairForm.occurredAt || '').trim();
+        const roomId = String(this.data.roomId || '').trim();
         if (!note) {
             wx.showToast({
                 title: '请填写维修备注',
@@ -491,20 +624,36 @@ Page({
             });
             return;
         }
-        await (0, repair_1.saveRepairRecord)({
-            roomId: this.data.roomId,
-            category: selectedCategory,
-            note,
-            occurredAt
-        });
-        this.setData({
-            repairDialogVisible: false
-        });
-        wx.showToast({
-            title: '维修记录已保存',
-            icon: 'success'
-        });
-        await this.loadDetail();
+        if (!roomId) {
+            wx.showToast({
+                title: '缺少房间信息，请返回后重试',
+                icon: 'none'
+            });
+            return;
+        }
+        try {
+            await (0, repair_1.saveRepairRecord)({
+                roomId,
+                category: selectedCategory,
+                note,
+                occurredAt
+            });
+            this.setData({
+                repairDialogVisible: false
+            });
+            wx.showToast({
+                title: '维修记录已保存',
+                icon: 'success'
+            });
+            await this.loadDetail();
+        }
+        catch (error) {
+            console.error('save repair record failed', error);
+            wx.showToast({
+                title: resolveRepairSaveErrorMessage(error),
+                icon: 'none'
+            });
+        }
     },
     async handleEndLease() {
         const leaseId = this.data.detail?.activeLease?.id;

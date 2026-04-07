@@ -162,7 +162,13 @@ async function updateRecord(db, collectionName, id, changes) {
     }
     return updated;
 }
-async function getAllDomainData(db) {
+function filterByLandlordOpenId(records, landlordOpenId) {
+    if (!landlordOpenId) {
+        return records;
+    }
+    return records.filter((item) => item.landlordOpenId === landlordOpenId);
+}
+async function getAllDomainData(db, landlordOpenId) {
     const [assets, rooms, tenants, leases, bills, repairs] = await Promise.all([
         listAll(db, collections_1.COLLECTIONS.assets),
         listAll(db, collections_1.COLLECTIONS.rooms),
@@ -172,11 +178,11 @@ async function getAllDomainData(db) {
         listAll(db, collections_1.COLLECTIONS.repairRecords)
     ]);
     return {
-        assets,
-        rooms,
-        tenants,
-        leases,
-        bills,
-        repairs
+        assets: filterByLandlordOpenId(assets, landlordOpenId),
+        rooms: filterByLandlordOpenId(rooms, landlordOpenId),
+        tenants: filterByLandlordOpenId(tenants, landlordOpenId),
+        leases: filterByLandlordOpenId(leases, landlordOpenId),
+        bills: filterByLandlordOpenId(bills, landlordOpenId),
+        repairs: filterByLandlordOpenId(repairs, landlordOpenId)
     };
 }

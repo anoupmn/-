@@ -12,7 +12,7 @@ export async function main(event: CloudEventBase) {
   const db = resolveDb(event);
   const landlordOpenId = resolveLandlordOpenId(event);
   const now = event.now ?? new Date().toISOString();
-  const { assets, rooms, tenants, leases, bills, repairs } = await getAllDomainData(db);
+  const { assets, rooms, tenants, leases, bills, repairs } = await getAllDomainData(db, landlordOpenId);
   const ensuredBills = [...bills];
 
   for (const lease of leases) {
@@ -37,7 +37,7 @@ export async function main(event: CloudEventBase) {
     },
     { ...event, now }
   );
-  const abnormalFlags = await listAbnormalFlags(db);
+  const abnormalFlags = await listAbnormalFlags(db, landlordOpenId);
 
   const alerts = await rebuildAlerts(db, {
     assets,

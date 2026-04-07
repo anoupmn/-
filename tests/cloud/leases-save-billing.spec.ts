@@ -9,6 +9,25 @@ describe('leases-save billing integration', () => {
     const __mockContext = {
       getWXContext: () => getWXContext('openid-save')
     };
+    store.rooms.push({
+      id: 'room_1',
+      landlordOpenId: 'openid-save',
+      assetId: 'asset_1',
+      name: 'A101',
+      note: '',
+      isWholeUnitDefault: false,
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.tenants.push({
+      id: 'tenant_1',
+      landlordOpenId: 'openid-save',
+      name: '王租客',
+      phone: '',
+      note: '',
+      createdAt: '',
+      updatedAt: ''
+    });
 
     const lease = await leasesSaveMain({
       lease: {
@@ -45,6 +64,25 @@ describe('leases-save billing integration', () => {
     const __mockContext = {
       getWXContext: () => getWXContext('openid-save')
     };
+    store.rooms.push({
+      id: 'room_1',
+      landlordOpenId: 'openid-save',
+      assetId: 'asset_1',
+      name: 'A101',
+      note: '',
+      isWholeUnitDefault: false,
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.tenants.push({
+      id: 'tenant_1',
+      landlordOpenId: 'openid-save',
+      name: '王租客',
+      phone: '',
+      note: '',
+      createdAt: '',
+      updatedAt: ''
+    });
 
     const lease = await leasesSaveMain({
       lease: {

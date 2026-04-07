@@ -224,7 +224,15 @@ export async function updateRecord<T extends DbRecord>(
   return updated;
 }
 
-export async function getAllDomainData(db: DbLike) {
+function filterByLandlordOpenId<T extends { landlordOpenId?: string }>(records: T[], landlordOpenId?: string) {
+  if (!landlordOpenId) {
+    return records;
+  }
+
+  return records.filter((item) => item.landlordOpenId === landlordOpenId);
+}
+
+export async function getAllDomainData(db: DbLike, landlordOpenId?: string) {
   const [assets, rooms, tenants, leases, bills, repairs] = await Promise.all([
     listAll<Asset>(db, COLLECTIONS.assets),
     listAll<Room>(db, COLLECTIONS.rooms),
@@ -235,11 +243,11 @@ export async function getAllDomainData(db: DbLike) {
   ]);
 
   return {
-    assets,
-    rooms,
-    tenants,
-    leases,
-    bills,
-    repairs
+    assets: filterByLandlordOpenId(assets, landlordOpenId),
+    rooms: filterByLandlordOpenId(rooms, landlordOpenId),
+    tenants: filterByLandlordOpenId(tenants, landlordOpenId),
+    leases: filterByLandlordOpenId(leases, landlordOpenId),
+    bills: filterByLandlordOpenId(bills, landlordOpenId),
+    repairs: filterByLandlordOpenId(repairs, landlordOpenId)
   };
 }

@@ -4,12 +4,13 @@ import { listAbnormalFlags, syncRepairFrequencyAbnormalFlags } from './shared/re
 import { ensureBillsForLease } from './shared/repositories/bill-repository';
 import { deriveLeaseStatus } from './shared/calculators/lease-lifecycle';
 import { LEASE_STATUSES } from './shared/constants/statuses';
-import { getAllDomainData, resolveDb, type CloudEventBase } from './shared/runtime';
+import { getAllDomainData, resolveDb, resolveLandlordOpenId, type CloudEventBase } from './shared/runtime';
 
 export async function main(event: CloudEventBase) {
   const db = resolveDb(event);
+  const landlordOpenId = resolveLandlordOpenId(event);
   const now = event.now ?? new Date().toISOString();
-  const { assets, rooms, tenants, leases, bills, repairs } = await getAllDomainData(db);
+  const { assets, rooms, tenants, leases, bills, repairs } = await getAllDomainData(db, landlordOpenId);
   const ensuredBills = [...bills];
 
   for (const lease of leases) {
@@ -34,7 +35,7 @@ export async function main(event: CloudEventBase) {
     },
     { ...event, now }
   );
-  const abnormalFlags = await listAbnormalFlags(db);
+  const abnormalFlags = await listAbnormalFlags(db, landlordOpenId);
 
   const alerts = await rebuildAlerts(db, {
     assets,

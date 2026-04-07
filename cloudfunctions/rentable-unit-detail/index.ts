@@ -7,7 +7,7 @@ import { deriveBillStatus } from './shared/calculators/bill-status';
 import { deriveLeaseStatus } from './shared/calculators/lease-lifecycle';
 import { ensureBillsForLease } from './shared/repositories/bill-repository';
 import { buildRoomRepairStats } from './shared/repositories/repair-record-repository';
-import { getAllDomainData, type CloudEventBase, resolveDb } from './shared/runtime';
+import { getAllDomainData, resolveLandlordOpenId, type CloudEventBase, resolveDb } from './shared/runtime';
 import type { Bill } from './shared/schemas/bill';
 import type { Lease } from './shared/schemas/lease';
 
@@ -44,12 +44,14 @@ function buildMonthlyBillGroups(bills: Bill[], now: string) {
         id: string;
         type: Bill['type'];
         section: Bill['section'];
+        source: Bill['source'];
         label: string;
         dueDate: string;
         amount: number;
         status: string;
         receivedAt: string | null;
         receivedAmount: number | null;
+        isReceivedAmountMismatch: boolean;
       }>;
     }
   >();
@@ -82,12 +84,15 @@ function buildMonthlyBillGroups(bills: Bill[], now: string) {
         id: bill.id,
         type: bill.type,
         section: bill.section,
+        source: bill.source ?? 'system',
         label: getBillTypeLabel(bill),
         dueDate: bill.dueDate,
         amount: bill.amount,
         status: deriveBillStatus(bill, now),
         receivedAt: bill.receivedAt,
-        receivedAmount: bill.receivedAmount
+        receivedAmount: bill.receivedAmount,
+        isReceivedAmountMismatch:
+          bill.receivedAmount != null && Math.abs(Number(bill.receivedAmount) - Number(bill.amount || 0)) >= 0.01
       });
     });
 
@@ -141,8 +146,9 @@ function resolveLeaseTerminationRemark(lease: Pick<Lease, 'endDate' | 'closedAt'
 
 export async function main(event: RentableUnitDetailEvent) {
   const db = resolveDb(event);
+  const landlordOpenId = resolveLandlordOpenId(event);
   const now = event.now ?? new Date().toISOString();
-  const { assets, rooms, tenants, leases, bills, repairs } = await getAllDomainData(db);
+  const { assets, rooms, tenants, leases, bills, repairs } = await getAllDomainData(db, landlordOpenId);
 
   const tenantIdMap = new Map<string, (typeof tenants)[number]>();
   tenants.forEach((tenant) => {

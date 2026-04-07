@@ -113,8 +113,11 @@ async function listAll(db, collectionName) {
     }
 }
 async function findById(db, collectionName, id) {
-    const result = await db.collection(collectionName).doc(id).get();
-    return result.data;
+    const result = await db.collection(collectionName).where({ id }).get();
+    if (!Array.isArray(result.data) || result.data.length === 0) {
+        return null;
+    }
+    return result.data[0];
 }
 async function insertRecord(db, collectionName, record) {
     try {
@@ -155,7 +158,7 @@ async function clearCollection(db, collectionName) {
     }
 }
 async function updateRecord(db, collectionName, id, changes) {
-    await db.collection(collectionName).doc(id).update({ data: changes });
+    await db.collection(collectionName).where({ id }).update({ data: changes });
     const updated = await findById(db, collectionName, id);
     if (!updated) {
         throw new Error(`Record ${id} was not found after update.`);

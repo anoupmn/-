@@ -163,6 +163,17 @@ describe('dashboard-home cloud function', () => {
       createdAt: '',
       updatedAt: ''
     });
+    store.alerts.push({
+      id: 'alert_other',
+      landlordOpenId: 'openid_other',
+      type: 'manual_abnormal',
+      level: 'high',
+      roomId: 'room_other',
+      summary: '其他房东的异常',
+      sourceId: 'flag_other',
+      createdAt: '',
+      updatedAt: ''
+    });
 
     const result = await dashboardHomeMain({
       __mockDb: createMockDb(store),
@@ -181,5 +192,6 @@ describe('dashboard-home cloud function', () => {
       hasRequested: true,
       enabledRuleTypes: ['overdue', 'manual_abnormal']
     });
+    expect(store.alerts.some((item) => item.landlordOpenId === 'openid_other' && item.id === 'alert_other')).toBe(true);
   });
 });

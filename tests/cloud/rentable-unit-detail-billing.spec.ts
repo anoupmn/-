@@ -82,7 +82,7 @@ describe('rentable-unit-detail billing view', () => {
         amount: 2600,
         status: BILL_STATUSES.paid,
         receivedAt: '2026-04-01T10:00:00.000Z',
-        receivedAmount: 2600,
+        receivedAmount: 2500,
         note: '',
         createdAt: '',
         updatedAt: ''
@@ -99,6 +99,7 @@ describe('rentable-unit-detail billing view', () => {
         status: BILL_STATUSES.pending,
         receivedAt: null,
         receivedAmount: null,
+        source: 'manual',
         note: '',
         createdAt: '',
         updatedAt: ''
@@ -108,6 +109,7 @@ describe('rentable-unit-detail billing view', () => {
     const result = await rentableUnitDetailMain({
       roomId: 'room_1',
       __mockDb: createMockDb(store),
+      __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) },
       now: '2026-04-01T00:00:00.000Z'
     });
 
@@ -117,6 +119,8 @@ describe('rentable-unit-detail billing view', () => {
     expect(result.monthlyBillGroups[0].monthLabel).toBe('2026年04月');
     expect(result.monthlyBillGroups[0].items.map((item) => item.label)).toEqual(['押金', '租金', '水费']);
     expect(result.monthlyBillGroups[0].items[1].status).toBe(BILL_STATUSES.pending);
+    expect(result.monthlyBillGroups[0].items[0].isReceivedAmountMismatch).toBe(true);
+    expect(result.monthlyBillGroups[0].items[2].source).toBe('manual');
     expect(result.historyCollapsedByDefault).toBe(true);
   });
 });

@@ -80,6 +80,7 @@ describe('rentable-unit-detail cloud function', () => {
     const result = await rentableUnitDetailMain({
       roomId: 'room_1',
       __mockDb: createMockDb(store),
+      __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) },
       now: '2026-04-01T00:00:00.000Z'
     });
 
@@ -143,6 +144,7 @@ describe('rentable-unit-detail cloud function', () => {
     const result = await rentableUnitDetailMain({
       roomId: 'room_legacy',
       __mockDb: createMockDb(store),
+      __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) },
       now: '2026-04-01T00:00:00.000Z'
     });
 
@@ -200,6 +202,7 @@ describe('rentable-unit-detail cloud function', () => {
     const result = await rentableUnitDetailMain({
       roomId: 'room_early',
       __mockDb: createMockDb(store),
+      __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) },
       now: '2026-04-20T00:00:00.000Z'
     });
 

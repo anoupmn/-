@@ -58,9 +58,31 @@
             </view>
             <view class="fee-row">
               <view class="field">应收金额：¥{{item.amount}}</view>
+              <view class="fee-actions-stack" wx:if="{{item.isManual}}">
+                <button
+                  wx:if="{{item.status !== 'paid'}}"
+                  class="mini-pay-button compact-button"
+                  data-bill-id="{{item.id}}"
+                  data-amount="{{item.amount}}"
+                  data-title="{{item.label}}"
+                  data-due-date="{{item.dueDate}}"
+                  bindtap="openPaymentDialog"
+                >
+                  登记缴费
+                </button>
+                <button
+                  class="mini-delete-button compact-button"
+                  data-bill-id="{{item.id}}"
+                  loading="{{deletingBillId==item.id}}"
+                  disabled="{{deletingBillId}}"
+                  bindtap="handleDeleteManualBill"
+                >
+                  删除记录
+                </button>
+              </view>
               <button
-                wx:if="{{item.status !== 'paid'}}"
-                class="mini-pay-button"
+                wx:if="{{!item.isManual && item.status !== 'paid'}}"
+                class="mini-pay-button compact-button"
                 data-bill-id="{{item.id}}"
                 data-amount="{{item.amount}}"
                 data-title="{{item.label}}"
@@ -71,6 +93,10 @@
               </button>
             </view>
             <view wx:if="{{item.receivedAt}}" class="field">收款时间：{{item.receivedAt}}</view>
+            <view wx:if="{{item.isReceivedAmountMismatch}}" class="fee-note">
+              实收 ¥{{item.receivedAmount}}，与应收不一致
+            </view>
+            <view class="fee-note" wx:if="{{item.isManual}}">补录费用</view>
           </view>
           <view class="month-tools">
             <button
@@ -159,7 +185,9 @@
       />
       <view class="dialog-actions">
         <button class="secondary-button" bindtap="closePaymentDialog">取消</button>
-        <button class="primary-button" bindtap="confirmPayment">确认收款</button>
+        <button class="primary-button" loading="{{paymentSubmitting}}" disabled="{{paymentSubmitting}}" bindtap="confirmPayment">
+          确认收款
+        </button>
       </view>
     </view>
   </view>
@@ -189,7 +217,9 @@
       />
       <view class="dialog-actions">
         <button class="secondary-button" bindtap="closeManualBillDialog">取消</button>
-        <button class="primary-button" bindtap="confirmManualBill">确认补录</button>
+        <button class="primary-button" loading="{{manualBillSubmitting}}" disabled="{{manualBillSubmitting}}" bindtap="confirmManualBill">
+          确认补录
+        </button>
       </view>
     </view>
   </view>

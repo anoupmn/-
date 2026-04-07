@@ -9,6 +9,36 @@ describe('leases-save conflict guard', () => {
     const __mockContext = {
       getWXContext: () => getWXContext('openid-lease-conflict')
     };
+    store.rooms.push({
+      id: 'room_1',
+      landlordOpenId: 'openid-lease-conflict',
+      assetId: 'asset_1',
+      name: 'A101',
+      note: '',
+      isWholeUnitDefault: false,
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.tenants.push(
+      {
+        id: 'tenant_1',
+        landlordOpenId: 'openid-lease-conflict',
+        name: '租客一',
+        phone: '',
+        note: '',
+        createdAt: '',
+        updatedAt: ''
+      },
+      {
+        id: 'tenant_2',
+        landlordOpenId: 'openid-lease-conflict',
+        name: '租客二',
+        phone: '',
+        note: '',
+        createdAt: '',
+        updatedAt: ''
+      }
+    );
 
     await leasesSaveMain({
       lease: {
@@ -53,6 +83,36 @@ describe('leases-save conflict guard', () => {
     const __mockContext = {
       getWXContext: () => getWXContext('openid-lease-conflict')
     };
+    store.rooms.push({
+      id: 'room_1',
+      landlordOpenId: 'openid-lease-conflict',
+      assetId: 'asset_1',
+      name: 'A101',
+      note: '',
+      isWholeUnitDefault: false,
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.tenants.push(
+      {
+        id: 'tenant_1',
+        landlordOpenId: 'openid-lease-conflict',
+        name: '租客一',
+        phone: '',
+        note: '',
+        createdAt: '',
+        updatedAt: ''
+      },
+      {
+        id: 'tenant_2',
+        landlordOpenId: 'openid-lease-conflict',
+        name: '租客二',
+        phone: '',
+        note: '',
+        createdAt: '',
+        updatedAt: ''
+      }
+    );
 
     const lease = await leasesSaveMain({
       lease: {

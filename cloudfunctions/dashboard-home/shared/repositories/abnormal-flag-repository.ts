@@ -12,14 +12,15 @@ function normalizeSource(value: AbnormalFlagSource | undefined): AbnormalFlagSou
   return value ?? 'manual';
 }
 
-export async function listAbnormalFlags(db: DbLike) {
+export async function listAbnormalFlags(db: DbLike, landlordOpenId?: string) {
   const records = await listAll<AbnormalFlag>(db, COLLECTIONS.abnormalFlags);
-  return records.map((item) =>
+  const normalized = records.map((item) =>
     abnormalFlagSchema.parse({
       ...item,
       source: normalizeSource(item.source)
     })
   );
+  return landlordOpenId ? normalized.filter((item) => item.landlordOpenId === landlordOpenId) : normalized;
 }
 
 export async function saveAbnormalFlag(

@@ -7,7 +7,7 @@ import type { Bill } from '../schemas/bill';
 import type { Lease } from '../schemas/lease';
 import type { Room } from '../schemas/room';
 import type { Tenant } from '../schemas/tenant';
-import { clearCollection, insertRecord, listAll, type DbLike } from '../runtime';
+import { insertRecord, listAll, type DbLike } from '../runtime';
 
 export async function listAlerts(db: DbLike, landlordOpenId?: string) {
   const alerts = await listAll<Alert>(db, COLLECTIONS.alerts);
@@ -27,7 +27,21 @@ export async function rebuildAlerts(
   }
 ) {
   const alerts = evaluateAlerts(input);
-  await clearCollection(db, COLLECTIONS.alerts);
+  const landlordOpenIds = new Set<string>();
+  input.rooms.forEach((room) => {
+    if (room.landlordOpenId) {
+      landlordOpenIds.add(room.landlordOpenId);
+    }
+  });
+  alerts.forEach((alert) => {
+    if (alert.landlordOpenId) {
+      landlordOpenIds.add(alert.landlordOpenId);
+    }
+  });
+
+  for (const landlordOpenId of landlordOpenIds) {
+    await db.collection(COLLECTIONS.alerts).where({ landlordOpenId }).remove();
+  }
 
   for (const alert of alerts) {
     await insertRecord(db, COLLECTIONS.alerts, alert);

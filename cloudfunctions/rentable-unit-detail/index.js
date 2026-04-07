@@ -55,12 +55,14 @@ function buildMonthlyBillGroups(bills, now) {
             id: bill.id,
             type: bill.type,
             section: bill.section,
+            source: bill.source ?? 'system',
             label: getBillTypeLabel(bill),
             dueDate: bill.dueDate,
             amount: bill.amount,
             status: (0, bill_status_1.deriveBillStatus)(bill, now),
             receivedAt: bill.receivedAt,
-            receivedAmount: bill.receivedAmount
+            receivedAmount: bill.receivedAmount,
+            isReceivedAmountMismatch: bill.receivedAmount != null && Math.abs(Number(bill.receivedAmount) - Number(bill.amount || 0)) >= 0.01
         });
     });
     return Array.from(monthMap.values()).sort((a, b) => a.monthKey.localeCompare(b.monthKey));
@@ -102,8 +104,9 @@ function resolveLeaseTerminationRemark(lease) {
 }
 async function main(event) {
     const db = (0, runtime_1.resolveDb)(event);
+    const landlordOpenId = (0, runtime_1.resolveLandlordOpenId)(event);
     const now = event.now ?? new Date().toISOString();
-    const { assets, rooms, tenants, leases, bills, repairs } = await (0, runtime_1.getAllDomainData)(db);
+    const { assets, rooms, tenants, leases, bills, repairs } = await (0, runtime_1.getAllDomainData)(db, landlordOpenId);
     const tenantIdMap = new Map();
     tenants.forEach((tenant) => {
         if (tenant.id) {

@@ -17,3 +17,12 @@ export function saveBill(payload: {
 }) {
   return callCloudFunction('bills-save', payload);
 }
+
+export function deleteBill(payload: {
+  billId: string;
+}) {
+  return callCloudFunction('bills-save', {
+    mode: 'delete',
+    ...payload
+  });
+}

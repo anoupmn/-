@@ -8,8 +8,9 @@ const bill_repository_1 = require("./shared/repositories/bill-repository");
 const runtime_1 = require("./shared/runtime");
 async function main(event) {
     const db = (0, runtime_1.resolveDb)(event);
+    const landlordOpenId = (0, runtime_1.resolveLandlordOpenId)(event);
     const now = event.now ?? new Date().toISOString();
-    const { assets, rooms, tenants, leases, bills } = await (0, runtime_1.getAllDomainData)(db);
+    const { assets, rooms, tenants, leases, bills } = await (0, runtime_1.getAllDomainData)(db, landlordOpenId);
     const ensuredBills = [...bills];
     for (const lease of leases) {
         if ((0, lease_lifecycle_1.deriveLeaseStatus)(lease, now) !== statuses_1.LEASE_STATUSES.active) {

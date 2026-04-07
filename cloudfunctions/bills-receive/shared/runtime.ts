@@ -159,8 +159,12 @@ export async function listAll<T extends DbRecord>(db: DbLike, collectionName: st
 }
 
 export async function findById<T extends DbRecord>(db: DbLike, collectionName: string, id: string) {
-  const result = await db.collection(collectionName).doc(id).get();
-  return result.data as T | null;
+  const result = await db.collection(collectionName).where({ id }).get();
+  if (!Array.isArray(result.data) || result.data.length === 0) {
+    return null;
+  }
+
+  return result.data[0] as T;
 }
 
 export async function insertRecord<T extends DbRecord>(db: DbLike, collectionName: string, record: T) {
@@ -216,7 +220,7 @@ export async function updateRecord<T extends DbRecord>(
   id: string,
   changes: Partial<T>
 ) {
-  await db.collection(collectionName).doc(id).update({ data: changes as Partial<DbRecord> });
+  await db.collection(collectionName).where({ id }).update({ data: changes as Partial<DbRecord> });
   const updated = await findById<T>(db, collectionName, id);
   if (!updated) {
     throw new Error(`Record ${id} was not found after update.`);

@@ -1,4 +1,5 @@
 import { main as leasesEndMain } from '../../cloudfunctions/leases-end/index';
+import { getWXContext } from '../helpers/mock-cloud';
 
 type LeaseRecord = {
   _id: string;
@@ -52,7 +53,7 @@ function createLeasesOnlyDb(leases: LeaseRecord[]) {
             remove: async () => ({ stats: { removed: 0 } })
           };
         },
-        get: async () => ({ data: [] }),
+        get: async () => ({ data: leases }),
         add: async () => ({ _id: 'unused' })
       };
     }
@@ -116,6 +117,7 @@ describe('leases-end cloud function', () => {
     const result = await leasesEndMain({
       leaseId: 'lease_a',
       __mockDb: createLeasesOnlyDb(leases) as any,
+      __mockContext: { getWXContext: () => getWXContext('openid_test') },
       now
     });
 
@@ -124,5 +126,35 @@ describe('leases-end cloud function', () => {
     expect(leases.find((item) => item.id === 'lease_a')?.closedAt).toBe(now);
     expect(leases.find((item) => item.id === 'lease_b')?.closedAt).toBe(now);
     expect(leases.find((item) => item.id === 'lease_future')?.closedAt).toBeNull();
+  });
+
+  it('rejects closing lease from another landlord', async () => {
+    const leases: LeaseRecord[] = [
+      {
+        _id: 'db_lease_a',
+        id: 'lease_a',
+        landlordOpenId: 'openid_test',
+        roomId: 'room_1',
+        tenantId: 'tenant_1',
+        startDate: '2026-01-01',
+        endDate: '2026-12-31',
+        billingCycleDays: 30,
+        rentAmount: 3200,
+        depositAmount: 3200,
+        note: '',
+        closedAt: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z'
+      }
+    ];
+
+    await expect(
+      leasesEndMain({
+        leaseId: 'lease_a',
+        __mockDb: createLeasesOnlyDb(leases) as any,
+        __mockContext: { getWXContext: () => getWXContext('openid_other') },
+        now: '2026-04-15T00:00:00.000Z'
+      })
+    ).rejects.toThrow('Lease lease_a not found.');
   });
 });

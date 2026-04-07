@@ -126,6 +126,7 @@ describe('rentable-units-list status view', () => {
 
     const result = await rentableUnitsListMain({
       __mockDb: createMockDb(store),
+      __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) },
       now: '2026-04-01T00:00:00.000Z'
     });
 

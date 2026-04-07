@@ -6,12 +6,12 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
 
-async function removeByIds(collectionName, ids) {
+async function removeByIds(collectionName, ids, landlordOpenId) {
   if (!ids.length) {
     return;
   }
 
-  const result = await db.collection(collectionName).get();
+  const result = await db.collection(collectionName).where({ landlordOpenId }).get();
   const targets = (result.data || []).filter((item) => ids.indexOf(item.id) >= 0);
   await Promise.all(targets.map((item) => db.collection(collectionName).doc(item._id).remove()));
 }
@@ -26,9 +26,9 @@ exports.main = async (event = {}) => {
 
   const [assetRes, roomRes, leaseRes, billRes] = await Promise.all([
     db.collection('assets').where({ id: assetId, landlordOpenId: OPENID }).get(),
-    db.collection('rooms').get(),
-    db.collection('leases').get(),
-    db.collection('bills').get()
+    db.collection('rooms').where({ landlordOpenId: OPENID }).get(),
+    db.collection('leases').where({ landlordOpenId: OPENID }).get(),
+    db.collection('bills').where({ landlordOpenId: OPENID }).get()
   ]);
 
   const asset = assetRes.data[0];
@@ -46,8 +46,8 @@ exports.main = async (event = {}) => {
     .filter((item) => bills.some((bill) => bill.id === item.id))
     .map((item) => db.collection('bills').doc(item._id).remove()));
 
-  await removeByIds('leases', leaseIds);
-  await removeByIds('rooms', roomIds);
+  await removeByIds('leases', leaseIds, OPENID);
+  await removeByIds('rooms', roomIds, OPENID);
   await db.collection('assets').doc(asset._id).remove();
 
   return {

@@ -11,7 +11,20 @@ async function listAlerts(db, landlordOpenId) {
 }
 async function rebuildAlerts(db, input) {
     const alerts = (0, alert_evaluator_1.evaluateAlerts)(input);
-    await (0, runtime_1.clearCollection)(db, collections_1.COLLECTIONS.alerts);
+    const landlordOpenIds = new Set();
+    input.rooms.forEach((room) => {
+        if (room.landlordOpenId) {
+            landlordOpenIds.add(room.landlordOpenId);
+        }
+    });
+    alerts.forEach((alert) => {
+        if (alert.landlordOpenId) {
+            landlordOpenIds.add(alert.landlordOpenId);
+        }
+    });
+    for (const landlordOpenId of landlordOpenIds) {
+        await db.collection(collections_1.COLLECTIONS.alerts).where({ landlordOpenId }).remove();
+    }
     for (const alert of alerts) {
         await (0, runtime_1.insertRecord)(db, collections_1.COLLECTIONS.alerts, alert);
     }
