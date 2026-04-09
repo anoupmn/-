@@ -22,7 +22,7 @@ function resolveLeaseActualEndDate(lease) {
 }
 function findLeaseByDate(leases, occurredAt) {
     return (leases
-        .filter((item) => isWithinRange(occurredAt, item.startDate, item.endDate))
+        .filter((item) => isWithinRange(occurredAt, item.startDate, resolveLeaseActualEndDate(item)))
         .sort((a, b) => b.startDate.localeCompare(a.startDate))[0] ?? null);
 }
 function toUtcTime(dateKey) {

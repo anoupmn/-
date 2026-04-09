@@ -37,6 +37,15 @@ export interface RentableUnitSummary {
   vacancyDays: number;
 }
 
+function resolveLeaseActualEndDate(lease: Pick<Lease, 'endDate' | 'closedAt'>) {
+  const closedDate = String(lease.closedAt || '').slice(0, 10);
+  if (closedDate && closedDate < lease.endDate) {
+    return closedDate;
+  }
+
+  return lease.endDate;
+}
+
 export function buildRentableUnitSummary(input: {
   asset: Asset;
   room: Room;
@@ -105,10 +114,10 @@ export function buildRentableUnitSummary(input: {
     const endedLease =
       roomLeases
         .filter((lease) => deriveLeaseStatus(lease, now) === LEASE_STATUSES.ended)
-        .sort((a, b) => dayjs(b.endDate).valueOf() - dayjs(a.endDate).valueOf())[0] ?? null;
+        .sort((a, b) => dayjs(resolveLeaseActualEndDate(b)).valueOf() - dayjs(resolveLeaseActualEndDate(a)).valueOf())[0] ?? null;
 
     if (endedLease) {
-      vacancyDays = dayjs(now).diff(dayjs(endedLease.endDate), 'day');
+      vacancyDays = dayjs(now).diff(dayjs(resolveLeaseActualEndDate(endedLease)), 'day');
     }
   }
 

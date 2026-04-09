@@ -1,7 +1,6 @@
 import { listAssets } from '../../services/asset';
 import { saveLease } from '../../services/lease';
 import { listRoomsByAsset } from '../../services/room';
-import { saveTenant } from '../../services/tenant';
 
 type AssetItem = Record<string, unknown> & {
   id: string;
@@ -198,18 +197,9 @@ Page({
     });
 
     try {
-      const tenant = (await saveTenant({
-        tenant: {
-          name: this.data.tenantName,
-          phone: this.data.tenantPhone,
-          note: ''
-        }
-      })) as { id: string };
-
       await saveLease({
         lease: {
           roomId: this.data.selectedRoomId,
-          tenantId: tenant.id,
           startDate: this.data.startDate,
           endDate: this.data.endDate,
           billingCycleDays: Number(this.data.billingCycleDays || 30),
@@ -232,6 +222,11 @@ Page({
               : undefined,
             customFeeItems: []
           },
+          note: ''
+        },
+        tenant: {
+          name: String(this.data.tenantName || '').trim(),
+          phone: String(this.data.tenantPhone || '').trim(),
           note: ''
         }
       });

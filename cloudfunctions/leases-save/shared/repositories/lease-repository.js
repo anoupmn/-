@@ -83,8 +83,20 @@ async function createLease(db, landlordOpenId, input, event) {
     assertNoLeaseDateOverlap(leases, lease);
     (0, lease_lifecycle_1.assertSingleActiveLease)(leases, lease, (0, runtime_1.resolveNow)(event));
     await (0, runtime_1.insertRecord)(db, collections_1.COLLECTIONS.leases, lease);
-    await (0, bill_repository_1.syncBillsForLease)(db, lease, event);
-    return lease;
+    try {
+        await (0, bill_repository_1.syncBillsForLease)(db, lease, event);
+        return lease;
+    }
+    catch (error) {
+        try {
+            await db.collection(collections_1.COLLECTIONS.bills).where({ leaseId: lease.id }).remove();
+            await db.collection(collections_1.COLLECTIONS.leases).where({ id: lease.id, landlordOpenId }).remove();
+        }
+        catch (cleanupError) {
+            console.warn('rollback created lease after bill sync failure failed', cleanupError);
+        }
+        throw error;
+    }
 }
 async function updateLease(db, leaseId, changes, event) {
     const currentLease = await (0, runtime_1.findById)(db, collections_1.COLLECTIONS.leases, leaseId);

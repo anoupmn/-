@@ -36,7 +36,7 @@ function resolveLeaseActualEndDate(lease: Pick<Lease, 'endDate' | 'closedAt'>) {
 function findLeaseByDate(leases: Lease[], occurredAt: string) {
   return (
     leases
-      .filter((item) => isWithinRange(occurredAt, item.startDate, item.endDate))
+      .filter((item) => isWithinRange(occurredAt, item.startDate, resolveLeaseActualEndDate(item)))
       .sort((a, b) => b.startDate.localeCompare(a.startDate))[0] ?? null
   );
 }

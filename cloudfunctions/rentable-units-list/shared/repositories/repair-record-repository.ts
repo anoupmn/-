@@ -24,10 +24,19 @@ function isWithinRange(dateKey: string, startDate: string, endDate: string) {
   return dateKey >= startDate && dateKey <= endDate;
 }
 
+function resolveLeaseActualEndDate(lease: Pick<Lease, 'endDate' | 'closedAt'>) {
+  const closedDate = lease.closedAt ? lease.closedAt.slice(0, 10) : '';
+  if (closedDate && closedDate < lease.endDate) {
+    return closedDate;
+  }
+
+  return lease.endDate;
+}
+
 function findLeaseByDate(leases: Lease[], occurredAt: string) {
   return (
     leases
-      .filter((item) => isWithinRange(occurredAt, item.startDate, item.endDate))
+      .filter((item) => isWithinRange(occurredAt, item.startDate, resolveLeaseActualEndDate(item)))
       .sort((a, b) => b.startDate.localeCompare(a.startDate))[0] ?? null
   );
 }
@@ -117,13 +126,16 @@ export function buildRoomRepairStats(input: {
   const perLeaseCounts = leases
     .filter((item) => item.roomId === roomId)
     .sort((a, b) => a.startDate.localeCompare(b.startDate))
-    .map((lease) => ({
-      leaseId: lease.id,
-      tenantId: lease.tenantId,
-      startDate: lease.startDate,
-      endDate: lease.endDate,
-      count: roomRecords.filter((record) => isWithinRange(record.occurredAt, lease.startDate, lease.endDate)).length
-    }));
+    .map((lease) => {
+      const actualEndDate = resolveLeaseActualEndDate(lease);
+      return {
+        leaseId: lease.id,
+        tenantId: lease.tenantId,
+        startDate: lease.startDate,
+        endDate: actualEndDate,
+        count: roomRecords.filter((record) => isWithinRange(record.occurredAt, lease.startDate, actualEndDate)).length
+      };
+    });
 
   return {
     roomId,

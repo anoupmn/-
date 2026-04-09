@@ -34,21 +34,45 @@ Page({
     });
   },
   async handleSubmit() {
-    await saveRoom({
-      room: {
-        assetId: this.data.assetId,
-        name: this.data.name,
-        note: '',
-        isWholeUnitDefault: this.data.isWholeUnitDefault
-      }
-    });
-    this.setData({
-      name: '',
-      message: '房间已保存'
-    });
+    if (!String(this.data.assetId || '').trim()) {
+      wx.showToast({
+        title: '缺少房源信息，请返回重试',
+        icon: 'none'
+      });
+      return;
+    }
 
-    if (this.data.assetId) {
-      await this.loadRooms(this.data.assetId);
+    if (!String(this.data.name || '').trim()) {
+      wx.showToast({
+        title: '请填写房间名称',
+        icon: 'none'
+      });
+      return;
+    }
+
+    try {
+      await saveRoom({
+        room: {
+          assetId: this.data.assetId,
+          name: String(this.data.name || '').trim(),
+          note: '',
+          isWholeUnitDefault: this.data.isWholeUnitDefault
+        }
+      });
+      this.setData({
+        name: '',
+        message: '房间已保存'
+      });
+
+      if (this.data.assetId) {
+        await this.loadRooms(this.data.assetId);
+      }
+    } catch (error) {
+      console.error('save room failed', error);
+      wx.showToast({
+        title: '保存房间失败，请稍后重试',
+        icon: 'none'
+      });
     }
   }
 });

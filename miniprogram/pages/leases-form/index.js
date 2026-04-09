@@ -1,7 +1,6 @@
 const { listAssets } = require('../../services/asset');
 const { saveLease } = require('../../services/lease');
 const { listRoomsByAsset } = require('../../services/room');
-const { saveTenant } = require('../../services/tenant');
 
 function resolveLeaseSaveErrorMessage(error) {
   const rawMessage = `${error?.message || ''} ${error?.errMsg || ''}`.trim();
@@ -191,18 +190,9 @@ Page({
     });
 
     try {
-      const tenant = await saveTenant({
-        tenant: {
-          name: this.data.tenantName,
-          phone: this.data.tenantPhone,
-          note: ''
-        }
-      });
-
       await saveLease({
         lease: {
           roomId: this.data.selectedRoomId,
-          tenantId: tenant.id,
           startDate: this.data.startDate,
           endDate: this.data.endDate,
           billingCycleDays: Number(this.data.billingCycleDays || 30),
@@ -225,6 +215,11 @@ Page({
               : undefined,
             customFeeItems: []
           },
+          note: ''
+        },
+        tenant: {
+          name: String(this.data.tenantName || '').trim(),
+          phone: String(this.data.tenantPhone || '').trim(),
           note: ''
         }
       });

@@ -7,10 +7,8 @@
     "pages/profile/index",
     "pages/alerts/index",
     "pages/reminder-settings/index",
-    "pages/quick-entry/index",
     "pages/assets-form/index",
     "pages/rooms-form/index",
-    "pages/tenants-form/index",
     "pages/leases-form/index",
     "pages/unit-detail/index"
   ],

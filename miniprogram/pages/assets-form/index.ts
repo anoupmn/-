@@ -193,25 +193,41 @@ Page({
       .join(' ');
   },
   async handleSubmit() {
-    const result = await saveAsset({
-      asset: {
-        name: this.data.name,
-        address: this.buildAddress(),
-        rentalMode: this.data.rentalMode,
-        note: ''
-      }
-    });
-    this.setData({
-      name: '',
-      region: ['上海市', '上海市', '松江区'],
-      selectedAddress: '',
-      addressDetail: '',
-      locationName: '',
-      latitude: null,
-      longitude: null,
-      message: `房源已保存：${String((result as { asset?: { name?: string } }).asset?.name ?? '')}`
-    });
-    await this.loadAssets();
+    if (!String(this.data.name || '').trim()) {
+      wx.showToast({
+        title: '请填写房源名称',
+        icon: 'none'
+      });
+      return;
+    }
+
+    try {
+      const result = await saveAsset({
+        asset: {
+          name: this.data.name,
+          address: this.buildAddress(),
+          rentalMode: this.data.rentalMode,
+          note: ''
+        }
+      });
+      this.setData({
+        name: '',
+        region: ['上海市', '上海市', '松江区'],
+        selectedAddress: '',
+        addressDetail: '',
+        locationName: '',
+        latitude: null,
+        longitude: null,
+        message: `房源已保存：${String((result as { asset?: { name?: string } }).asset?.name ?? '')}`
+      });
+      await this.loadAssets();
+    } catch (error) {
+      console.error('save asset failed', error);
+      wx.showToast({
+        title: '保存房源失败，请稍后重试',
+        icon: 'none'
+      });
+    }
   },
   openRoomsForm(event: WechatMiniprogram.BaseEvent) {
     const assetId = String(event.currentTarget.dataset.assetId || '');

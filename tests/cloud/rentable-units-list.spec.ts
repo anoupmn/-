@@ -117,4 +117,55 @@ describe('rentable-units-list cloud function', () => {
     expect(result).toHaveLength(1);
     expect(result[0]?.roomId).toBe('room_1');
   });
+
+  it('uses actual end date when calculating vacancy days after early termination', async () => {
+    const store = createMockStore();
+    store.assets.push({
+      id: 'asset_3',
+      landlordOpenId: 'openid',
+      name: '金色家园',
+      rentalMode: 'whole',
+      address: '',
+      note: '',
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.rooms.push({
+      id: 'room_3',
+      landlordOpenId: 'openid',
+      assetId: 'asset_3',
+      name: '整租单元',
+      note: '',
+      isWholeUnitDefault: true,
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.leases.push({
+      id: 'lease_early',
+      landlordOpenId: 'openid',
+      roomId: 'room_3',
+      tenantId: 'tenant_1',
+      startDate: '2026-01-01',
+      endDate: '2026-06-30',
+      billingCycleDays: 30,
+      rentAmount: 2600,
+      depositAmount: 2600,
+      note: '',
+      closedAt: '2026-04-15T00:00:00.000Z',
+      createdAt: '',
+      updatedAt: ''
+    });
+
+    const result = await rentableUnitsListMain({
+      __mockDb: createMockDb(store),
+      __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) },
+      now: '2026-04-20T00:00:00.000Z'
+    });
+
+    expect(result[0]).toMatchObject({
+      mainStatus: 'vacant',
+      vacancyDays: 5,
+      summaryHint: '已空置 5 天'
+    });
+  });
 });

@@ -110,4 +110,55 @@ describe('repair-record-save cloud function', () => {
       })
     ).rejects.toBeTruthy();
   });
+
+  it('does not link repair to a lease after the lease was early terminated', async () => {
+    const store = createMockStore();
+    store.assets.push({
+      id: 'asset_4',
+      landlordOpenId: 'openid',
+      name: '测试房源',
+      rentalMode: 'whole',
+      address: '',
+      note: '',
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.rooms.push({
+      id: 'room_4',
+      landlordOpenId: 'openid',
+      assetId: 'asset_4',
+      name: 'A401',
+      note: '',
+      isWholeUnitDefault: true,
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.leases.push({
+      id: 'lease_early',
+      landlordOpenId: 'openid',
+      roomId: 'room_4',
+      tenantId: 'tenant_early',
+      startDate: '2026-03-01',
+      endDate: '2026-08-31',
+      billingCycleDays: 30,
+      rentAmount: 2800,
+      depositAmount: 2800,
+      note: '',
+      closedAt: '2026-04-15T00:00:00.000Z',
+      createdAt: '',
+      updatedAt: ''
+    });
+
+    const result = await repairRecordSaveMain({
+      roomId: 'room_4',
+      category: 'other',
+      note: '退租后的空置维修',
+      occurredAt: '2026-04-20',
+      __mockDb: createMockDb(store),
+      __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) }
+    });
+
+    expect(result.record.leaseId).toBeNull();
+    expect(result.record.tenantId).toBeNull();
+  });
 });

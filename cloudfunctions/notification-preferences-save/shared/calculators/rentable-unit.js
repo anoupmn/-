@@ -9,6 +9,13 @@ const statuses_1 = require("../constants/statuses");
 const bill_status_1 = require("./bill-status");
 const lease_lifecycle_1 = require("./lease-lifecycle");
 const lease_1 = require("../schemas/lease");
+function resolveLeaseActualEndDate(lease) {
+    const closedDate = String(lease.closedAt || '').slice(0, 10);
+    if (closedDate && closedDate < lease.endDate) {
+        return closedDate;
+    }
+    return lease.endDate;
+}
 function buildRentableUnitSummary(input) {
     const { asset, room, leases, tenants, bills = [], now } = input;
     const roomLeases = leases.filter((lease) => lease.roomId === room.id);
@@ -62,9 +69,9 @@ function buildRentableUnitSummary(input) {
     else {
         const endedLease = roomLeases
             .filter((lease) => (0, lease_lifecycle_1.deriveLeaseStatus)(lease, now) === statuses_1.LEASE_STATUSES.ended)
-            .sort((a, b) => (0, dayjs_1.default)(b.endDate).valueOf() - (0, dayjs_1.default)(a.endDate).valueOf())[0] ?? null;
+            .sort((a, b) => (0, dayjs_1.default)(resolveLeaseActualEndDate(b)).valueOf() - (0, dayjs_1.default)(resolveLeaseActualEndDate(a)).valueOf())[0] ?? null;
         if (endedLease) {
-            vacancyDays = (0, dayjs_1.default)(now).diff((0, dayjs_1.default)(endedLease.endDate), 'day');
+            vacancyDays = (0, dayjs_1.default)(now).diff((0, dayjs_1.default)(resolveLeaseActualEndDate(endedLease)), 'day');
         }
     }
     let summaryHint = '';

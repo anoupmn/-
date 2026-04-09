@@ -111,8 +111,19 @@ export async function createLease(db: DbLike, landlordOpenId: string, input: Lea
   assertNoLeaseDateOverlap(leases, lease);
   assertSingleActiveLease(leases, lease, resolveNow(event));
   await insertRecord(db, COLLECTIONS.leases, lease);
-  await syncBillsForLease(db, lease, event);
-  return lease;
+  try {
+    await syncBillsForLease(db, lease, event);
+    return lease;
+  } catch (error) {
+    try {
+      await db.collection(COLLECTIONS.bills).where({ leaseId: lease.id }).remove();
+      await db.collection(COLLECTIONS.leases).where({ id: lease.id, landlordOpenId }).remove();
+    } catch (cleanupError) {
+      console.warn('rollback created lease after bill sync failure failed', cleanupError);
+    }
+
+    throw error;
+  }
 }
 
 export async function updateLease(db: DbLike, leaseId: string, changes: Partial<LeaseInput>, event: CloudEventBase) {
