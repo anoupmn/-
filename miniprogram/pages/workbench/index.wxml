@@ -9,6 +9,27 @@
       <view class="status-line text-muted">{{status}}</view>
     </view>
 
+    <view wx:if="{{onboardingGuide.visible}}" class="card onboarding-card">
+      <view class="section-head-main">
+        <view class="section-title">首次建档引导</view>
+        <view class="text-muted">{{onboardingGuide.progressText}}</view>
+      </view>
+
+      <view class="onboarding-steps">
+        <view
+          wx:for="{{onboardingGuide.steps}}"
+          wx:key="key"
+          class="onboarding-step {{item.done ? 'onboarding-step-done' : 'onboarding-step-pending'}}"
+        >
+          <view class="onboarding-step-label">{{item.label}}</view>
+          <view class="onboarding-step-status">{{item.done ? '已完成' : '待完成'}}</view>
+        </view>
+      </view>
+
+      <view class="text-muted">{{onboardingGuide.nextActionHint}}</view>
+      <button class="primary-button" bindtap="openOnboardingNextStep">{{onboardingGuide.nextActionLabel}}</button>
+    </view>
+
     <view class="grid-3 overview-grid">
       <view
         wx:for="{{overviewCards}}"

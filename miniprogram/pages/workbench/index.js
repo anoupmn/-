@@ -1,7 +1,9 @@
 const { requireAuthSession } = require('../../services/auth');
+const { listAssets } = require('../../services/asset');
 const { getHomeDashboard } = require('../../services/dashboard');
 const { requestSubscribeMessage, SUBSCRIBE_TEMPLATE_CONFIG_ERROR } = require('../../services/notification');
 const {
+  listRentableUnits,
   parseUnitListUrl,
   setPendingUnitListDrilldownQuery,
   stringifyUnitListQuery
@@ -23,6 +25,107 @@ function isTemplateConfigError(error) {
   );
 }
 
+function resolveAssetCount(payload) {
+  if (Array.isArray(payload)) {
+    return payload.length;
+  }
+
+  if (payload && Array.isArray(payload.assets)) {
+    return payload.assets.length;
+  }
+
+  return 0;
+}
+
+function resolveUnitRows(payload) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && Array.isArray(payload.units)) {
+    return payload.units;
+  }
+
+  if (payload && Array.isArray(payload.rows)) {
+    return payload.rows;
+  }
+
+  return [];
+}
+
+function buildOnboardingGuide(assetCount, unitCount, occupiedCount) {
+  const steps = [
+    {
+      key: 'asset',
+      label: '新增房源',
+      done: assetCount > 0
+    },
+    {
+      key: 'room',
+      label: '添加房间',
+      done: unitCount > 0
+    },
+    {
+      key: 'lease',
+      label: '录入租约',
+      done: occupiedCount > 0
+    }
+  ];
+  const completedSteps = steps.filter((item) => item.done).length;
+  const totalSteps = steps.length;
+  const firstPendingStep = steps.find((item) => !item.done);
+
+  if (!firstPendingStep) {
+    return {
+      visible: false,
+      completedSteps,
+      totalSteps,
+      progressText: '首次建档已完成',
+      steps,
+      nextAction: 'none',
+      nextActionLabel: '',
+      nextActionHint: ''
+    };
+  }
+
+  if (firstPendingStep.key === 'asset') {
+    return {
+      visible: true,
+      completedSteps,
+      totalSteps,
+      progressText: '首次建档进度 ' + completedSteps + '/' + totalSteps,
+      steps,
+      nextAction: 'asset',
+      nextActionLabel: '第 1 步：新增房源',
+      nextActionHint: '先录入房源基础信息，后续房间和租约都依赖它。'
+    };
+  }
+
+  if (firstPendingStep.key === 'room') {
+    return {
+      visible: true,
+      completedSteps,
+      totalSteps,
+      progressText: '首次建档进度 ' + completedSteps + '/' + totalSteps,
+      steps,
+      nextAction: 'room',
+      nextActionLabel: '第 2 步：添加房间',
+      nextActionHint: '进入房源维护后，找到对应房源并点击“添加房间”。'
+    };
+  }
+
+  return {
+    visible: true,
+    completedSteps,
+    totalSteps,
+    progressText: '首次建档进度 ' + completedSteps + '/' + totalSteps,
+    steps,
+    nextAction: 'lease',
+    nextActionLabel: '第 3 步：录入租约',
+    nextActionHint: '完成租约录入后，即可在房源列表处理账单和维修。'
+  };
+}
+
 Page({
   data: {
     isLoggedIn: false,
@@ -34,10 +137,41 @@ Page({
     abnormalRows: [],
     recommendation: null,
     recommendationUrl: '',
+    onboardingGuide: {
+      visible: false,
+      completedSteps: 0,
+      totalSteps: 3,
+      progressText: '',
+      steps: [],
+      nextAction: 'none',
+      nextActionLabel: '',
+      nextActionHint: ''
+    },
     subscriptionState: {
       consentState: 'unknown',
       hasRequested: false,
       enabledRuleTypes: []
+    }
+  },
+  async loadOnboardingGuide() {
+    try {
+      const [assetPayload, unitPayload] = await Promise.all([listAssets(), listRentableUnits()]);
+      const assetCount = resolveAssetCount(assetPayload);
+      const units = resolveUnitRows(unitPayload).map((item) => item || {});
+      const unitCount = units.length;
+      const occupiedCount = units.filter((item) => String(item.mainStatus || '') === 'occupied').length;
+
+      this.setData({
+        onboardingGuide: buildOnboardingGuide(assetCount, unitCount, occupiedCount)
+      });
+    } catch (error) {
+      console.warn('load onboarding guide failed', error);
+      this.setData({
+        onboardingGuide: {
+          ...this.data.onboardingGuide,
+          visible: false
+        }
+      });
     }
   },
   async loadDashboard() {
@@ -72,6 +206,7 @@ Page({
         recommendationUrl: payload.recommendation ? buildUnitsUrl(payload.recommendation.actionQuery) : '',
         subscriptionState: payload.subscriptionState
       });
+      await this.loadOnboardingGuide();
     } catch (error) {
       console.error('load workbench dashboard failed', error);
       this.setData({
@@ -138,6 +273,22 @@ Page({
         icon: 'none'
       });
       await this.loadDashboard();
+    }
+  },
+  openOnboardingNextStep() {
+    const nextAction = this.data.onboardingGuide.nextAction;
+
+    if (nextAction === 'asset' || nextAction === 'room') {
+      wx.navigateTo({
+        url: '/pages/assets-form/index'
+      });
+      return;
+    }
+
+    if (nextAction === 'lease') {
+      wx.navigateTo({
+        url: '/pages/leases-form/index'
+      });
     }
   },
   navigateTo(event) {

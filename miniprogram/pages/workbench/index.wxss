@@ -4,6 +4,7 @@
 }
 
 .intro-card,
+.onboarding-card,
 .abnormal-card,
 .recommendation-card {
   display: flex;
@@ -20,6 +21,46 @@
   border-radius: 14rpx;
   background: #f2f6fc;
   border: 1rpx solid #dbe3ef;
+}
+
+.onboarding-card {
+  background: linear-gradient(140deg, #fffdf8 0%, #f4f8ff 100%);
+  border: 1rpx solid #e6ddc9;
+}
+
+.onboarding-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12rpx;
+}
+
+.onboarding-step {
+  border-radius: 14rpx;
+  padding: 14rpx 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.onboarding-step-done {
+  background: #edf8ef;
+  border: 1rpx solid #cde8d2;
+}
+
+.onboarding-step-pending {
+  background: #f7f8fb;
+  border: 1rpx solid #dce2ec;
+}
+
+.onboarding-step-label {
+  font-size: 24rpx;
+  color: #303846;
+  font-weight: 600;
+}
+
+.onboarding-step-status {
+  font-size: 22rpx;
+  color: #647086;
 }
 
 .overview-grid {

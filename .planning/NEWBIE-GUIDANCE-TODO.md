@@ -10,7 +10,7 @@
 
 ### TODO-01 首页首次引导卡（任务入口）
 
-- 状态：pending
+- 状态：done（2026-04-09）
 - 页面：`miniprogram/pages/workbench`
 - 目标：
 1. 增加“首次建档引导卡”区块。
