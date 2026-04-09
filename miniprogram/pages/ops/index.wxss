@@ -14,7 +14,7 @@
   background: linear-gradient(145deg, #ffffff 0%, #f4f8ff 100%);
 }
 
-.quick-card {
+.step-card {
   border-left: 8rpx solid #1f6feb;
 }
 
@@ -23,6 +23,13 @@
   display: flex;
   flex-direction: column;
   gap: 12rpx;
+}
+
+.step-tip {
+  padding: 12rpx 14rpx;
+  border-radius: 12rpx;
+  background: #f5f8fd;
+  border: 1rpx solid #dde6f2;
 }
 
 .secondary-button,

@@ -179,25 +179,33 @@ Page({
     }
   },
   async loadOnboardingGuide() {
-    try {
-      const [assetPayload, unitPayload] = await Promise.all([listAssets(), listRentableUnits()]);
-      const assetCount = resolveAssetCount(assetPayload);
-      const units = resolveUnitRows(unitPayload).map((item) => item as { mainStatus?: string });
-      const unitCount = units.length;
-      const occupiedCount = units.filter((item) => String(item.mainStatus || '') === 'occupied').length;
+    const [assetResult, unitResult] = await Promise.allSettled([listAssets(), listRentableUnits()]);
+    const assetCount = assetResult.status === 'fulfilled' ? resolveAssetCount(assetResult.value) : 0;
+    const units =
+      unitResult.status === 'fulfilled'
+        ? resolveUnitRows(unitResult.value).map((item) => item as { mainStatus?: string })
+        : [];
+    const unitCount = units.length;
+    const occupiedCount = units.filter((item) => String(item.mainStatus || '') === 'occupied').length;
+    const onboardingGuide = buildOnboardingGuide(assetCount, unitCount, occupiedCount);
 
-      this.setData({
-        onboardingGuide: buildOnboardingGuide(assetCount, unitCount, occupiedCount)
-      });
-    } catch (error) {
-      console.warn('load onboarding guide failed', error);
-      this.setData({
-        onboardingGuide: {
-          ...this.data.onboardingGuide,
-          visible: false
-        }
-      });
-    }
+    // 模拟器或云函数异常时也尽量展示引导，避免新手看不到入口。
+    const shouldFallbackShow =
+      assetResult.status === 'rejected' &&
+      unitResult.status === 'rejected' &&
+      !onboardingGuide.visible;
+
+    this.setData({
+      onboardingGuide: shouldFallbackShow
+        ? {
+            ...onboardingGuide,
+            visible: true,
+            nextAction: 'asset',
+            nextActionLabel: '第 1 步：新增房源',
+            nextActionHint: '当前环境未读取到建档数据，建议先从新增房源开始。'
+          }
+        : onboardingGuide
+    });
   },
   async loadDashboard() {
     this.setData({

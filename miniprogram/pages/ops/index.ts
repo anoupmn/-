@@ -32,6 +32,16 @@ Page({
       url: '/pages/units/index'
     });
   },
+  openAssetsForm() {
+    wx.navigateTo({
+      url: '/pages/assets-form/index'
+    });
+  },
+  openLeasesForm() {
+    wx.navigateTo({
+      url: '/pages/leases-form/index'
+    });
+  },
   openLeaseList() {
     setPendingUnitListDrilldownQuery({
       mainStatus: 'occupied'
@@ -39,6 +49,11 @@ Page({
 
     wx.switchTab({
       url: '/pages/units/index'
+    });
+  },
+  openRoomsGuide() {
+    wx.navigateTo({
+      url: '/pages/assets-form/index'
     });
   }
 });

@@ -2,28 +2,49 @@
   <view class="ops-shell page-stack">
     <view class="card intro-card">
       <view class="page-title">业务维护</view>
-      <view class="text-body">你好，{{displayName || '用户'}}。所有维护动作统一在这里执行，首页只承担经营盘面与提醒入口。</view>
-      <view class="text-muted">维护入口固定：房源维护、租约维护。</view>
+      <view class="text-body">你好，{{displayName || '用户'}}。建议按 1-2-3 步完成首次建档，后续日常处理会更顺畅。</view>
+      <view class="text-muted">推荐顺序：先房源，再房间，最后录租约。</view>
     </view>
 
-    <view class="card action-card quick-card">
+    <view class="card action-card step-card">
       <view class="section-head-main">
-        <view class="section-title">房源维护</view>
-        <view class="text-muted">用于新增和维护房源、房间基础信息，保证后续租约录入顺畅。</view>
+        <view class="section-title">第 1 步：新增房源</view>
+        <view class="text-muted">先建立房源基础信息（名称、地址、出租方式），后续房间和租约都依赖它。</view>
       </view>
       <view class="action-buttons">
-        <button class="primary-button" data-url="/pages/assets-form/index" bindtap="navigateTo">房源维护</button>
-        <button class="secondary-button" bindtap="openUnitsTab">房源列表</button>
+        <button class="primary-button" bindtap="openAssetsForm">去新增房源</button>
+      </view>
+    </view>
+
+    <view class="card action-card step-card">
+      <view class="section-head-main">
+        <view class="section-title">第 2 步：添加房间</view>
+        <view class="text-muted">房间入口在房源维护页内。找到目标房源后，点击“添加房间”。</view>
+      </view>
+      <view class="step-tip text-weak">前置条件：至少已创建 1 条房源。</view>
+      <view class="ops-grid">
+        <button class="secondary-button" bindtap="openRoomsGuide">去添加房间</button>
+      </view>
+    </view>
+
+    <view class="card action-card step-card">
+      <view class="section-head-main">
+        <view class="section-title">第 3 步：录入租约</view>
+        <view class="text-muted">选择房源和房间后录入租户、租期与固定费用，完成后即可进入日常处理。</view>
+      </view>
+      <view class="step-tip text-weak">前置条件：目标房源下至少已创建 1 个房间。</view>
+      <view class="ops-grid">
+        <button class="primary-button" bindtap="openLeasesForm">去录入租约</button>
       </view>
     </view>
 
     <view class="card action-card">
       <view class="section-head-main">
-        <view class="section-title">租约维护</view>
-        <view class="text-muted">录入租约并查看租约清单，便于后续账单与提醒处理。</view>
+        <view class="section-title">日常处理入口</view>
+        <view class="text-muted">首次建档完成后，优先使用房源列表和在租清单处理账单与维修。</view>
       </view>
       <view class="ops-grid">
-        <button class="secondary-button" data-url="/pages/leases-form/index" bindtap="navigateTo">租约录入</button>
+        <button class="secondary-button" bindtap="openUnitsTab">房源列表</button>
         <button class="secondary-button" bindtap="openLeaseList">租约列表</button>
       </view>
     </view>
