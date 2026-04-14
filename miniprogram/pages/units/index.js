@@ -132,6 +132,7 @@ Page({
     visibleUnits: [],
     unitSearchKeyword: '',
     unitListExpanded: false,
+    emptyState: 'none',
     listTitle: '房源列表',
     listHint: buildListHint(emptyDrilldownFilters()),
     drilldownFilters: emptyDrilldownFilters(),
@@ -142,10 +143,23 @@ Page({
       matchesDrilldown(unit, this.data.drilldownFilters, this.data.alertRoomIds)
     );
     const filteredUnits = filterUnits(narrowedUnits, unitSearchKeyword);
+    const visibleUnits = unitListExpanded || unitSearchKeyword ? filteredUnits : filteredUnits.slice(0, 12);
+    const normalizedKeyword = String(unitSearchKeyword || '').trim();
+    const hasFilters = hasDrilldownFilters(this.data.drilldownFilters);
+    const emptyState = visibleUnits.length
+      ? 'none'
+      : normalizedKeyword
+        ? 'search'
+        : (allUnits || []).length === 0
+          ? 'first_time'
+          : hasFilters
+            ? 'filter'
+            : 'none';
 
     this.setData({
       units: narrowedUnits,
-      visibleUnits: unitListExpanded || unitSearchKeyword ? filteredUnits : filteredUnits.slice(0, 12)
+      visibleUnits,
+      emptyState
     });
   },
   async loadUnits() {
@@ -234,6 +248,26 @@ Page({
       unitListExpanded: !!unitSearchKeyword
     });
     this.applyVisibleUnits(this.data.allUnits, unitSearchKeyword, !!unitSearchKeyword);
+  },
+  clearSearch() {
+    this.setData({
+      unitSearchKeyword: '',
+      unitListExpanded: false
+    });
+    this.applyVisibleUnits(this.data.allUnits, '', false);
+  },
+  async resetFilters() {
+    this.setData({
+      unitSearchKeyword: '',
+      unitListExpanded: false
+    });
+    await this.applyDrilldownFilters(emptyDrilldownFilters());
+    await this.loadUnits();
+  },
+  goOpsTab() {
+    wx.switchTab({
+      url: '/pages/ops/index'
+    });
   },
   toggleUnitList() {
     const unitListExpanded = !this.data.unitListExpanded;

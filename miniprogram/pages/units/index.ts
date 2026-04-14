@@ -18,6 +18,8 @@ interface UnitSummary {
   summaryHint: string;
 }
 
+type EmptyStateType = 'none' | 'first_time' | 'search' | 'filter';
+
 function emptyDrilldownFilters(): UnitListDrilldownQuery {
   return {
     alertType: '',
@@ -144,6 +146,7 @@ Page({
     visibleUnits: [] as UnitSummary[],
     unitSearchKeyword: '',
     unitListExpanded: false,
+    emptyState: 'none' as EmptyStateType,
     listTitle: '房源列表',
     listHint: buildListHint(emptyDrilldownFilters()),
     drilldownFilters: emptyDrilldownFilters() as UnitListDrilldownQuery,
@@ -152,10 +155,23 @@ Page({
   applyVisibleUnits(allUnits: UnitSummary[], unitSearchKeyword: string, unitListExpanded: boolean) {
     const narrowedUnits = allUnits.filter((unit) => matchesDrilldown(unit, this.data.drilldownFilters, this.data.alertRoomIds));
     const filteredUnits = filterUnits(narrowedUnits, unitSearchKeyword);
+    const visibleUnits = unitListExpanded || unitSearchKeyword ? filteredUnits : filteredUnits.slice(0, 12);
+    const normalizedKeyword = String(unitSearchKeyword || '').trim();
+    const hasFilters = hasDrilldownFilters(this.data.drilldownFilters);
+    const emptyState: EmptyStateType = visibleUnits.length
+      ? 'none'
+      : normalizedKeyword
+        ? 'search'
+        : allUnits.length === 0
+          ? 'first_time'
+          : hasFilters
+            ? 'filter'
+            : 'none';
 
     this.setData({
       units: narrowedUnits,
-      visibleUnits: unitListExpanded || unitSearchKeyword ? filteredUnits : filteredUnits.slice(0, 12)
+      visibleUnits,
+      emptyState
     });
   },
   async loadUnits() {
@@ -243,6 +259,26 @@ Page({
       unitListExpanded: Boolean(unitSearchKeyword)
     });
     this.applyVisibleUnits(this.data.allUnits, unitSearchKeyword, Boolean(unitSearchKeyword));
+  },
+  clearSearch() {
+    this.setData({
+      unitSearchKeyword: '',
+      unitListExpanded: false
+    });
+    this.applyVisibleUnits(this.data.allUnits, '', false);
+  },
+  async resetFilters() {
+    this.setData({
+      unitSearchKeyword: '',
+      unitListExpanded: false
+    });
+    await this.applyDrilldownFilters(emptyDrilldownFilters());
+    await this.loadUnits();
+  },
+  goOpsTab() {
+    wx.switchTab({
+      url: '/pages/ops/index'
+    });
   },
   toggleUnitList() {
     const unitListExpanded = !this.data.unitListExpanded;

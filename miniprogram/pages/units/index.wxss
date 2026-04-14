@@ -11,6 +11,10 @@
   gap: 12rpx;
 }
 
+.empty-action-button {
+  margin-top: 6rpx;
+}
+
 .list-meta {
   padding-top: 6rpx;
 }

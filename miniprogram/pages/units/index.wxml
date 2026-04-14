@@ -19,8 +19,28 @@
     </view>
 
     <view wx:if="{{!visibleUnits.length}}" class="card empty-card">
-      <view class="empty-heading">没有匹配的房屋</view>
-      <view class="text-muted">可换个关键词，或先清空筛选条件后重试。</view>
+      <view wx:if="{{emptyState === 'first_time'}}">
+        <view class="empty-heading">还没有可管理房源</view>
+        <view class="text-muted">先去业务维护完成“新增房源 -> 添加房间 -> 录入租约”三步建档。</view>
+        <button class="secondary-button empty-action-button" bindtap="goOpsTab">去业务维护</button>
+      </view>
+
+      <view wx:elif="{{emptyState === 'search'}}">
+        <view class="empty-heading">没有匹配的房屋</view>
+        <view class="text-muted">当前关键词没有命中结果，建议清空搜索后重试。</view>
+        <button class="secondary-button empty-action-button" bindtap="clearSearch">清空搜索</button>
+      </view>
+
+      <view wx:elif="{{emptyState === 'filter'}}">
+        <view class="empty-heading">当前筛选下暂无房屋</view>
+        <view class="text-muted">这是从首页或提醒中心带入的筛选条件，可重置后查看全部列表。</view>
+        <button class="secondary-button empty-action-button" bindtap="resetFilters">重置筛选</button>
+      </view>
+
+      <view wx:else>
+        <view class="empty-heading">暂无可展示房屋</view>
+        <view class="text-muted">请稍后下拉刷新，或返回业务维护检查基础数据。</view>
+      </view>
     </view>
 
     <view

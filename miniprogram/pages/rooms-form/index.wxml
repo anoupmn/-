@@ -6,6 +6,10 @@
     <input class="input" placeholder="房间名称" data-field="name" bindinput="handleInputChange" />
     <button class="primary-button" bindtap="handleSubmit">保存房间</button>
     <view wx:if="{{message}}" class="message">{{message}}</view>
+    <view wx:if="{{showNextStep}}" class="next-step-card">
+      <view class="hint">下一步：去租约维护录入租户与租期，完成首次建档闭环。</view>
+      <button class="secondary-button" bindtap="openLeaseForm">去录入租约</button>
+    </view>
   </view>
 
   <view wx:if="{{assetId}}" class="card form-card">

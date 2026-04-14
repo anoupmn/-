@@ -4,3 +4,14 @@
   padding-top: 20rpx;
   border-top: 1rpx solid #e5e7eb;
 }
+
+.next-step-card {
+  margin-top: 12rpx;
+  padding: 16rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid #d9e4f2;
+  background: #f6f9ff;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}

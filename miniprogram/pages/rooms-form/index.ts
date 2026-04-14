@@ -7,6 +7,7 @@ Page({
     name: '',
     isWholeUnitDefault: false,
     message: '',
+    showNextStep: false,
     rooms: [] as Array<Record<string, unknown>>
   },
   async onLoad(query: Record<string, string>) {
@@ -35,10 +36,18 @@ Page({
   },
   async handleSubmit() {
     if (!String(this.data.assetId || '').trim()) {
-      wx.showToast({
-        title: '缺少房源信息，请返回重试',
-        icon: 'none'
+      const action = await wx.showModal({
+        title: '缺少房源信息',
+        content: '当前页面缺少房源上下文，建议先返回房源维护页重新进入。',
+        confirmText: '去房源维护',
+        cancelText: '取消'
       });
+
+      if (action.confirm) {
+        wx.navigateTo({
+          url: '/pages/assets-form/index'
+        });
+      }
       return;
     }
 
@@ -61,7 +70,8 @@ Page({
       });
       this.setData({
         name: '',
-        message: '房间已保存'
+        message: '房间已保存。下一步建议去录入租约。',
+        showNextStep: true
       });
 
       if (this.data.assetId) {
@@ -74,5 +84,16 @@ Page({
         icon: 'none'
       });
     }
+  },
+  openLeaseForm() {
+    const assetId = String(this.data.assetId || '');
+    const assetName = String(this.data.assetName || '');
+    const query = assetId
+      ? `?assetId=${encodeURIComponent(assetId)}&assetName=${encodeURIComponent(assetName)}`
+      : '';
+
+    wx.navigateTo({
+      url: `/pages/leases-form/index${query}`
+    });
   }
 });
