@@ -1,6 +1,7 @@
 const { getStorage, removeStorage, setStorage } = require('../utils/storage');
 
 const RZB_SESSION_KEY = 'RZB_SESSION_KEY';
+let isRedirectingToAuth = false;
 
 async function bootstrapAuthSession() {
   return getStorage(RZB_SESSION_KEY);
@@ -9,9 +10,21 @@ async function bootstrapAuthSession() {
 async function requireAuthSession() {
   const session = await bootstrapAuthSession();
   if (!session) {
-    await wx.reLaunch({
-      url: '/pages/auth/index'
-    });
+    const pages = getCurrentPages();
+    const currentRoute = pages[pages.length - 1]?.route || '';
+
+    if (currentRoute === 'pages/auth/index' || isRedirectingToAuth) {
+      return null;
+    }
+
+    isRedirectingToAuth = true;
+    try {
+      await wx.reLaunch({
+        url: '/pages/auth/index'
+      });
+    } finally {
+      isRedirectingToAuth = false;
+    }
     return null;
   }
 

@@ -8,6 +8,7 @@ export interface LandlordSession {
 }
 
 export const RZB_SESSION_KEY = 'RZB_SESSION_KEY';
+let isRedirectingToAuth = false;
 
 export async function bootstrapAuthSession(): Promise<LandlordSession | null> {
   return getStorage<LandlordSession>(RZB_SESSION_KEY);
@@ -16,9 +17,21 @@ export async function bootstrapAuthSession(): Promise<LandlordSession | null> {
 export async function requireAuthSession(): Promise<LandlordSession | null> {
   const session = await bootstrapAuthSession();
   if (!session) {
-    await wx.reLaunch({
-      url: '/pages/auth/index'
-    });
+    const pages = getCurrentPages();
+    const currentRoute = pages[pages.length - 1]?.route ?? '';
+
+    if (currentRoute === 'pages/auth/index' || isRedirectingToAuth) {
+      return null;
+    }
+
+    isRedirectingToAuth = true;
+    try {
+      await wx.reLaunch({
+        url: '/pages/auth/index'
+      });
+    } finally {
+      isRedirectingToAuth = false;
+    }
     return null;
   }
 
