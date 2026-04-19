@@ -6,6 +6,9 @@ interface ContextLike {
 }
 
 interface DbCollection {
+  get(): Promise<{ data: Array<Record<string, unknown>> }>;
+  skip?: (offset: number) => DbCollection;
+  limit?: (size: number) => DbCollection;
   where(query: Record<string, unknown>): {
     get(): Promise<{ data: Array<Record<string, unknown>> }>;
     remove(): Promise<{ stats?: { removed?: number } }>;
@@ -14,6 +17,9 @@ interface DbCollection {
 
 interface DbLike {
   collection(name: string): DbCollection;
+  command?: Record<string, unknown> & {
+    exists?: (value: boolean) => unknown;
+  };
 }
 
 const cloudSdk = (() => {
@@ -26,13 +32,15 @@ const cloudSdk = (() => {
 
 export interface DataResetEvent {
   confirmToken?: string;
+  scope?: 'current' | 'all';
   includeLandlordUser?: boolean;
   dryRun?: boolean;
   __mockContext?: ContextLike;
   __mockDb?: DbLike;
 }
 
-const REQUIRED_TOKEN = 'RESET_MY_TEST_DATA';
+const REQUIRED_TOKEN_CURRENT = 'RESET_MY_TEST_DATA';
+const REQUIRED_TOKEN_ALL = 'RESET_ALL_TEST_DATA';
 
 const TARGETS: Array<{ collection: string; ownerKey: 'landlordOpenId' | 'openid' }> = [
   { collection: 'assets', ownerKey: 'landlordOpenId' },
@@ -97,13 +105,70 @@ async function removeRows(db: DbLike, collectionName: string, ownerKey: string, 
   return Number(result.stats?.removed ?? 0);
 }
 
+async function listAllRows(db: DbLike, collectionName: string) {
+  const collection = db.collection(collectionName);
+  if (typeof collection.skip === 'function' && typeof collection.limit === 'function') {
+    const pageSize = 100;
+    const rows: Array<Record<string, unknown>> = [];
+    let offset = 0;
+
+    while (true) {
+      const pagedCollection = collection.skip(offset) as DbCollection & {
+        limit: (size: number) => DbCollection;
+      };
+      const result = await pagedCollection.limit(pageSize).get();
+      const page = Array.isArray(result.data) ? result.data : [];
+      rows.push(...page);
+
+      if (page.length < pageSize) {
+        break;
+      }
+
+      offset += pageSize;
+    }
+
+    return rows;
+  }
+
+  const result = await collection.get();
+  return Array.isArray(result.data) ? result.data : [];
+}
+
+async function removeAllRows(db: DbLike, collectionName: string) {
+  if (db.command?.exists) {
+    const result = await db
+      .collection(collectionName)
+      .where({ id: db.command.exists(true) as never })
+      .remove();
+    return Number(result.stats?.removed ?? 0);
+  }
+
+  const rows = await listAllRows(db, collectionName);
+  let removed = 0;
+
+  for (const row of rows) {
+    const id = String((row as { id?: unknown }).id ?? '').trim();
+    if (!id) {
+      continue;
+    }
+
+    const result = await db.collection(collectionName).where({ id }).remove();
+    removed += Number(result.stats?.removed ?? 0);
+  }
+
+  return removed;
+}
+
 export async function main(event: DataResetEvent) {
-  if (event.confirmToken !== REQUIRED_TOKEN) {
-    throw new Error('Invalid confirmToken. Pass RESET_MY_TEST_DATA to execute reset.');
+  const scope = event.scope === 'all' ? 'all' : 'current';
+  const requiredToken = scope === 'all' ? REQUIRED_TOKEN_ALL : REQUIRED_TOKEN_CURRENT;
+
+  if (event.confirmToken !== requiredToken) {
+    throw new Error(`Invalid confirmToken. Pass ${requiredToken} to execute ${scope} reset.`);
   }
 
   const db = resolveDb(event);
-  const openid = resolveOpenId(event);
+  const operatorOpenid = resolveOpenId(event);
   const dryRun = event.dryRun === true;
 
   const targets = event.includeLandlordUser
@@ -117,10 +182,14 @@ export async function main(event: DataResetEvent) {
   }> = [];
 
   for (const target of targets) {
-    const counted = await countRows(db, target.collection, target.ownerKey, openid);
+    const counted = scope === 'all'
+      ? (await listAllRows(db, target.collection)).length
+      : await countRows(db, target.collection, target.ownerKey, operatorOpenid);
     const removed = dryRun || counted === 0
       ? 0
-      : await removeRows(db, target.collection, target.ownerKey, openid);
+      : scope === 'all'
+        ? await removeAllRows(db, target.collection)
+        : await removeRows(db, target.collection, target.ownerKey, operatorOpenid);
 
     details.push({
       collection: target.collection,
@@ -131,7 +200,8 @@ export async function main(event: DataResetEvent) {
 
   return {
     ok: true,
-    openid,
+    scope,
+    operatorOpenid,
     dryRun,
     totalCounted: details.reduce((sum, item) => sum + item.counted, 0),
     totalRemoved: details.reduce((sum, item) => sum + item.removed, 0),
