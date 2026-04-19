@@ -33,6 +33,15 @@
       <view class="field" wx:if="{{detail.activeLease}}">房租：¥{{detail.activeLease.rentAmount}}</view>
       <view class="field" wx:if="{{detail.activeLease}}">押金：¥{{detail.activeLease.depositAmount}}</view>
       <view class="hint" wx:if="{{!detail.activeLease}}">当前没有生效中的租约。</view>
+      <button
+        wx:if="{{!detail.activeLease && canRenewLease}}"
+        class="secondary-button single-action"
+        loading="{{renewingLease}}"
+        disabled="{{renewingLease}}"
+        bindtap="handleRenewLease"
+      >
+        一键续租
+      </button>
     </view>
 
     <view class="card">
