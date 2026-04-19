@@ -27,5 +27,13 @@
         <button class="secondary-button" bindtap="openLeaseList">租约列表</button>
       </view>
     </view>
+
+    <view class="card action-card danger-card">
+      <view class="section-head-main">
+        <view class="section-title">测试数据重置</view>
+        <view class="text-muted">用于回归测试前清空当前账号业务数据，不影响其他账号。</view>
+      </view>
+      <button class="danger-button" loading="{{resettingData}}" bindtap="resetTestData">一键清空测试数据</button>
+    </view>
   </view>
 </view>

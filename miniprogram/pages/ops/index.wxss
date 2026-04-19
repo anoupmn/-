@@ -18,6 +18,10 @@
   border-left: 8rpx solid #1f6feb;
 }
 
+.danger-card {
+  border-left: 8rpx solid #c0392b;
+}
+
 .action-buttons,
 .ops-grid {
   display: flex;
