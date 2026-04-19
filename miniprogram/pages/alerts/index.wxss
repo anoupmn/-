@@ -3,32 +3,67 @@
   flex-direction: column;
 }
 
-.intro-card,
-.state-card,
-.group-card {
+.hero-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  background: linear-gradient(145deg, #ffffff 0%, #eef5ff 100%);
+}
+
+.hero-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  border: 1rpx solid transparent;
+}
+
+.state-card {
   display: flex;
   flex-direction: column;
   gap: 14rpx;
 }
 
-.intro-card {
-  background: linear-gradient(145deg, #ffffff 0%, #f4f8ff 100%);
+.retry-button {
+  width: 100%;
 }
 
-.group-overdue {
-  border-left: 8rpx solid #dc5a3f;
+.group-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  border-left: 8rpx solid transparent;
 }
 
-.group-expiring {
-  border-left: 8rpx solid #d4a02b;
+.tone-overdue {
+  border-left-color: #dc5a3f;
 }
 
-.group-vacancy {
-  border-left: 8rpx solid #d48a00;
+.tone-expiring {
+  border-left-color: #d4a02b;
 }
 
-.group-manual {
-  border-left: 8rpx solid #5d7db2;
+.tone-vacancy {
+  border-left-color: #d48a00;
+}
+
+.tone-manual {
+  border-left-color: #5d7db2;
 }
 
 .group-head {
@@ -41,11 +76,17 @@
 .group-title-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10rpx;
+}
+
+.group-title {
+  line-height: 1.35;
 }
 
 .group-actions {
   display: flex;
+  align-items: center;
   gap: 10rpx;
 }
 
@@ -57,12 +98,20 @@
 
 .alert-row {
   display: flex;
-  flex-direction: column;
-  gap: 8rpx;
+  align-items: center;
+  gap: 12rpx;
   background: #f7f9fc;
   border: 1rpx solid #dce4ee;
   border-radius: 16rpx;
   padding: 16rpx;
+}
+
+.alert-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
 }
 
 .alert-head {
@@ -78,8 +127,16 @@
   font-size: 28rpx;
   font-weight: 600;
   color: #1b2430;
+  line-height: 1.45;
 }
 
 .alert-summary {
   font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.alert-arrow {
+  flex-shrink: 0;
+  min-width: 56rpx;
+  text-align: right;
 }

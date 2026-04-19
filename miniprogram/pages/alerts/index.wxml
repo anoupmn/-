@@ -1,9 +1,16 @@
 <view class="page-shell">
   <view class="alerts-shell page-stack">
-    <view class="card intro-card">
-      <view class="page-title">提醒中心</view>
-      <view class="text-body">按规则分组查看问题数量与明细，先处理高优先级项，再进入列表或详情继续处理。</view>
-      <view class="text-muted">分组固定：即将到期、已逾期、空置过久、人工异常。</view>
+    <view class="card hero-card">
+      <view class="hero-title-row">
+        <view class="page-title">提醒中心</view>
+        <view class="badge status-normal">共 {{totalAlerts}} 条</view>
+      </view>
+      <view class="text-body">先处理“已逾期”，再处理“即将到期”和“空置过久”，最后清理人工异常。</view>
+      <view class="hero-stats">
+        <view wx:for="{{groups}}" wx:key="type" class="stat-chip {{item.badgeClass}}">
+          {{item.label}} {{item.items.length}}
+        </view>
+      </view>
     </view>
 
     <view wx:if="{{isLoading}}" class="card state-card">
@@ -12,6 +19,7 @@
 
     <view wx:elif="{{loadFailed}}" class="card state-card">
       <view class="text-muted">加载提醒失败，请稍后再试。</view>
+      <button class="secondary-button retry-button" bindtap="retryLoad">重新加载</button>
     </view>
 
     <view wx:elif="{{!groups.length}}" class="card state-card">
@@ -22,18 +30,18 @@
     <view
       wx:for="{{groups}}"
       wx:key="type"
-      class="card group-card {{item.type === 'overdue' ? 'group-overdue' : item.type === 'expiring' ? 'group-expiring' : item.type === 'vacancy_long' ? 'group-vacancy' : 'group-manual'}}"
+      class="card group-card {{item.toneClass}}"
     >
       <view class="group-head">
         <view class="section-head-main">
           <view class="group-title-row">
             <view class="sub-title group-title">{{item.label}}</view>
-            <view class="badge {{item.type === 'overdue' ? 'status-overdue' : item.type === 'expiring' ? 'status-expiring' : item.type === 'vacancy_long' ? 'status-vacancy' : 'status-manual'}}">{{item.items.length}} 条</view>
+            <view class="badge {{item.badgeClass}}">{{item.items.length}} 条</view>
           </view>
-          <view class="text-muted">优先处理最紧急项，再回到房源列表批量处理。</view>
+          <view class="text-muted">{{item.helperText}}</view>
         </view>
         <view class="group-actions">
-          <button class="text-button" data-url="{{item.listUrl}}" bindtap="navigateTo">进入列表</button>
+          <button class="text-button" data-url="{{item.listUrl}}" bindtap="navigateTo">批量处理</button>
           <button class="fold-button" data-type="{{item.type}}" bindtap="toggleGroup">
             {{item.collapsed ? '展开' : '收起'}}
           </button>
@@ -48,11 +56,16 @@
           data-url="{{item.url}}"
           bindtap="navigateTo"
         >
-          <view class="alert-head">
-            <view class="alert-title">{{item.title}}</view>
-            <view class="badge {{item.reason.indexOf('已逾期') !== -1 ? 'status-overdue' : item.reason.indexOf('即将到期') !== -1 ? 'status-expiring' : item.reason.indexOf('空置过久') !== -1 ? 'status-vacancy' : 'status-manual'}}">{{item.reason}}</view>
+          <view class="alert-main">
+            <view class="alert-head">
+              <view class="alert-title">{{item.title}}</view>
+              <view class="badge {{item.reasonClass}}">{{item.reason}}</view>
+            </view>
+            <view class="alert-summary text-muted">{{item.summary}}</view>
           </view>
-          <view class="alert-summary text-muted">{{item.summary}}</view>
+          <view class="alert-arrow">
+            <view class="text-weak">查看</view>
+          </view>
         </view>
       </view>
     </view>
