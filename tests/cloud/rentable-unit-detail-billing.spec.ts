@@ -123,4 +123,68 @@ describe('rentable-unit-detail billing view', () => {
     expect(result.monthlyBillGroups[0].items[2].source).toBe('manual');
     expect(result.historyCollapsedByDefault).toBe(true);
   });
+
+  it('does not backfill bills during detail read when active lease has no bill records', async () => {
+    const store = createMockStore();
+    store.assets.push({
+      id: 'asset_1',
+      landlordOpenId: 'openid',
+      name: '金色家园',
+      rentalMode: 'room',
+      address: '',
+      note: '',
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.rooms.push({
+      id: 'room_1',
+      landlordOpenId: 'openid',
+      assetId: 'asset_1',
+      name: 'A1',
+      note: '',
+      isWholeUnitDefault: false,
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.tenants.push({
+      id: 'tenant_1',
+      landlordOpenId: 'openid',
+      name: '李租客',
+      phone: '',
+      note: '',
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.leases.push({
+      id: 'lease_1',
+      landlordOpenId: 'openid',
+      roomId: 'room_1',
+      tenantId: 'tenant_1',
+      startDate: '2026-04-01',
+      endDate: '2026-06-30',
+      billingCycleDays: 30,
+      rentAmount: 2600,
+      depositAmount: 2600,
+      feeRules: {
+        rent: { amount: 2600, cadence: 'cycle' },
+        deposit: { amount: 2600, cadence: 'once' },
+        customFeeItems: []
+      },
+      note: '',
+      closedAt: null,
+      createdAt: '',
+      updatedAt: ''
+    });
+
+    const result = await rentableUnitDetailMain({
+      roomId: 'room_1',
+      __mockDb: createMockDb(store),
+      __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) },
+      now: '2026-04-01T00:00:00.000Z'
+    });
+
+    expect(result.monthlyBillGroups).toEqual([]);
+    expect(store.bills).toHaveLength(0);
+    expect(result.summaryCard.nextReceivableAmount).toBe(2600);
+  });
 });

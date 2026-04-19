@@ -101,8 +101,25 @@ function createId(prefix) {
 }
 async function listAll(db, collectionName) {
     try {
-        const result = await db.collection(collectionName).get();
-        return result.data;
+        const collection = db.collection(collectionName);
+        const supportsPagination = typeof collection.skip === "function" && typeof collection.limit === "function";
+        if (!supportsPagination) {
+            const result = await collection.get();
+            return result.data;
+        }
+        const pageSize = 100;
+        const rows = [];
+        let offset = 0;
+        while (true) {
+            const result = await collection.skip(offset).limit(pageSize).get();
+            const page = result.data ?? [];
+            rows.push(...page);
+            if (page.length < pageSize) {
+                break;
+            }
+            offset += pageSize;
+        }
+        return rows;
     }
     catch (error) {
         if (!isCollectionMissingError(error)) {

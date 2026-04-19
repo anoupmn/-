@@ -7,8 +7,11 @@ const runtime_1 = require("./shared/runtime");
 async function main(event) {
     const db = (0, runtime_1.resolveDb)(event);
     const landlordOpenId = (0, runtime_1.resolveLandlordOpenId)(event);
-    const bills = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.bills);
-    const ownedBill = bills.find((item) => item.id === event.billId && item.landlordOpenId === landlordOpenId);
+    const ownedBillsResult = await db.collection(collections_1.COLLECTIONS.bills).where({
+        id: event.billId,
+        landlordOpenId
+    }).get();
+    const ownedBill = ownedBillsResult.data?.[0];
     if (!ownedBill) {
         throw new Error(`Bill ${event.billId} not found.`);
     }

@@ -5,7 +5,6 @@ import { REPAIR_CATEGORY_LABELS } from './shared/constants/repairs';
 import { BILL_STATUSES, LEASE_STATUSES } from './shared/constants/statuses';
 import { deriveBillStatus } from './shared/calculators/bill-status';
 import { deriveLeaseStatus } from './shared/calculators/lease-lifecycle';
-import { ensureBillsForLease } from './shared/repositories/bill-repository';
 import { buildRoomRepairStats } from './shared/repositories/repair-record-repository';
 import { getAllDomainData, resolveLandlordOpenId, type CloudEventBase, resolveDb } from './shared/runtime';
 import type { Bill } from './shared/schemas/bill';
@@ -202,13 +201,9 @@ export async function main(event: RentableUnitDetailEvent) {
     .filter((tenant): tenant is NonNullable<typeof tenant> => Boolean(tenant))
     .filter((tenant, index, source) => source.findIndex((item) => item.id === tenant.id) === index);
   const activeBills = activeLease
-    ? bills.filter((bill) => bill.leaseId === activeLease.id).length > 0
-      ? bills.filter((bill) => bill.leaseId === activeLease.id)
-      : await ensureBillsForLease(db, activeLease, { ...event, now })
+    ? bills.filter((bill) => bill.leaseId === activeLease.id)
     : [];
-  const allBills = activeLease && bills.every((bill) => bill.leaseId !== activeLease.id)
-    ? [...bills, ...activeBills]
-    : bills;
+  const allBills = bills;
   const summary = buildRentableUnitSummary({
     asset,
     room,

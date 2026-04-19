@@ -1,7 +1,6 @@
 import { buildRentableUnitSummary } from './shared/calculators/rentable-unit';
 import { deriveLeaseStatus } from './shared/calculators/lease-lifecycle';
 import { LEASE_STATUSES } from './shared/constants/statuses';
-import { ensureBillsForLease } from './shared/repositories/bill-repository';
 import { getAllDomainData, resolveLandlordOpenId, type CloudEventBase, resolveDb } from './shared/runtime';
 
 export async function main(event: CloudEventBase) {
@@ -9,21 +8,12 @@ export async function main(event: CloudEventBase) {
   const landlordOpenId = resolveLandlordOpenId(event);
   const now = event.now ?? new Date().toISOString();
   const { assets, rooms, tenants, leases, bills } = await getAllDomainData(db, landlordOpenId);
-  const ensuredBills = [...bills];
-
-  for (const lease of leases) {
-    if (deriveLeaseStatus(lease, now) !== LEASE_STATUSES.active) {
-      continue;
-    }
-
-    const hasBills = ensuredBills.some((bill) => bill.leaseId === lease.id);
-    if (hasBills) {
-      continue;
-    }
-
-    const backfilledBills = await ensureBillsForLease(db, lease, { ...event, now });
-    ensuredBills.push(...backfilledBills);
-  }
+  const activeLeaseIdSet = new Set(
+    leases
+      .filter((lease) => deriveLeaseStatus(lease, now) === LEASE_STATUSES.active)
+      .map((lease) => lease.id)
+  );
+  const activeBills = bills.filter((bill) => activeLeaseIdSet.has(bill.leaseId));
 
   return rooms.map((room) => {
     const asset = assets.find((item) => item.id === room.assetId);
@@ -36,7 +26,7 @@ export async function main(event: CloudEventBase) {
       room,
       leases,
       tenants,
-      bills: ensuredBills,
+      bills: activeBills,
       now
     });
   });

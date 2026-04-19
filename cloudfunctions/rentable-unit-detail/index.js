@@ -10,7 +10,6 @@ const repairs_1 = require("./shared/constants/repairs");
 const statuses_1 = require("./shared/constants/statuses");
 const bill_status_1 = require("./shared/calculators/bill-status");
 const lease_lifecycle_1 = require("./shared/calculators/lease-lifecycle");
-const bill_repository_1 = require("./shared/repositories/bill-repository");
 const repair_record_repository_1 = require("./shared/repositories/repair-record-repository");
 const runtime_1 = require("./shared/runtime");
 function getBillTypeLabel(bill) {
@@ -149,13 +148,9 @@ async function main(event) {
         .filter((tenant) => Boolean(tenant))
         .filter((tenant, index, source) => source.findIndex((item) => item.id === tenant.id) === index);
     const activeBills = activeLease
-        ? bills.filter((bill) => bill.leaseId === activeLease.id).length > 0
-            ? bills.filter((bill) => bill.leaseId === activeLease.id)
-            : await (0, bill_repository_1.ensureBillsForLease)(db, activeLease, { ...event, now })
+        ? bills.filter((bill) => bill.leaseId === activeLease.id)
         : [];
-    const allBills = activeLease && bills.every((bill) => bill.leaseId !== activeLease.id)
-        ? [...bills, ...activeBills]
-        : bills;
+    const allBills = bills;
     const summary = (0, rentable_unit_1.buildRentableUnitSummary)({
         asset,
         room,

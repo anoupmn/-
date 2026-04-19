@@ -146,8 +146,38 @@ export function createId(prefix: string) {
 
 export async function listAll<T extends DbRecord>(db: DbLike, collectionName: string) {
   try {
-    const result = await db.collection(collectionName).get();
-    return result.data as T[];
+    const collection = db.collection(collectionName) as DbCollection & {
+      skip?: (offset: number) => DbCollection;
+      limit?: (size: number) => DbCollection;
+    };
+
+    const supportsPagination = typeof collection.skip === "function" && typeof collection.limit === "function";
+
+    if (!supportsPagination) {
+      const result = await collection.get();
+      return result.data as T[];
+    }
+
+    const pageSize = 100;
+    const rows: T[] = [];
+    let offset = 0;
+
+    while (true) {
+      const pagedCollection = collection.skip!(offset) as DbCollection & {
+        limit: (size: number) => DbCollection;
+      };
+      const result = await pagedCollection.limit(pageSize).get();
+      const page = (result.data ?? []) as T[];
+      rows.push(...page);
+
+      if (page.length < pageSize) {
+        break;
+      }
+
+      offset += pageSize;
+    }
+
+    return rows;
   } catch (error) {
     if (!isCollectionMissingError(error)) {
       throw error;

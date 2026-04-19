@@ -1,7 +1,6 @@
 import { ALERT_TYPE_LABELS } from './shared/constants/statuses';
 import { rebuildAlerts } from './shared/repositories/alert-repository';
 import { listAbnormalFlags, syncRepairFrequencyAbnormalFlags } from './shared/repositories/abnormal-flag-repository';
-import { ensureBillsForLease } from './shared/repositories/bill-repository';
 import { deriveLeaseStatus } from './shared/calculators/lease-lifecycle';
 import { LEASE_STATUSES } from './shared/constants/statuses';
 import { getAllDomainData, resolveDb, resolveLandlordOpenId, type CloudEventBase } from './shared/runtime';
@@ -11,19 +10,12 @@ export async function main(event: CloudEventBase) {
   const landlordOpenId = resolveLandlordOpenId(event);
   const now = event.now ?? new Date().toISOString();
   const { assets, rooms, tenants, leases, bills, repairs } = await getAllDomainData(db, landlordOpenId);
-  const ensuredBills = [...bills];
-
-  for (const lease of leases) {
-    if (deriveLeaseStatus(lease, now) !== LEASE_STATUSES.active) {
-      continue;
-    }
-
-    if (ensuredBills.some((bill) => bill.leaseId === lease.id)) {
-      continue;
-    }
-
-    ensuredBills.push(...(await ensureBillsForLease(db, lease, { ...event, now })));
-  }
+  const activeLeaseIdSet = new Set(
+    leases
+      .filter((lease) => deriveLeaseStatus(lease, now) === LEASE_STATUSES.active)
+      .map((lease) => lease.id)
+  );
+  const activeBills = bills.filter((bill) => activeLeaseIdSet.has(bill.leaseId));
 
   await syncRepairFrequencyAbnormalFlags(
     db,
@@ -42,7 +34,7 @@ export async function main(event: CloudEventBase) {
     rooms,
     leases,
     tenants,
-    bills: ensuredBills,
+    bills: activeBills,
     abnormalFlags,
     now
   });
