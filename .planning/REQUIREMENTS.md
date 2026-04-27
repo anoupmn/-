@@ -162,20 +162,20 @@
 | REPR-04 | 第 4 阶段 | 已完成（Phase 4 / Plan 02） |
 | REPR-05 | 第 4 阶段 | 已完成（Phase 4 / Plan 02） |
 | REPR-06 | 第 4 阶段 | 已完成（Phase 4 / Plan 02） |
-| OPEX-01 | 第 5 阶段 | 待规划 |
-| OPEX-02 | 第 5 阶段 | 待规划 |
+| OPEX-01 | 第 5 阶段 | 已完成（Phase 5 / Plan 04） |
+| OPEX-02 | 第 5 阶段 | 已完成（Phase 5 / Plan 04） |
 | LIST-01 | 第 1 阶段 | 已完成（Phase 1） |
 | LIST-02 | 第 2 阶段 | 已完成（Phase 2） |
 | LIST-03 | 第 4 阶段 | 已完成（Phase 4 / Plan 03） |
 | IMPT-01 | 第 1 阶段 | 已完成（Phase 1） |
-| FEE-01 | 第 5 阶段 | 待规划 |
-| FEE-02 | 第 5 阶段 | 待规划 |
-| FEE-03 | 第 5 阶段 | 待规划 |
-| FEE-04 | 第 5 阶段 | 待规划 |
-| UTIL-01 | 第 5 阶段 | 待规划 |
-| UTIL-02 | 第 5 阶段 | 待规划 |
-| CORR-01 | 第 5 阶段 | 待规划 |
-| CORR-02 | 第 5 阶段 | 待规划 |
+| FEE-01 | 第 5 阶段 | 已完成（Phase 5 / Plan 02） |
+| FEE-02 | 第 5 阶段 | 已完成（Phase 5 / Plan 02） |
+| FEE-03 | 第 5 阶段 | 已完成（Phase 5 / Plan 02） |
+| FEE-04 | 第 5 阶段 | 已完成（Phase 5 / Plan 02） |
+| UTIL-01 | 第 5 阶段 | 已完成（Phase 5 / Plan 03） |
+| UTIL-02 | 第 5 阶段 | 已完成（Phase 5 / Plan 03） |
+| CORR-01 | 第 5 阶段 | 已完成（Phase 5 / Plan 01） |
+| CORR-02 | 第 5 阶段 | 已完成（Phase 5 / Plan 05） |
 | EXPT-01 | 第 6 阶段 | 待讨论 |
 | EXPT-02 | 第 6 阶段 | 待讨论 |
 | EXPT-03 | 第 6 阶段 | 待讨论 |
