@@ -7,7 +7,7 @@ import type { Bill } from '../schemas/bill';
 import type { Lease } from '../schemas/lease';
 import type { Room } from '../schemas/room';
 import type { Tenant } from '../schemas/tenant';
-import { insertRecord, listAll, type DbLike } from '../runtime';
+import { insertRecord, listAll, removeRecordsByQuery, type DbLike } from '../runtime';
 
 export async function listAlerts(db: DbLike, landlordOpenId?: string) {
   const alerts = await listAll<Alert>(db, COLLECTIONS.alerts);
@@ -40,7 +40,7 @@ export async function rebuildAlerts(
   });
 
   for (const landlordOpenId of landlordOpenIds) {
-    await db.collection(COLLECTIONS.alerts).where({ landlordOpenId }).remove();
+    await removeRecordsByQuery(db, COLLECTIONS.alerts, { landlordOpenId });
   }
 
   for (const alert of alerts) {

@@ -130,8 +130,23 @@ export async function listOutstandingBillsByRoom(db: DbLike, roomId: string, now
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
 
+export function isReplaceableSystemBill(bill: Bill) {
+  return (
+    (bill.source ?? 'system') === 'system' &&
+    !bill.receivedAt &&
+    bill.receivedAmount === null &&
+    !(bill as Bill & { receiptId?: string }).receiptId &&
+    !(bill as Bill & { voidedAt?: string }).voidedAt
+  );
+}
+
 export async function syncBillsForLease(db: DbLike, lease: Lease, event: CloudEventBase) {
-  await db.collection(COLLECTIONS.bills).where({ leaseId: lease.id }).remove();
+  const existingBills = await listBillsByLease(db, lease.id);
+  const replaceableBills = existingBills.filter(isReplaceableSystemBill);
+
+  for (const bill of replaceableBills) {
+    await db.collection(COLLECTIONS.bills).where({ id: bill.id }).remove();
+  }
 
   const bills = buildBillsForLease(lease, event);
   for (const bill of bills) {

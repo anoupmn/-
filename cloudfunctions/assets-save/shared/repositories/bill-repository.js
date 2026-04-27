@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listBillsByLease = listBillsByLease;
 exports.listOutstandingBillsByRoom = listOutstandingBillsByRoom;
+exports.isReplaceableSystemBill = isReplaceableSystemBill;
 exports.syncBillsForLease = syncBillsForLease;
 exports.ensureBillsForLease = ensureBillsForLease;
 exports.markBillReceived = markBillReceived;
@@ -114,8 +115,19 @@ async function listOutstandingBillsByRoom(db, roomId, now) {
         .filter((bill) => bill.status !== statuses_1.BILL_STATUSES.paid)
         .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
+function isReplaceableSystemBill(bill) {
+    return ((bill.source ?? 'system') === 'system' &&
+        !bill.receivedAt &&
+        bill.receivedAmount === null &&
+        !bill.receiptId &&
+        !bill.voidedAt);
+}
 async function syncBillsForLease(db, lease, event) {
-    await db.collection(collections_1.COLLECTIONS.bills).where({ leaseId: lease.id }).remove();
+    const existingBills = await listBillsByLease(db, lease.id);
+    const replaceableBills = existingBills.filter(isReplaceableSystemBill);
+    for (const bill of replaceableBills) {
+        await db.collection(collections_1.COLLECTIONS.bills).where({ id: bill.id }).remove();
+    }
     const bills = buildBillsForLease(lease, event);
     for (const bill of bills) {
         await (0, runtime_1.insertRecord)(db, collections_1.COLLECTIONS.bills, bill);

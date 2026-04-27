@@ -23,7 +23,7 @@ async function rebuildAlerts(db, input) {
         }
     });
     for (const landlordOpenId of landlordOpenIds) {
-        await db.collection(collections_1.COLLECTIONS.alerts).where({ landlordOpenId }).remove();
+        await (0, runtime_1.removeRecordsByQuery)(db, collections_1.COLLECTIONS.alerts, { landlordOpenId });
     }
     for (const alert of alerts) {
         await (0, runtime_1.insertRecord)(db, collections_1.COLLECTIONS.alerts, alert);

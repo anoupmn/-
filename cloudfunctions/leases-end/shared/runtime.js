@@ -10,6 +10,7 @@ exports.listAll = listAll;
 exports.findById = findById;
 exports.insertRecord = insertRecord;
 exports.clearCollection = clearCollection;
+exports.removeRecordsByQuery = removeRecordsByQuery;
 exports.updateRecord = updateRecord;
 exports.getAllDomainData = getAllDomainData;
 const collections_1 = require("./constants/collections");
@@ -45,11 +46,6 @@ function isCollectionMissingError(error) {
     const payload = error;
     const message = payload?.message ?? '';
     return payload?.errCode === -502005 || message.includes('collection not exists') || message.includes('Db or Table not exist');
-}
-function isDocumentNotFoundError(error) {
-    const payload = error;
-    const message = payload?.message ?? payload?.errMsg ?? '';
-    return payload?.errCode === -504002 || message.includes('document.get:fail document with _id');
 }
 function isCollectionAlreadyExistsError(error) {
     const payload = error;
@@ -135,20 +131,8 @@ async function listAll(db, collectionName) {
     }
 }
 async function findById(db, collectionName, id) {
-    try {
-        const result = await db.collection(collectionName).doc(id).get();
-        if (result.data) {
-            return result.data;
-        }
-    }
-    catch (error) {
-        if (!isDocumentNotFoundError(error)) {
-            throw error;
-        }
-    }
-    const byBusinessId = await db.collection(collectionName).where({ id }).get();
-    const firstMatch = (byBusinessId.data || [])[0];
-    return firstMatch ?? null;
+    const result = await db.collection(collectionName).where({ id }).get();
+    return result.data[0] ?? null;
 }
 async function insertRecord(db, collectionName, record) {
     try {
@@ -188,28 +172,32 @@ async function clearCollection(db, collectionName) {
         await ensureCollectionExists(db, collectionName);
     }
 }
-async function updateRecord(db, collectionName, id, changes) {
+async function removeRecordsByQuery(db, collectionName, query) {
     try {
-        await db.collection(collectionName).doc(id).update({ data: changes });
+        await db.collection(collectionName).where(query).remove();
     }
     catch (error) {
-        if (!isDocumentNotFoundError(error)) {
+        if (!isCollectionMissingError(error)) {
             throw error;
         }
-        const byBusinessId = await db.collection(collectionName).where({ id }).get();
-        const target = (byBusinessId.data || [])[0];
-        if (!target?._id) {
-            throw new Error(`Record ${id} was not found by _id or business id.`);
-        }
-        await db.collection(collectionName).doc(target._id).update({ data: changes });
+        await ensureCollectionExists(db, collectionName);
     }
+}
+async function updateRecord(db, collectionName, id, changes) {
+    await db.collection(collectionName).where({ id }).update({ data: changes });
     const updated = await findById(db, collectionName, id);
     if (!updated) {
         throw new Error(`Record ${id} was not found after update.`);
     }
     return updated;
 }
-async function getAllDomainData(db) {
+function filterByLandlordOpenId(records, landlordOpenId) {
+    if (!landlordOpenId) {
+        return records;
+    }
+    return records.filter((item) => item.landlordOpenId === landlordOpenId);
+}
+async function getAllDomainData(db, landlordOpenId) {
     const [assets, rooms, tenants, leases, bills, repairs] = await Promise.all([
         listAll(db, collections_1.COLLECTIONS.assets),
         listAll(db, collections_1.COLLECTIONS.rooms),
@@ -219,11 +207,11 @@ async function getAllDomainData(db) {
         listAll(db, collections_1.COLLECTIONS.repairRecords)
     ]);
     return {
-        assets,
-        rooms,
-        tenants,
-        leases,
-        bills,
-        repairs
+        assets: filterByLandlordOpenId(assets, landlordOpenId),
+        rooms: filterByLandlordOpenId(rooms, landlordOpenId),
+        tenants: filterByLandlordOpenId(tenants, landlordOpenId),
+        leases: filterByLandlordOpenId(leases, landlordOpenId),
+        bills: filterByLandlordOpenId(bills, landlordOpenId),
+        repairs: filterByLandlordOpenId(repairs, landlordOpenId)
     };
 }

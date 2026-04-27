@@ -15,5 +15,8 @@
     "miniprogram/**/*.ts",
     "cloudfunctions/**/*.ts",
     "tests/**/*.ts"
+  ],
+  "exclude": [
+    "**/* 2.ts"
   ]
 }

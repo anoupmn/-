@@ -10,6 +10,7 @@ exports.listAll = listAll;
 exports.findById = findById;
 exports.insertRecord = insertRecord;
 exports.clearCollection = clearCollection;
+exports.removeRecordsByQuery = removeRecordsByQuery;
 exports.updateRecord = updateRecord;
 exports.getAllDomainData = getAllDomainData;
 const collections_1 = require("./constants/collections");
@@ -131,10 +132,7 @@ async function listAll(db, collectionName) {
 }
 async function findById(db, collectionName, id) {
     const result = await db.collection(collectionName).where({ id }).get();
-    if (!Array.isArray(result.data) || result.data.length === 0) {
-        return null;
-    }
-    return result.data[0];
+    return result.data[0] ?? null;
 }
 async function insertRecord(db, collectionName, record) {
     try {
@@ -174,6 +172,17 @@ async function clearCollection(db, collectionName) {
         await ensureCollectionExists(db, collectionName);
     }
 }
+async function removeRecordsByQuery(db, collectionName, query) {
+    try {
+        await db.collection(collectionName).where(query).remove();
+    }
+    catch (error) {
+        if (!isCollectionMissingError(error)) {
+            throw error;
+        }
+        await ensureCollectionExists(db, collectionName);
+    }
+}
 async function updateRecord(db, collectionName, id, changes) {
     await db.collection(collectionName).where({ id }).update({ data: changes });
     const updated = await findById(db, collectionName, id);
@@ -182,7 +191,13 @@ async function updateRecord(db, collectionName, id, changes) {
     }
     return updated;
 }
-async function getAllDomainData(db) {
+function filterByLandlordOpenId(records, landlordOpenId) {
+    if (!landlordOpenId) {
+        return records;
+    }
+    return records.filter((item) => item.landlordOpenId === landlordOpenId);
+}
+async function getAllDomainData(db, landlordOpenId) {
     const [assets, rooms, tenants, leases, bills, repairs] = await Promise.all([
         listAll(db, collections_1.COLLECTIONS.assets),
         listAll(db, collections_1.COLLECTIONS.rooms),
@@ -192,11 +207,11 @@ async function getAllDomainData(db) {
         listAll(db, collections_1.COLLECTIONS.repairRecords)
     ]);
     return {
-        assets,
-        rooms,
-        tenants,
-        leases,
-        bills,
-        repairs
+        assets: filterByLandlordOpenId(assets, landlordOpenId),
+        rooms: filterByLandlordOpenId(rooms, landlordOpenId),
+        tenants: filterByLandlordOpenId(tenants, landlordOpenId),
+        leases: filterByLandlordOpenId(leases, landlordOpenId),
+        bills: filterByLandlordOpenId(bills, landlordOpenId),
+        repairs: filterByLandlordOpenId(repairs, landlordOpenId)
     };
 }

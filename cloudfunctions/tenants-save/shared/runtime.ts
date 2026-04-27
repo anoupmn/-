@@ -189,8 +189,8 @@ export async function listAll<T extends DbRecord>(db: DbLike, collectionName: st
 }
 
 export async function findById<T extends DbRecord>(db: DbLike, collectionName: string, id: string) {
-  const result = await db.collection(collectionName).doc(id).get();
-  return result.data as T | null;
+  const result = await db.collection(collectionName).where({ id }).get();
+  return (result.data[0] as T | undefined) ?? null;
 }
 
 export async function insertRecord<T extends DbRecord>(db: DbLike, collectionName: string, record: T) {
@@ -240,13 +240,25 @@ export async function clearCollection(db: DbLike, collectionName: string) {
   }
 }
 
+export async function removeRecordsByQuery(db: DbLike, collectionName: string, query: Record<string, unknown>) {
+  try {
+    await db.collection(collectionName).where(query).remove();
+  } catch (error) {
+    if (!isCollectionMissingError(error)) {
+      throw error;
+    }
+
+    await ensureCollectionExists(db, collectionName);
+  }
+}
+
 export async function updateRecord<T extends DbRecord>(
   db: DbLike,
   collectionName: string,
   id: string,
   changes: Partial<T>
 ) {
-  await db.collection(collectionName).doc(id).update({ data: changes as Partial<DbRecord> });
+  await db.collection(collectionName).where({ id }).update({ data: changes as Partial<DbRecord> });
   const updated = await findById<T>(db, collectionName, id);
   if (!updated) {
     throw new Error(`Record ${id} was not found after update.`);
@@ -254,7 +266,15 @@ export async function updateRecord<T extends DbRecord>(
   return updated;
 }
 
-export async function getAllDomainData(db: DbLike) {
+function filterByLandlordOpenId<T extends { landlordOpenId?: string }>(records: T[], landlordOpenId?: string) {
+  if (!landlordOpenId) {
+    return records;
+  }
+
+  return records.filter((item) => item.landlordOpenId === landlordOpenId);
+}
+
+export async function getAllDomainData(db: DbLike, landlordOpenId?: string) {
   const [assets, rooms, tenants, leases, bills, repairs] = await Promise.all([
     listAll<Asset>(db, COLLECTIONS.assets),
     listAll<Room>(db, COLLECTIONS.rooms),
@@ -265,11 +285,11 @@ export async function getAllDomainData(db: DbLike) {
   ]);
 
   return {
-    assets,
-    rooms,
-    tenants,
-    leases,
-    bills,
-    repairs
+    assets: filterByLandlordOpenId(assets, landlordOpenId),
+    rooms: filterByLandlordOpenId(rooms, landlordOpenId),
+    tenants: filterByLandlordOpenId(tenants, landlordOpenId),
+    leases: filterByLandlordOpenId(leases, landlordOpenId),
+    bills: filterByLandlordOpenId(bills, landlordOpenId),
+    repairs: filterByLandlordOpenId(repairs, landlordOpenId)
   };
 }
