@@ -5,6 +5,7 @@ import { REPAIR_CATEGORY_LABELS } from './shared/constants/repairs';
 import { BILL_STATUSES, LEASE_STATUSES } from './shared/constants/statuses';
 import { deriveBillStatus } from './shared/calculators/bill-status';
 import { deriveLeaseStatus } from './shared/calculators/lease-lifecycle';
+import { buildOwnerExpenseSummary, listOwnerExpensesByRoom } from './shared/repositories/owner-expense-repository';
 import { resolveMeterDefaults } from './shared/repositories/bill-repository';
 import { buildRoomRepairStats } from './shared/repositories/repair-record-repository';
 import { getAllDomainData, resolveLandlordOpenId, type CloudEventBase, resolveDb } from './shared/runtime';
@@ -32,6 +33,16 @@ function getBillTypeLabel(bill: Bill) {
     misc: '杂费',
     custom: '其他费用'
   }[bill.type ?? 'custom'] ?? '其他费用');
+}
+
+function getOwnerExpenseTypeLabel(expenseType: string) {
+  return ({
+    repair: '维修',
+    cleaning: '保洁',
+    caretaking: '打理',
+    labor: '请人管理',
+    other: '其他支出'
+  }[expenseType] ?? '其他支出');
 }
 
 function buildMonthlyBillGroups(bills: Bill[], now: string) {
@@ -213,6 +224,8 @@ export async function main(event: RentableUnitDetailEvent) {
     : [];
   const allBills = bills;
   const meterDefaults = resolveMeterDefaults(allBills, room.id);
+  const ownerExpenses = await listOwnerExpensesByRoom(db, room.id, landlordOpenId);
+  const ownerExpenseSummary = buildOwnerExpenseSummary(ownerExpenses);
   const summary = buildRentableUnitSummary({
     asset,
     room,
@@ -287,6 +300,11 @@ export async function main(event: RentableUnitDetailEvent) {
       generatedAt: dayjs(now).format('YYYY-MM-DD')
     },
     meterDefaults,
+    ownerExpenseSummary,
+    ownerExpenses: ownerExpenses.slice(0, 10).map((item) => ({
+      ...item,
+      typeLabel: getOwnerExpenseTypeLabel(item.expenseType)
+    })),
     monthlyBillGroups: buildMonthlyBillGroups(activeBills, now),
     repairStats,
     tenantPeriodRepairs,

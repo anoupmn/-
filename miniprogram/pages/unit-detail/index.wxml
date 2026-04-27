@@ -144,9 +144,9 @@
     </view>
 
     <view class="card action-card">
-      <view class="section-subtitle">维修记录</view>
-      <view class="hint">固定分类 + 备注，系统会自动关联到对应租住期间。</view>
-      <button class="secondary-button single-action" bindtap="openRepairDialog">记录维修</button>
+      <view class="section-subtitle">维修/支出</view>
+      <view class="hint">维修会进入问题分析；保洁、打理、请人管理等只作为房东支出留痕。</view>
+      <button class="secondary-button single-action" bindtap="openRepairDialog">记录维修/支出</button>
     </view>
 
     <view class="card history-card">
@@ -160,6 +160,22 @@
       <view wx:if="{{!detail.repairStats.topCategories.length}}" class="hint">暂无维修记录</view>
       <view wx:for="{{detail.repairStats.topCategories}}" wx:key="category" class="field">
         {{item.label}}：{{item.count}} 次
+      </view>
+    </view>
+
+    <view class="card history-card">
+      <view class="section-subtitle">房东支出</view>
+      <view class="field">累计 {{detail.ownerExpenseSummary.count || 0}} 笔 / ¥{{detail.ownerExpenseSummary.totalAmount || 0}}</view>
+      <view wx:if="{{!detail.ownerExpenses.length}}" class="hint">暂无房东支出记录</view>
+      <view wx:for="{{detail.ownerExpenses}}" wx:key="id" class="expense-item">
+        <view class="fee-row">
+          <view>
+            <view class="fee-name">{{item.typeLabel}}</view>
+            <view class="field">{{item.occurredAt}} / {{item.monthKey}}</view>
+          </view>
+          <view class="fee-status" wx:if="{{item.amount !== null}}">¥{{item.amount}}</view>
+        </view>
+        <view class="fee-note" wx:if="{{item.note}}">备注：{{item.note}}</view>
       </view>
     </view>
 
@@ -291,8 +307,11 @@
 
   <view wx:if="{{repairDialogVisible}}" class="dialog-mask">
     <view class="dialog-card">
-      <view class="section-subtitle">记录维修</view>
-      <picker range="{{repairCategoryOptions}}" value="{{repairForm.categoryIndex}}" bindchange="handleRepairCategoryChange">
+      <view class="section-subtitle">记录维修/支出</view>
+      <picker range="{{ownerExpenseTypeOptions}}" value="{{repairForm.expenseTypeIndex}}" bindchange="handleOwnerExpenseTypeChange">
+        <view class="field picker-field">支出类型：{{ownerExpenseTypeOptions[repairForm.expenseTypeIndex]}}</view>
+      </picker>
+      <picker wx:if="{{repairForm.expenseTypeIndex == 0}}" range="{{repairCategoryOptions}}" value="{{repairForm.categoryIndex}}" bindchange="handleRepairCategoryChange">
         <view class="field picker-field">维修分类：{{repairCategoryOptions[repairForm.categoryIndex]}}</view>
       </picker>
       <picker mode="date" value="{{repairForm.occurredAt}}" bindchange="handleRepairDateChange">
@@ -300,10 +319,18 @@
       </picker>
       <input
         class="input"
+        type="digit"
+        data-field="amount"
+        value="{{repairForm.amount}}"
+        bindinput="handleRepairInputChange"
+        placeholder="金额（可空）"
+      />
+      <input
+        class="input"
         data-field="note"
         value="{{repairForm.note}}"
         bindinput="handleRepairInputChange"
-        placeholder="请填写维修备注（必填）"
+        placeholder="备注（维修必填）"
       />
       <view class="dialog-actions">
         <button class="secondary-button" bindtap="closeRepairDialog">取消</button>

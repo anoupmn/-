@@ -215,6 +215,16 @@
   gap: 6rpx;
 }
 
+.expense-item {
+  border-radius: 16rpx;
+  border: 1rpx solid #e5e7eb;
+  background: #ffffff;
+  padding: 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
 .fee-name {
   font-size: 28rpx;
   font-weight: 600;

@@ -12,6 +12,7 @@ export interface MockStore {
   leases: MockRecord[];
   bills: MockRecord[];
   repairRecords: MockRecord[];
+  ownerExpenses: MockRecord[];
   alerts: MockRecord[];
   abnormalFlags: MockRecord[];
   notificationPreferences: MockRecord[];
@@ -26,6 +27,7 @@ type CollectionName =
   | 'leases'
   | 'bills'
   | 'repair_records'
+  | 'owner_expenses'
   | 'alerts'
   | 'abnormal_flags'
   | 'notification_preferences';
@@ -42,6 +44,10 @@ function resolveCollectionName(name: CollectionName): keyof MockStore {
 
   if (name === 'repair_records') {
     return 'repairRecords';
+  }
+
+  if (name === 'owner_expenses') {
+    return 'ownerExpenses';
   }
 
   if (name === 'notification_preferences') {
@@ -64,6 +70,7 @@ export function createMockStore(): MockStore {
     leases: [],
     bills: [],
     repairRecords: [],
+    ownerExpenses: [],
     alerts: [],
     abnormalFlags: [],
     notificationPreferences: []

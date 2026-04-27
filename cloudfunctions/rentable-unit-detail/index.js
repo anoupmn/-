@@ -10,6 +10,7 @@ const repairs_1 = require("./shared/constants/repairs");
 const statuses_1 = require("./shared/constants/statuses");
 const bill_status_1 = require("./shared/calculators/bill-status");
 const lease_lifecycle_1 = require("./shared/calculators/lease-lifecycle");
+const owner_expense_repository_1 = require("./shared/repositories/owner-expense-repository");
 const bill_repository_1 = require("./shared/repositories/bill-repository");
 const repair_record_repository_1 = require("./shared/repositories/repair-record-repository");
 const runtime_1 = require("./shared/runtime");
@@ -29,6 +30,15 @@ function getBillTypeLabel(bill) {
         misc: '杂费',
         custom: '其他费用'
     }[bill.type ?? 'custom'] ?? '其他费用');
+}
+function getOwnerExpenseTypeLabel(expenseType) {
+    return ({
+        repair: '维修',
+        cleaning: '保洁',
+        caretaking: '打理',
+        labor: '请人管理',
+        other: '其他支出'
+    }[expenseType] ?? '其他支出');
 }
 function buildMonthlyBillGroups(bills, now) {
     const currentMonth = (0, dayjs_1.default)(now).format('YYYY-MM');
@@ -158,6 +168,8 @@ async function main(event) {
         : [];
     const allBills = bills;
     const meterDefaults = (0, bill_repository_1.resolveMeterDefaults)(allBills, room.id);
+    const ownerExpenses = await (0, owner_expense_repository_1.listOwnerExpensesByRoom)(db, room.id, landlordOpenId);
+    const ownerExpenseSummary = (0, owner_expense_repository_1.buildOwnerExpenseSummary)(ownerExpenses);
     const summary = (0, rentable_unit_1.buildRentableUnitSummary)({
         asset,
         room,
@@ -228,6 +240,11 @@ async function main(event) {
             generatedAt: (0, dayjs_1.default)(now).format('YYYY-MM-DD')
         },
         meterDefaults,
+        ownerExpenseSummary,
+        ownerExpenses: ownerExpenses.slice(0, 10).map((item) => ({
+            ...item,
+            typeLabel: getOwnerExpenseTypeLabel(item.expenseType)
+        })),
         monthlyBillGroups: buildMonthlyBillGroups(activeBills, now),
         repairStats,
         tenantPeriodRepairs,

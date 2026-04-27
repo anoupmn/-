@@ -1,4 +1,6 @@
 import { main as repairRecordSaveMain } from '../../cloudfunctions/repair-record-save/index';
+import { main as ownerExpenseSaveMain } from '../../cloudfunctions/owner-expense-save/index';
+import { buildRoomRepairStats } from '../../cloudfunctions/shared/repositories/repair-record-repository';
 import { createMockDb, createMockStore } from '../helpers/mock-cloud';
 
 describe('repair-record-save cloud function', () => {
@@ -109,5 +111,68 @@ describe('repair-record-save cloud function', () => {
         __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) }
       })
     ).rejects.toBeTruthy();
+  });
+
+  it('non-repair owner expenses do not affect repair anomaly stats', async () => {
+    const store = createMockStore();
+    store.assets.push({
+      id: 'asset_4',
+      landlordOpenId: 'openid',
+      name: '测试房源',
+      rentalMode: 'room',
+      address: '',
+      note: '',
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.rooms.push({
+      id: 'room_4',
+      landlordOpenId: 'openid',
+      assetId: 'asset_4',
+      name: 'B101',
+      note: '',
+      isWholeUnitDefault: false,
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.leases.push({
+      id: 'lease_4',
+      landlordOpenId: 'openid',
+      roomId: 'room_4',
+      tenantId: 'tenant_4',
+      startDate: '2026-04-01',
+      endDate: '2026-06-30',
+      billingCycleDays: 30,
+      rentAmount: 2600,
+      depositAmount: 2600,
+      note: '',
+      closedAt: null,
+      createdAt: '',
+      updatedAt: ''
+    });
+    const db = createMockDb(store);
+
+    await ownerExpenseSaveMain({
+      roomId: 'room_4',
+      expenseType: 'cleaning',
+      amount: 120,
+      note: '退租保洁',
+      occurredAt: '2026-04-16',
+      __mockDb: db,
+      __mockContext: { getWXContext: () => ({ OPENID: 'openid' }) },
+      now: '2026-04-16T00:00:00.000Z'
+    });
+
+    const stats = buildRoomRepairStats({
+      roomId: 'room_4',
+      leases: store.leases as any,
+      records: store.repairRecords as any,
+      now: '2026-04-20T00:00:00.000Z'
+    });
+
+    expect(store.ownerExpenses).toHaveLength(1);
+    expect(store.repairRecords).toHaveLength(0);
+    expect(stats.totalCount).toBe(0);
+    expect(stats.abnormal.active).toBe(false);
   });
 });

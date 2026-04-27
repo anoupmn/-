@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const lease_1 = require("../../services/lease");
 const bill_1 = require("../../services/bill");
-const repair_1 = require("../../services/repair");
+const owner_expense_1 = require("../../services/owner-expense");
 const rentable_unit_1 = require("../../services/rentable-unit");
 function formatStatusLabel(status) {
     const mapping = {
@@ -209,6 +209,13 @@ const REPAIR_CATEGORY_OPTIONS = [
     { key: 'safety', label: '安全' },
     { key: 'other', label: '其他' }
 ];
+const OWNER_EXPENSE_TYPE_OPTIONS = [
+    { key: 'repair', label: '维修' },
+    { key: 'cleaning', label: '保洁' },
+    { key: 'caretaking', label: '打理' },
+    { key: 'labor', label: '请人管理' },
+    { key: 'other', label: '其他支出' }
+];
 function buildManualBillMeta(typeIndex, currentLabel = '') {
     if (MANUAL_BILL_TYPE_KEYS[typeIndex] === 'custom') {
         return {
@@ -253,6 +260,7 @@ Page({
         manualBillSubmitting: false,
         deletingBillId: '',
         repairCategoryOptions: REPAIR_CATEGORY_OPTIONS.map((item) => item.label),
+        ownerExpenseTypeOptions: OWNER_EXPENSE_TYPE_OPTIONS.map((item) => item.label),
         repairDialogVisible: false,
         renewingLease: false,
         manualBillMeta: {
@@ -271,9 +279,11 @@ Page({
             note: ''
         },
         repairForm: {
+            expenseTypeIndex: 0,
             categoryIndex: 0,
             note: '',
-            occurredAt: ''
+            occurredAt: '',
+            amount: ''
         },
         canRenewLease: false
     },
@@ -314,7 +324,9 @@ Page({
             roomId: nextRoomId,
             detail: {
                 ...detail,
-                monthlyBillGroups
+                monthlyBillGroups,
+                ownerExpenseSummary: detail.ownerExpenseSummary ?? { count: 0, totalAmount: 0, amountByType: {} },
+                ownerExpenses: Array.isArray(detail.ownerExpenses) ? detail.ownerExpenses : []
             },
             leaseHistoryViews,
             expandedLeaseHistory,
@@ -677,9 +689,11 @@ Page({
         this.setData({
             repairDialogVisible: true,
             repairForm: {
+                expenseTypeIndex: 0,
                 categoryIndex: 0,
                 note: '',
-                occurredAt: new Date().toISOString().slice(0, 10)
+                occurredAt: new Date().toISOString().slice(0, 10),
+                amount: ''
             }
         });
     },
@@ -694,6 +708,15 @@ Page({
             repairForm: {
                 ...this.data.repairForm,
                 categoryIndex
+            }
+        });
+    },
+    handleOwnerExpenseTypeChange(event) {
+        const expenseTypeIndex = Number(event.detail.value || 0);
+        this.setData({
+            repairForm: {
+                ...this.data.repairForm,
+                expenseTypeIndex
             }
         });
     },
@@ -716,11 +739,14 @@ Page({
         });
     },
     async confirmRepairRecord() {
+        const selectedExpenseType = OWNER_EXPENSE_TYPE_OPTIONS[this.data.repairForm.expenseTypeIndex]?.key ?? 'repair';
         const selectedCategory = REPAIR_CATEGORY_OPTIONS[this.data.repairForm.categoryIndex]?.key ?? 'other';
         const note = String(this.data.repairForm.note || '').trim();
         const occurredAt = String(this.data.repairForm.occurredAt || '').trim();
+        const amountText = String(this.data.repairForm.amount || '').trim();
+        const amount = amountText ? Number(amountText) : null;
         const roomId = String(this.data.roomId || '').trim();
-        if (!note) {
+        if (selectedExpenseType === 'repair' && !note) {
             wx.showToast({
                 title: '请填写维修备注',
                 icon: 'none'
@@ -741,18 +767,27 @@ Page({
             });
             return;
         }
+        if (amountText && (!Number.isFinite(amount) || Number(amount) < 0)) {
+            wx.showToast({
+                title: '请填写有效支出金额',
+                icon: 'none'
+            });
+            return;
+        }
         try {
-            await (0, repair_1.saveRepairRecord)({
+            await (0, owner_expense_1.saveOwnerExpense)({
                 roomId,
-                category: selectedCategory,
+                expenseType: selectedExpenseType,
+                amount,
                 note,
-                occurredAt
+                occurredAt,
+                repairCategory: selectedExpenseType === 'repair' ? selectedCategory : undefined
             });
             this.setData({
                 repairDialogVisible: false
             });
             wx.showToast({
-                title: '维修记录已保存',
+                title: '维修/支出已保存',
                 icon: 'success'
             });
             await this.loadDetail();
