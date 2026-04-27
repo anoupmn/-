@@ -2,7 +2,7 @@ import { main as alertsListMain } from '../../cloudfunctions/alerts-list/index';
 import { createMockDb, createMockStore } from '../helpers/mock-cloud';
 
 describe('alerts-list cloud function', () => {
-  it('returns groups by rule type including manual_abnormal', async () => {
+  it('does not remove alerts from another landlord while returning groups by rule type including manual_abnormal', async () => {
     const store = createMockStore();
     store.assets.push({
       id: 'asset_1',
@@ -147,6 +147,17 @@ describe('alerts-list cloud function', () => {
         updatedAt: ''
       }
     );
+    store.alerts.push({
+      id: 'alert_other',
+      landlordOpenId: 'openid_other',
+      type: 'manual_abnormal',
+      level: 'high',
+      roomId: 'room_other',
+      summary: '其他房东的异常',
+      sourceId: 'flag_other',
+      createdAt: '',
+      updatedAt: ''
+    });
 
     const result = await alertsListMain({
       __mockDb: createMockDb(store),
@@ -165,5 +176,6 @@ describe('alerts-list cloud function', () => {
         .find((group: { type: string }) => group.type === 'manual_abnormal')
         ?.items.some((item: { summary: string }) => item.summary.includes('近 30 天维修 3 次'))
     ).toBe(true);
+    expect(store.alerts.some((item) => item.landlordOpenId === 'openid_other' && item.id === 'alert_other')).toBe(true);
   });
 });

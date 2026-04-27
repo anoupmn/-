@@ -92,4 +92,70 @@ describe('bill repository sync', () => {
     expect(firstRentBill?.amount).toBe(3100);
     expect(firstRentBill?.status).toBe(BILL_STATUSES.overdue);
   });
+
+  it('preserves paid bills and manual bills when lease is resynced', async () => {
+    const store = createMockStore();
+    const db = createMockDb(store);
+
+    await syncBillsForLease(db, createLease(), {
+      __mockDb: db,
+      now: '2026-04-01T00:00:00.000Z'
+    });
+
+    const originalBills = await listBillsByLease(db, 'lease_1');
+    const paidSystemBill = originalBills.find((bill) => bill.type === 'rent');
+    const unpaidWaterBill = originalBills.find((bill) => bill.type === 'water');
+
+    expect(paidSystemBill).toBeDefined();
+    expect(unpaidWaterBill).toBeDefined();
+
+    Object.assign(
+      store.bills.find((bill) => bill.id === paidSystemBill!.id)!,
+      {
+        status: BILL_STATUSES.paid,
+        receivedAt: '2026-04-03T00:00:00.000Z',
+        receivedAmount: paidSystemBill!.amount
+      }
+    );
+    store.bills.push({
+      id: 'manual_bill_1',
+      _id: 'db_manual_bill_1',
+      landlordOpenId: 'openid',
+      leaseId: 'lease_1',
+      roomId: 'room_1',
+      type: 'misc',
+      section: 'non_rent',
+      dueDate: '2026-04-15',
+      amount: 88,
+      status: BILL_STATUSES.pending,
+      receivedAt: null,
+      receivedAmount: null,
+      note: '手工补录',
+      source: 'manual',
+      createdAt: '2026-04-03T00:00:00.000Z',
+      updatedAt: '2026-04-03T00:00:00.000Z'
+    });
+
+    await syncBillsForLease(
+      db,
+      createLease({
+        feeRules: {
+          rent: { amount: 3100, cadence: 'cycle' },
+          deposit: { amount: 2800, cadence: 'once' },
+          customFeeItems: []
+        }
+      }),
+      {
+        __mockDb: db,
+        now: '2026-04-04T00:00:00.000Z'
+      }
+    );
+
+    const bills = await listBillsByLease(db, 'lease_1');
+
+    expect(bills.some((bill) => bill.id === paidSystemBill!.id)).toBe(true);
+    expect(bills.some((bill) => bill.id === 'manual_bill_1')).toBe(true);
+    expect(bills.some((bill) => bill.id === unpaidWaterBill!.id)).toBe(false);
+    expect(bills.filter((bill) => bill.type === 'rent' && bill.amount === 3100)).toHaveLength(3);
+  });
 });

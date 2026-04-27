@@ -2,7 +2,7 @@ import { main as dashboardHomeMain } from '../../cloudfunctions/dashboard-home/i
 import { createMockDb, createMockStore } from '../helpers/mock-cloud';
 
 describe('dashboard-home cloud function', () => {
-  it('returns overviewCards, abnormal rows, recommendation and subscriptionState from shared alerts', async () => {
+  it('does not remove alerts from another landlord while returning overviewCards, abnormal rows, recommendation and subscriptionState', async () => {
     const store = createMockStore();
     store.assets.push({
       id: 'asset_1',

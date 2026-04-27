@@ -1,5 +1,6 @@
 export interface MockRecord {
   id: string;
+  _id?: string;
   [key: string]: unknown;
 }
 
@@ -86,9 +87,13 @@ export function createMockDb(store: MockStore) {
           };
         },
         async add({ data }: { data: MockRecord }) {
-          store[key].push(cloneRecord(data));
+          const record = cloneRecord({
+            ...data,
+            _id: data._id ?? data.id
+          });
+          store[key].push(record);
           return {
-            _id: data.id
+            _id: record._id ?? record.id
           };
         },
         where(query: Query) {
@@ -124,10 +129,10 @@ export function createMockDb(store: MockStore) {
         doc(id: string) {
           return {
             get: async () => ({
-              data: cloneRecord(store[key].find((record) => record.id === id) ?? null)
+              data: cloneRecord(store[key].find((record) => record._id === id) ?? null)
             }),
             update: async ({ data }: { data: Partial<MockRecord> }) => {
-              const record = store[key].find((item) => item.id === id);
+              const record = store[key].find((item) => item._id === id);
               if (record) {
                 Object.assign(record, cloneRecord(data));
               }
@@ -138,7 +143,7 @@ export function createMockDb(store: MockStore) {
               };
             },
             remove: async () => {
-              const index = store[key].findIndex((record) => record.id === id);
+              const index = store[key].findIndex((record) => record._id === id);
               if (index >= 0) {
                 store[key].splice(index, 1);
               }

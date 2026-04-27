@@ -123,4 +123,96 @@ describe('leases-save billing integration', () => {
     expect(bills.filter((bill) => bill.type === 'rent')).toHaveLength(3);
     expect(rentBill?.amount).toBe(1880);
   });
+
+  it('updates lease without silently deleting received or manual bills', async () => {
+    const store = createMockStore();
+    const __mockDb = createMockDb(store);
+    const __mockContext = {
+      getWXContext: () => getWXContext('openid-save')
+    };
+    store.rooms.push({
+      id: 'room_1',
+      _id: 'db_room_1',
+      landlordOpenId: 'openid-save',
+      assetId: 'asset_1',
+      name: 'A101',
+      note: '',
+      isWholeUnitDefault: false,
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.tenants.push({
+      id: 'tenant_1',
+      _id: 'db_tenant_1',
+      landlordOpenId: 'openid-save',
+      name: '王租客',
+      phone: '',
+      note: '',
+      createdAt: '',
+      updatedAt: ''
+    });
+
+    const lease = await leasesSaveMain({
+      lease: {
+        roomId: 'room_1',
+        tenantId: 'tenant_1',
+        startDate: '2026-04-01',
+        endDate: '2026-05-31',
+        billingCycleDays: 30,
+        rentAmount: 1800,
+        depositAmount: 1800,
+        note: ''
+      },
+      __mockDb,
+      __mockContext,
+      now: '2026-04-01T00:00:00.000Z'
+    });
+
+    const paidBill = store.bills.find((bill) => bill.leaseId === lease.id && bill.type === 'rent');
+    expect(paidBill).toBeDefined();
+    Object.assign(paidBill!, {
+      status: 'paid',
+      receivedAt: '2026-04-05T00:00:00.000Z',
+      receivedAmount: paidBill!.amount
+    });
+    store.bills.push({
+      id: 'manual_bill_1',
+      _id: 'db_manual_bill_1',
+      landlordOpenId: 'openid-save',
+      leaseId: lease.id,
+      roomId: 'room_1',
+      type: 'misc',
+      section: 'non_rent',
+      dueDate: '2026-04-15',
+      amount: 66,
+      status: 'pending',
+      receivedAt: null,
+      receivedAmount: null,
+      note: '手工补录',
+      source: 'manual',
+      createdAt: '2026-04-05T00:00:00.000Z',
+      updatedAt: '2026-04-05T00:00:00.000Z'
+    });
+
+    await leasesSaveMain({
+      leaseId: lease.id,
+      lease: {
+        roomId: 'room_1',
+        tenantId: 'tenant_1',
+        startDate: '2026-04-01',
+        endDate: '2026-05-31',
+        billingCycleDays: 30,
+        rentAmount: 1999,
+        depositAmount: 1800,
+        note: ''
+      },
+      __mockDb,
+      __mockContext,
+      now: '2026-04-06T00:00:00.000Z'
+    });
+
+    expect(store.bills.some((bill) => bill.id === paidBill!.id && bill.receivedAt)).toBe(true);
+    expect(store.bills.some((bill) => bill.id === 'manual_bill_1')).toBe(true);
+    expect(store.bills.filter((bill) => bill.leaseId === lease.id && bill.type === 'rent' && bill.amount === 1999)).toHaveLength(3);
+  });
 });
