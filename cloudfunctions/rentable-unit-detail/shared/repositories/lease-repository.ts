@@ -1,7 +1,9 @@
 import { COLLECTIONS } from '../constants/collections';
-import { assertSingleActiveLease, closeLeaseAndDeriveUnitStatus } from '../calculators/lease-lifecycle';
+import { assertSingleActiveLease, closeLeaseAndDeriveUnitStatus, deriveLeaseStatus } from '../calculators/lease-lifecycle';
+import { LEASE_STATUSES } from '../constants/statuses';
 import { getLeaseFeeRules, leaseSchema, type Lease, type LeaseInput } from '../schemas/lease';
-import { createId, findById, insertRecord, listAll, resolveNow, type CloudEventBase, type DbLike, updateRecord } from '../runtime';
+import type { Bill } from '../schemas/bill';
+import { createId, findById, insertRecord, listAll, removeRecordsByQuery, resolveNow, type CloudEventBase, type DbLike, updateRecord } from '../runtime';
 import { syncBillsForLease } from './bill-repository';
 
 function resolveNextFeeRules(currentLease: Lease, changes: Partial<LeaseInput>) {
@@ -96,14 +98,144 @@ export async function endLease(db: DbLike, leaseId: string, event: CloudEventBas
     closedAt: result.closedLease.closedAt,
     updatedAt: result.closedLease.updatedAt
   });
+  const duplicateActiveLeases = leases.filter(
+    (lease) =>
+      lease.id !== leaseId &&
+      lease.roomId === currentLease.roomId &&
+      deriveLeaseStatus(lease, resolveNow(event)) === LEASE_STATUSES.active
+  );
+  for (const lease of duplicateActiveLeases) {
+    await updateRecord<Lease>(db, COLLECTIONS.leases, lease.id, {
+      closedAt: result.closedLease.closedAt,
+      updatedAt: result.closedLease.updatedAt
+    });
+  }
+  const unpaidBills = await listLeaseBillsSafely(db, leaseId).then((bills) =>
+    bills.filter((bill) => !bill.receivedAt && bill.receivedAmount == null)
+  );
 
   return {
     lease: updatedLease,
-    currentStatus: result.currentStatus
+    currentStatus: result.currentStatus,
+    unpaidBillSummary: {
+      count: unpaidBills.length,
+      amount: unpaidBills.reduce((sum, bill) => sum + Number(bill.amount || 0), 0)
+    },
+    unpaidBillOptions:
+      unpaidBills.length > 0
+        ? ['keep_debt', 'void_unpaid_system_bills', 'adjust_end_date_and_resync']
+        : []
   };
 }
 
 export async function listLeasesByRoom(db: DbLike, roomId: string) {
   const leases = await listAll<Lease>(db, COLLECTIONS.leases);
   return leases.filter((lease) => lease.roomId === roomId);
+}
+
+async function listLeaseBillsSafely(db: DbLike, leaseId: string) {
+  try {
+    const bills = await listAll<Bill>(db, COLLECTIONS.bills);
+    return bills.filter((bill) => bill.leaseId === leaseId);
+  } catch {
+    return [];
+  }
+}
+
+async function listRecordsSafely<T extends { leaseId?: string }>(db: DbLike, collectionName: string, leaseId: string) {
+  try {
+    const records = await listAll<T & { id: string }>(db, collectionName);
+    return records.filter((record) => record.leaseId === leaseId);
+  } catch {
+    return [];
+  }
+}
+
+export async function getLeaseDeleteBlockers(db: DbLike, leaseId: string, landlordOpenId: string) {
+  const [bills, repairs, ownerExpenses, receipts] = await Promise.all([
+    listLeaseBillsSafely(db, leaseId),
+    listRecordsSafely<{ leaseId?: string }>(db, COLLECTIONS.repairRecords, leaseId),
+    listRecordsSafely<{ leaseId?: string }>(db, COLLECTIONS.ownerExpenses, leaseId),
+    listRecordsSafely<{ leaseId?: string; billId?: string; billIds?: string[] }>(db, COLLECTIONS.receipts, leaseId)
+  ]);
+  const landlordBills = bills.filter((bill) => bill.landlordOpenId === landlordOpenId);
+  const billIds = new Set(landlordBills.map((bill) => bill.id));
+  const hasReceiptReference =
+    landlordBills.some((bill) => Boolean((bill as Bill & { receiptId?: string }).receiptId)) ||
+    receipts.some((receipt) => {
+      if (receipt.leaseId === leaseId) {
+        return true;
+      }
+
+      if (receipt.billId && billIds.has(receipt.billId)) {
+        return true;
+      }
+
+      return Array.isArray(receipt.billIds) && receipt.billIds.some((billId) => billIds.has(String(billId)));
+    });
+  const blockers: Array<{ code: 'paid_bill' | 'receipt' | 'repair_record' | 'owner_expense'; count: number }> = [];
+  const paidBillCount = landlordBills.filter((bill) => bill.receivedAt && bill.receivedAmount !== null).length;
+
+  if (paidBillCount > 0) {
+    blockers.push({ code: 'paid_bill', count: paidBillCount });
+  }
+
+  if (hasReceiptReference) {
+    blockers.push({ code: 'receipt', count: 1 });
+  }
+
+  if (repairs.length > 0) {
+    blockers.push({ code: 'repair_record', count: repairs.length });
+  }
+
+  if (ownerExpenses.length > 0) {
+    blockers.push({ code: 'owner_expense', count: ownerExpenses.length });
+  }
+
+  return blockers;
+}
+
+export async function deleteLeaseSafely(
+  db: DbLike,
+  leaseId: string,
+  landlordOpenId: string,
+  options: { confirm?: boolean } = {}
+) {
+  const lease = await findById<Lease>(db, COLLECTIONS.leases, leaseId);
+  if (!lease || lease.landlordOpenId !== landlordOpenId) {
+    throw new Error(`Lease ${leaseId} not found.`);
+  }
+
+  const bills = await listLeaseBillsSafely(db, leaseId);
+  const deletableBills = bills.filter((bill) =>
+    bill.landlordOpenId === landlordOpenId &&
+    !bill.receivedAt &&
+    bill.receivedAmount === null &&
+    !(bill as Bill & { receiptId?: string }).receiptId
+  );
+  const blockers = await getLeaseDeleteBlockers(db, leaseId, landlordOpenId);
+  const summary = {
+    canDelete: blockers.length === 0,
+    blockers,
+    unpaidBillCount: deletableBills.length
+  };
+
+  if (!summary.canDelete || options.confirm !== true) {
+    return {
+      ...summary,
+      deleted: false,
+      deletedBillCount: 0
+    };
+  }
+
+  for (const bill of deletableBills) {
+    await removeRecordsByQuery(db, COLLECTIONS.bills, { id: bill.id, landlordOpenId });
+  }
+  await removeRecordsByQuery(db, COLLECTIONS.leases, { id: leaseId, landlordOpenId });
+
+  return {
+    ...summary,
+    deleted: true,
+    deletedBillCount: deletableBills.length
+  };
 }

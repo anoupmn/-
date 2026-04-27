@@ -341,12 +341,20 @@
 
 .danger-card {
   padding-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
 }
 
 .danger-button {
   background: #ffffff;
   color: #dc2626;
   border: 1rpx solid #fecaca;
+}
+
+.ghost-danger-button {
+  color: #991b1b;
+  background: #fff7f7;
 }
 
 .dialog-mask {

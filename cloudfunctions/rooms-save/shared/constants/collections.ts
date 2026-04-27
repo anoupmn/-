@@ -7,6 +7,7 @@ export const COLLECTIONS = {
   bills: 'bills',
   repairRecords: 'repair_records',
   ownerExpenses: 'owner_expenses',
+  receipts: 'receipts',
   alerts: 'alerts',
   abnormalFlags: 'abnormal_flags',
   notificationPreferences: 'notification_preferences'

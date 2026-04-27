@@ -22,13 +22,21 @@ export function deriveLeaseStatus(lease: Pick<Lease, 'startDate' | 'endDate' | '
 }
 
 export function assertSingleActiveLease(leases: Lease[], nextLease: Lease, now: string) {
-  const activeLeases = leases.filter(
-    (lease) => lease.roomId === nextLease.roomId && deriveLeaseStatus(lease, now) === LEASE_STATUSES.active
-  );
-  const nextStatus = deriveLeaseStatus(nextLease, now);
+  const nextStart = dayjs(nextLease.startDate);
+  const nextEnd = dayjs(nextLease.endDate);
+  const overlappedLease = leases.find((lease) => {
+    if (lease.id === nextLease.id || lease.roomId !== nextLease.roomId) {
+      return false;
+    }
 
-  if (nextStatus === LEASE_STATUSES.active && activeLeases.length > 0) {
-    throw new Error('A room can only have one active lease at a time.');
+    const existingStart = dayjs(lease.startDate);
+    const existingEnd = lease.closedAt ? dayjs(lease.closedAt) : dayjs(lease.endDate);
+
+    return !nextEnd.isBefore(existingStart, 'day') && !nextStart.isAfter(existingEnd, 'day');
+  });
+
+  if (overlappedLease) {
+    throw new Error('A room can only have one active lease at a time. 租约时间冲突：同一房间已有重叠租约。');
   }
 }
 

@@ -216,6 +216,8 @@
 
     <view class="card danger-card" wx:if="{{detail.activeLease}}">
       <button class="danger-button" bindtap="handleEndLease">结束租约</button>
+      <button class="danger-button ghost-danger-button" bindtap="handleDeleteLease">安全删除租约</button>
+      <view class="hint">删除仅用于录错且无历史关联的租约；已有收款、收据、维修或支出时请编辑、更正、结束或作废。</view>
     </view>
   </view>
 

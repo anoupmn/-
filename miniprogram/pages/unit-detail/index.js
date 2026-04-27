@@ -807,7 +807,7 @@ Page({
         }
         const confirmation = await wx.showModal({
             title: '结束租约',
-            content: '确认结束当前租约后，单元状态会重新计算，历史记录会保留。'
+            content: '确认结束当前租约后，历史记录会保留。若仍有未收账单，可选择保留欠款、作废未收系统账单，或修改截止日期后重算。'
         });
         if (!confirmation.confirm) {
             return;
@@ -824,6 +824,59 @@ Page({
             title: '租约已结束',
             icon: 'success'
         });
+    },
+    async handleDeleteLease() {
+        const leaseId = this.data.detail?.activeLease?.id;
+        if (!leaseId) {
+            return;
+        }
+        try {
+            const checkResult = await (0, lease_1.deleteLease)({
+                leaseId,
+                mode: 'check'
+            });
+            if (!checkResult.canDelete) {
+                const blockerText = (checkResult.blockers ?? [])
+                    .map((item) => ({
+                    paid_bill: '已有已收账单',
+                    receipt: '已有收据引用',
+                    repair_record: '已有维修记录',
+                    owner_expense: '已有房东支出'
+                }[item.code] ?? item.code))
+                    .join('、');
+                await wx.showModal({
+                    title: '不能安全删除租约',
+                    content: `${blockerText || '存在历史关联'}，请改用编辑、更正、结束或作废。`,
+                    showCancel: false
+                });
+                return;
+            }
+            const confirmation = await wx.showModal({
+                title: '安全删除租约',
+                content: `确认删除当前录错租约？将同步删除 ${checkResult.unpaidBillCount || 0} 笔未收且无收据引用的账单。`,
+                confirmText: '确认删除'
+            });
+            if (!confirmation.confirm) {
+                return;
+            }
+            await (0, lease_1.deleteLease)({
+                leaseId,
+                mode: 'delete',
+                confirm: true
+            });
+            wx.showToast({
+                title: '租约已删除',
+                icon: 'success'
+            });
+            await this.loadDetail();
+        }
+        catch (error) {
+            console.error('delete lease failed', error);
+            wx.showToast({
+                title: '删除失败，请稍后重试',
+                icon: 'none'
+            });
+        }
     },
     async handleRenewLease() {
         if (this.data.renewingLease) {
@@ -916,7 +969,14 @@ Page({
         let leaseClosed = false;
         let isTimeout = false;
         try {
-            await (0, lease_1.endLease)({ leaseId });
+            const result = await (0, lease_1.endLease)({ leaseId });
+            if ((result.unpaidBillSummary?.count ?? 0) > 0) {
+                await wx.showModal({
+                    title: '未收账单处理',
+                    content: '当前仍有未收账单。可保留欠款、作废未收系统账单，或修改截止日期后重算。',
+                    showCancel: false
+                });
+            }
             leaseClosed = await confirmLeaseClosed();
         }
         catch (error) {

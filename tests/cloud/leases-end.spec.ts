@@ -33,7 +33,13 @@ function createLeasesOnlyDb(leases: LeaseRecord[]) {
                 Object.entries(query).every(([key, value]) => (lease as Record<string, unknown>)[key] === value)
               )
             }),
-            update: async () => ({ stats: { updated: 0 } }),
+            update: async ({ data }: { data: Partial<LeaseRecord> }) => {
+              const matches = leases.filter((lease) =>
+                Object.entries(query).every(([key, value]) => (lease as Record<string, unknown>)[key] === value)
+              );
+              matches.forEach((lease) => Object.assign(lease, data));
+              return { stats: { updated: matches.length } };
+            },
             remove: async () => ({ stats: { removed: 0 } })
           };
         },

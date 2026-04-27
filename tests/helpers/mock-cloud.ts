@@ -13,6 +13,7 @@ export interface MockStore {
   bills: MockRecord[];
   repairRecords: MockRecord[];
   ownerExpenses: MockRecord[];
+  receipts: MockRecord[];
   alerts: MockRecord[];
   abnormalFlags: MockRecord[];
   notificationPreferences: MockRecord[];
@@ -28,6 +29,7 @@ type CollectionName =
   | 'bills'
   | 'repair_records'
   | 'owner_expenses'
+  | 'receipts'
   | 'alerts'
   | 'abnormal_flags'
   | 'notification_preferences';
@@ -71,6 +73,7 @@ export function createMockStore(): MockStore {
     bills: [],
     repairRecords: [],
     ownerExpenses: [],
+    receipts: [],
     alerts: [],
     abnormalFlags: [],
     notificationPreferences: []
