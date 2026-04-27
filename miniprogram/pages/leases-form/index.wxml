@@ -75,8 +75,33 @@
       <view class="section-title">固定费用</view>
       <input class="search-input" placeholder="租金（元）" data-field="rentAmount" bindinput="handleInputChange" value="{{rentAmount}}" />
       <input class="search-input" placeholder="押金（一次性，元）" data-field="depositAmount" bindinput="handleInputChange" value="{{depositAmount}}" />
-      <input class="search-input" placeholder="管理费 / 物业费（元）" data-field="propertyAmount" bindinput="handleInputChange" value="{{propertyAmount}}" />
+      <input class="search-input" placeholder="管理费（元）" data-field="managementAmount" bindinput="handleInputChange" value="{{managementAmount}}" />
+      <picker range="{{managementCadenceOptions}}" bindchange="handleManagementCadenceChange">
+        <view class="picker-field">
+          <view class="field-label">管理费性质</view>
+          <view class="picker-value">{{managementCadence === 'once' ? '一次性费用' : '周期性费用'}}</view>
+        </view>
+      </picker>
+      <input class="search-input" placeholder="消防押金（一次性押金类，元）" data-field="fireDepositAmount" bindinput="handleInputChange" value="{{fireDepositAmount}}" />
+      <input class="search-input" placeholder="锁卡押金（一次性押金类，元）" data-field="lockCardDepositAmount" bindinput="handleInputChange" value="{{lockCardDepositAmount}}" />
       <input class="search-input" placeholder="其他固定费用（元）" data-field="miscAmount" bindinput="handleInputChange" value="{{miscAmount}}" />
+
+      <view class="custom-fee-header">
+        <view class="sub-title">自定义费用</view>
+        <button class="secondary-button compact-button" bindtap="addCustomFeeItem">添加</button>
+      </view>
+      <view wx:for="{{customFeeItems}}" wx:key="key" class="custom-fee-item">
+        <input class="search-input" placeholder="费用名称" data-index="{{index}}" data-field="label" bindinput="handleCustomFeeInput" value="{{item.label}}" />
+        <input class="search-input" placeholder="金额（元）" data-index="{{index}}" data-field="amount" bindinput="handleCustomFeeInput" value="{{item.amount}}" />
+        <picker range="{{customFeeNatureOptions}}" data-index="{{index}}" bindchange="handleCustomFeeNatureChange">
+          <view class="picker-field">
+            <view class="field-label">费用性质</view>
+            <view class="picker-value">
+              {{item.feeNature === 'deposit' ? '押金类费用' : item.feeNature === 'one_time' ? '一次性费用' : item.feeNature === 'recurring' ? '周期性费用' : '请选择'}}
+            </view>
+          </view>
+        </picker>
+      </view>
 
       <view class="tip-block">
         <view class="text-muted">水费、电费、维修费等浮动费用不在这里设置固定金额。</view>

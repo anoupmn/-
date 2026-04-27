@@ -2,11 +2,28 @@ import { z } from 'zod';
 
 import { BILL_STATUSES } from '../constants/statuses';
 
-export const billTypeSchema = z.enum(['rent', 'deposit', 'water', 'electricity', 'property', 'misc', 'custom']);
+export const billTypeSchema = z.enum([
+  'rent',
+  'deposit',
+  'management',
+  'fire_deposit',
+  'lock_card_deposit',
+  'water',
+  'electricity',
+  'property',
+  'misc',
+  'custom'
+]);
 export type BillType = z.infer<typeof billTypeSchema>;
 
 export const billSectionSchema = z.enum(['rent', 'deposit', 'non_rent']);
 export type BillSection = z.infer<typeof billSectionSchema>;
+
+export const billFeeNatureSchema = z.enum(['recurring', 'one_time', 'deposit']);
+export type BillFeeNature = z.infer<typeof billFeeNatureSchema>;
+
+export const billCadenceSchema = z.enum(['cycle', 'once']);
+export type BillCadence = z.infer<typeof billCadenceSchema>;
 
 export const billSchema = z.object({
   id: z.string(),
@@ -24,8 +41,14 @@ export const billSchema = z.object({
   itemKey: z.string().optional(),
   itemLabel: z.string().optional(),
   source: z.enum(['system', 'manual']).optional(),
+  feeNature: billFeeNatureSchema.catch('recurring').default('recurring'),
+  responsibility: z.literal('tenant').catch('tenant').default('tenant'),
+  cadence: billCadenceSchema.catch('cycle').default('cycle'),
+  isDepositLike: z.boolean().catch(false).default(false),
+  isOneTime: z.boolean().catch(false).default(false),
+  legacy: z.boolean().catch(false).default(false),
   createdAt: z.string(),
   updatedAt: z.string()
 });
 
-export type Bill = z.infer<typeof billSchema>;
+export type Bill = z.input<typeof billSchema>;

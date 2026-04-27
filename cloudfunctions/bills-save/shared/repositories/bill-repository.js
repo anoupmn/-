@@ -17,6 +17,9 @@ const bill_status_1 = require("../calculators/bill-status");
 const bill_1 = require("../schemas/bill");
 const lease_1 = require("../schemas/lease");
 const runtime_1 = require("../runtime");
+function resolveFeeNatureFromCadence(cadence) {
+    return cadence === 'once' ? 'one_time' : 'recurring';
+}
 function buildRecurringDueDates(lease) {
     const dueDates = [];
     let current = (0, dayjs_1.default)(lease.startDate);
@@ -30,16 +33,60 @@ function buildRecurringDueDates(lease) {
 function mapLeaseFeeItems(lease) {
     const feeRules = (0, lease_1.getLeaseFeeRules)(lease);
     const items = [
-        { type: 'rent', section: 'rent', amount: feeRules.rent.amount, cadence: feeRules.rent.cadence },
-        { type: 'deposit', section: 'deposit', amount: feeRules.deposit.amount, cadence: feeRules.deposit.cadence }
+        {
+            type: 'rent',
+            section: 'rent',
+            amount: feeRules.rent.amount,
+            cadence: feeRules.rent.cadence,
+            feeNature: 'recurring',
+            isDepositLike: false
+        },
+        {
+            type: 'deposit',
+            section: 'deposit',
+            amount: feeRules.deposit.amount,
+            cadence: feeRules.deposit.cadence,
+            feeNature: 'deposit',
+            isDepositLike: true
+        }
     ];
+    if (feeRules.management.amount > 0) {
+        items.push({
+            type: 'management',
+            section: 'non_rent',
+            amount: feeRules.management.amount,
+            cadence: feeRules.management.cadence,
+            feeNature: resolveFeeNatureFromCadence(feeRules.management.cadence),
+            isDepositLike: false
+        });
+    }
+    if (feeRules.fireDeposit.amount > 0) {
+        items.push({
+            type: 'fire_deposit',
+            section: 'deposit',
+            amount: feeRules.fireDeposit.amount,
+            cadence: 'once',
+            feeNature: 'deposit',
+            isDepositLike: true
+        });
+    }
+    if (feeRules.lockCardDeposit.amount > 0) {
+        items.push({
+            type: 'lock_card_deposit',
+            section: 'deposit',
+            amount: feeRules.lockCardDeposit.amount,
+            cadence: 'once',
+            feeNature: 'deposit',
+            isDepositLike: true
+        });
+    }
     const optionalRuleEntries = [
         { type: 'water', rule: feeRules.water },
         { type: 'electricity', rule: feeRules.electricity },
-        { type: 'property', rule: feeRules.property },
+        { type: 'property', rule: feeRules.property, legacy: true },
         { type: 'misc', rule: feeRules.misc }
     ];
-    optionalRuleEntries.forEach(({ type, rule }) => {
+    optionalRuleEntries.forEach(({ type, rule, legacy }) => {
         if (!rule || rule.amount <= 0) {
             return;
         }
@@ -47,7 +94,10 @@ function mapLeaseFeeItems(lease) {
             type,
             section: 'non_rent',
             amount: rule.amount,
-            cadence: rule.cadence
+            cadence: rule.cadence,
+            feeNature: resolveFeeNatureFromCadence(rule.cadence),
+            isDepositLike: false,
+            legacy
         });
     });
     feeRules.customFeeItems.forEach((item) => {
@@ -56,9 +106,11 @@ function mapLeaseFeeItems(lease) {
         }
         items.push({
             type: 'custom',
-            section: 'non_rent',
+            section: item.feeNature === 'deposit' ? 'deposit' : 'non_rent',
             amount: item.amount,
             cadence: item.cadence,
+            feeNature: item.feeNature,
+            isDepositLike: item.feeNature === 'deposit',
             itemKey: item.key,
             itemLabel: item.label
         });
@@ -88,6 +140,12 @@ function buildBillsForLease(lease, event) {
                 itemKey: item.itemKey,
                 itemLabel: item.itemLabel,
                 source: 'system',
+                feeNature: item.feeNature,
+                responsibility: 'tenant',
+                cadence: item.cadence,
+                isDepositLike: item.isDepositLike,
+                isOneTime: item.cadence === 'once',
+                legacy: item.legacy ?? false,
                 createdAt: generatedAt,
                 updatedAt: generatedAt
             });

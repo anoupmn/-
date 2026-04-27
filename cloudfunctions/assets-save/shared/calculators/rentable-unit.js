@@ -35,11 +35,12 @@ function buildRentableUnitSummary(input) {
     }))
         .filter((bill) => bill.status !== statuses_1.BILL_STATUSES.paid)
         .sort((a, b) => (0, dayjs_1.default)(a.dueDate).valueOf() - (0, dayjs_1.default)(b.dueDate).valueOf());
+    const coreOutstandingBills = outstandingBills.filter((bill) => (0, bill_status_1.isBillOverdueTrackable)(bill));
     if (activeLease) {
         mainStatus = statuses_1.UNIT_MAIN_STATUSES.occupied;
-        if (outstandingBills[0]) {
-            nextReceivableDate = outstandingBills[0].dueDate;
-            nextReceivableAmount = outstandingBills[0].amount;
+        if (coreOutstandingBills[0]) {
+            nextReceivableDate = coreOutstandingBills[0].dueDate;
+            nextReceivableAmount = coreOutstandingBills[0].amount;
         }
         else {
             const feeRules = (0, lease_1.getLeaseFeeRules)(activeLease);

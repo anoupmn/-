@@ -10,7 +10,7 @@ import {
   type BillRiskTag,
   type UnitMainStatus
 } from '../constants/statuses';
-import { deriveBillStatus, isBillWithinUpcomingWindow } from './bill-status';
+import { deriveBillStatus, isBillOverdueTrackable, isBillWithinUpcomingWindow } from './bill-status';
 import { deriveLeaseStatus, getNextReceivableDate } from './lease-lifecycle';
 import type { Asset } from '../schemas/asset';
 import type { Bill } from '../schemas/bill';
@@ -74,13 +74,14 @@ export function buildRentableUnitSummary(input: {
     }))
     .filter((bill) => bill.status !== BILL_STATUSES.paid)
     .sort((a, b) => dayjs(a.dueDate).valueOf() - dayjs(b.dueDate).valueOf());
+  const coreOutstandingBills = outstandingBills.filter((bill) => isBillOverdueTrackable(bill));
 
   if (activeLease) {
     mainStatus = UNIT_MAIN_STATUSES.occupied;
 
-    if (outstandingBills[0]) {
-      nextReceivableDate = outstandingBills[0].dueDate;
-      nextReceivableAmount = outstandingBills[0].amount;
+    if (coreOutstandingBills[0]) {
+      nextReceivableDate = coreOutstandingBills[0].dueDate;
+      nextReceivableAmount = coreOutstandingBills[0].amount;
     } else {
       const feeRules = getLeaseFeeRules(activeLease);
       nextReceivableDate = getNextReceivableDate(activeLease, now);

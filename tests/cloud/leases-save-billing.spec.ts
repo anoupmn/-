@@ -215,4 +215,89 @@ describe('leases-save billing integration', () => {
     expect(store.bills.some((bill) => bill.id === 'manual_bill_1')).toBe(true);
     expect(store.bills.filter((bill) => bill.leaseId === lease.id && bill.type === 'rent' && bill.amount === 1999)).toHaveLength(3);
   });
+
+  it('allows management fee cadence to be one-time', async () => {
+    const store = createMockStore();
+    const __mockDb = createMockDb(store);
+    const __mockContext = {
+      getWXContext: () => getWXContext('openid-save')
+    };
+    store.rooms.push({
+      id: 'room_1',
+      _id: 'db_room_1',
+      landlordOpenId: 'openid-save',
+      assetId: 'asset_1',
+      name: 'A101',
+      note: '',
+      isWholeUnitDefault: false,
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.tenants.push({
+      id: 'tenant_1',
+      _id: 'db_tenant_1',
+      landlordOpenId: 'openid-save',
+      name: '王租客',
+      phone: '',
+      note: '',
+      createdAt: '',
+      updatedAt: ''
+    });
+
+    const lease = await leasesSaveMain({
+      lease: {
+        roomId: 'room_1',
+        tenantId: 'tenant_1',
+        startDate: '2026-04-01',
+        endDate: '2026-05-31',
+        billingCycleDays: 30,
+        rentAmount: 1800,
+        depositAmount: 1800,
+        feeRules: {
+          rent: { amount: 1800, cadence: 'cycle' },
+          deposit: { amount: 1800, cadence: 'once' },
+          management: { amount: 150 },
+          customFeeItems: []
+        },
+        note: ''
+      },
+      __mockDb,
+      __mockContext,
+      now: '2026-04-01T00:00:00.000Z'
+    });
+
+    expect(store.bills.filter((bill) => bill.leaseId === lease.id && bill.type === 'management')).toHaveLength(3);
+
+    await leasesSaveMain({
+      leaseId: lease.id,
+      lease: {
+        roomId: 'room_1',
+        tenantId: 'tenant_1',
+        startDate: '2026-04-01',
+        endDate: '2026-05-31',
+        billingCycleDays: 30,
+        rentAmount: 1800,
+        depositAmount: 1800,
+        feeRules: {
+          rent: { amount: 1800, cadence: 'cycle' },
+          deposit: { amount: 1800, cadence: 'once' },
+          management: { amount: 150, cadence: 'once' },
+          customFeeItems: []
+        },
+        note: ''
+      },
+      __mockDb,
+      __mockContext,
+      now: '2026-04-02T00:00:00.000Z'
+    });
+
+    const managementBills = store.bills.filter((bill) => bill.leaseId === lease.id && bill.type === 'management');
+
+    expect(managementBills).toHaveLength(1);
+    expect(managementBills[0]).toMatchObject({
+      cadence: 'once',
+      feeNature: 'one_time',
+      isOneTime: true
+    });
+  });
 });

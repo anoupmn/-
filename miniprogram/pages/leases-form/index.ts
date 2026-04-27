@@ -9,6 +9,14 @@ type AssetItem = Record<string, unknown> & {
   address?: string;
 };
 
+type CustomFeeDraft = {
+  key: string;
+  label: string;
+  amount: string;
+  cadence: 'cycle' | 'once';
+  feeNature: '' | 'recurring' | 'one_time' | 'deposit';
+};
+
 function resolveLeaseSaveErrorMessage(error: unknown) {
   const payload = error as { message?: string; errMsg?: string } | undefined;
   const rawMessage = `${payload?.message ?? ''} ${payload?.errMsg ?? ''}`.trim();
@@ -39,6 +47,9 @@ Page({
     rooms: [] as Array<Record<string, unknown>>,
     roomIndex: 0,
     billingCycleOptions: ['30 天', '31 天', '按月近似 28 天'],
+    managementCadenceOptions: ['周期性费用', '一次性费用'],
+    customFeeNatureOptions: ['周期性费用', '一次性费用', '押金类费用'],
+    customFeeNatureValues: ['recurring', 'one_time', 'deposit'] as Array<'recurring' | 'one_time' | 'deposit'>,
     assetSearchKeyword: '',
     visibleAssets: [] as AssetItem[],
     selectedAssetId: '',
@@ -51,8 +62,12 @@ Page({
     billingCycleDays: '30',
     rentAmount: '',
     depositAmount: '',
-    propertyAmount: '',
+    managementAmount: '',
+    managementCadence: 'cycle' as 'cycle' | 'once',
+    fireDepositAmount: '',
+    lockCardDepositAmount: '',
     miscAmount: '',
+    customFeeItems: [] as CustomFeeDraft[],
     message: '',
     roomHint: '请先通过搜索并点选房源',
     submitting: false
@@ -163,6 +178,58 @@ Page({
       billingCycleDays: cycleValues[optionIndex] || '30'
     });
   },
+  handleManagementCadenceChange(event: WechatMiniprogram.PickerChange) {
+    const optionIndex = Number(event.detail.value || 0);
+    this.setData({
+      managementCadence: optionIndex === 1 ? 'once' : 'cycle'
+    });
+  },
+  addCustomFeeItem() {
+    const index = this.data.customFeeItems.length + 1;
+    this.setData({
+      customFeeItems: [
+        ...this.data.customFeeItems,
+        {
+          key: `custom_${Date.now()}_${index}`,
+          label: '',
+          amount: '',
+          cadence: 'cycle',
+          feeNature: ''
+        }
+      ]
+    });
+  },
+  handleCustomFeeInput(event: WechatMiniprogram.Input) {
+    const index = Number(event.currentTarget.dataset.index || 0);
+    const field = event.currentTarget.dataset.field as keyof CustomFeeDraft;
+    const customFeeItems = this.data.customFeeItems.slice();
+    customFeeItems[index] = {
+      ...customFeeItems[index],
+      [field]: event.detail.value
+    };
+    this.setData({ customFeeItems });
+  },
+  handleCustomFeeNatureChange(event: WechatMiniprogram.PickerChange) {
+    const index = Number(event.currentTarget.dataset.index || 0);
+    const optionIndex = Number(event.detail.value || 0);
+    const customFeeItems = this.data.customFeeItems.slice();
+    customFeeItems[index] = {
+      ...customFeeItems[index],
+      feeNature: this.data.customFeeNatureValues[optionIndex] || ''
+    };
+    this.setData({ customFeeItems });
+  },
+  buildCustomFeeItems() {
+    return this.data.customFeeItems
+      .filter((item) => item.label.trim() || Number(item.amount || 0) > 0)
+      .map((item, index) => ({
+        key: item.key || `custom_${index + 1}`,
+        label: item.label.trim(),
+        amount: Number(item.amount || 0),
+        cadence: item.feeNature === 'one_time' || item.feeNature === 'deposit' ? 'once' : item.cadence,
+        feeNature: item.feeNature
+      }));
+  },
   async handleSubmit() {
     if (this.data.submitting) {
       return;
@@ -187,6 +254,15 @@ Page({
     if (!this.data.tenantName) {
       wx.showToast({
         title: '请填写租户姓名',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const customFeeItems = this.buildCustomFeeItems();
+    if (customFeeItems.some((item) => !item.feeNature)) {
+      wx.showToast({
+        title: '请选择自定义费用性质',
         icon: 'none'
       });
       return;
@@ -224,13 +300,19 @@ Page({
               amount: Number(this.data.depositAmount || 0),
               cadence: 'once'
             },
-            property: Number(this.data.propertyAmount || 0)
-              ? { amount: Number(this.data.propertyAmount || 0), cadence: 'cycle' }
+            management: Number(this.data.managementAmount || 0)
+              ? { amount: Number(this.data.managementAmount || 0), cadence: this.data.managementCadence }
+              : undefined,
+            fireDeposit: Number(this.data.fireDepositAmount || 0)
+              ? { amount: Number(this.data.fireDepositAmount || 0), cadence: 'once' }
+              : undefined,
+            lockCardDeposit: Number(this.data.lockCardDepositAmount || 0)
+              ? { amount: Number(this.data.lockCardDepositAmount || 0), cadence: 'once' }
               : undefined,
             misc: Number(this.data.miscAmount || 0)
               ? { amount: Number(this.data.miscAmount || 0), cadence: 'cycle' }
               : undefined,
-            customFeeItems: []
+            customFeeItems
           },
           note: ''
         }
@@ -244,8 +326,12 @@ Page({
         billingCycleDays: '30',
         rentAmount: '',
         depositAmount: '',
-        propertyAmount: '',
+        managementAmount: '',
+        managementCadence: 'cycle',
+        fireDepositAmount: '',
+        lockCardDepositAmount: '',
         miscAmount: '',
+        customFeeItems: [],
         message: '租户与租约已保存'
       });
 

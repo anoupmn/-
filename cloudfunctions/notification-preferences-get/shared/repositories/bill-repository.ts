@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import { COLLECTIONS } from '../constants/collections';
 import { BILL_STATUSES } from '../constants/statuses';
 import { deriveBillStatus } from '../calculators/bill-status';
-import { billSchema, type Bill, type BillSection, type BillType } from '../schemas/bill';
+import { billSchema, type Bill, type BillFeeNature, type BillSection, type BillType } from '../schemas/bill';
 import { getLeaseFeeRules, type CustomFeeItem, type Lease, type LeaseFeeRule } from '../schemas/lease';
 import { createId, findById, insertRecord, listAll, resolveNow, updateRecord, type CloudEventBase, type DbLike } from '../runtime';
 
@@ -12,9 +12,16 @@ type FeeItemDefinition = {
   section: BillSection;
   amount: number;
   cadence: LeaseFeeRule['cadence'];
+  feeNature: BillFeeNature;
+  isDepositLike: boolean;
+  legacy?: boolean;
   itemKey?: string;
   itemLabel?: string;
 };
+
+function resolveFeeNatureFromCadence(cadence: LeaseFeeRule['cadence']): BillFeeNature {
+  return cadence === 'once' ? 'one_time' : 'recurring';
+}
 
 function buildRecurringDueDates(lease: Lease) {
   const dueDates: string[] = [];
@@ -32,18 +39,65 @@ function buildRecurringDueDates(lease: Lease) {
 function mapLeaseFeeItems(lease: Lease): FeeItemDefinition[] {
   const feeRules = getLeaseFeeRules(lease);
   const items: FeeItemDefinition[] = [
-    { type: 'rent', section: 'rent', amount: feeRules.rent.amount, cadence: feeRules.rent.cadence },
-    { type: 'deposit', section: 'deposit', amount: feeRules.deposit.amount, cadence: feeRules.deposit.cadence }
+    {
+      type: 'rent',
+      section: 'rent',
+      amount: feeRules.rent.amount,
+      cadence: feeRules.rent.cadence,
+      feeNature: 'recurring',
+      isDepositLike: false
+    },
+    {
+      type: 'deposit',
+      section: 'deposit',
+      amount: feeRules.deposit.amount,
+      cadence: feeRules.deposit.cadence,
+      feeNature: 'deposit',
+      isDepositLike: true
+    }
   ];
 
-  const optionalRuleEntries: Array<{ type: BillType; rule: LeaseFeeRule | undefined }> = [
+  if (feeRules.management.amount > 0) {
+    items.push({
+      type: 'management',
+      section: 'non_rent',
+      amount: feeRules.management.amount,
+      cadence: feeRules.management.cadence,
+      feeNature: resolveFeeNatureFromCadence(feeRules.management.cadence),
+      isDepositLike: false
+    });
+  }
+
+  if (feeRules.fireDeposit.amount > 0) {
+    items.push({
+      type: 'fire_deposit',
+      section: 'deposit',
+      amount: feeRules.fireDeposit.amount,
+      cadence: 'once',
+      feeNature: 'deposit',
+      isDepositLike: true
+    });
+  }
+
+  if (feeRules.lockCardDeposit.amount > 0) {
+    items.push({
+      type: 'lock_card_deposit',
+      section: 'deposit',
+      amount: feeRules.lockCardDeposit.amount,
+      cadence: 'once',
+      feeNature: 'deposit',
+      isDepositLike: true
+    });
+  }
+
+  const optionalRuleEntries: Array<{ type: BillType; rule: LeaseFeeRule | undefined; legacy?: boolean }> = [
     { type: 'water', rule: feeRules.water },
     { type: 'electricity', rule: feeRules.electricity },
-    { type: 'property', rule: feeRules.property },
+    { type: 'property', rule: feeRules.property, legacy: true },
     { type: 'misc', rule: feeRules.misc }
   ];
 
-  optionalRuleEntries.forEach(({ type, rule }) => {
+  optionalRuleEntries.forEach(({ type, rule, legacy }) => {
     if (!rule || rule.amount <= 0) {
       return;
     }
@@ -52,7 +106,10 @@ function mapLeaseFeeItems(lease: Lease): FeeItemDefinition[] {
       type,
       section: 'non_rent',
       amount: rule.amount,
-      cadence: rule.cadence
+      cadence: rule.cadence,
+      feeNature: resolveFeeNatureFromCadence(rule.cadence),
+      isDepositLike: false,
+      legacy
     });
   });
 
@@ -63,9 +120,11 @@ function mapLeaseFeeItems(lease: Lease): FeeItemDefinition[] {
 
     items.push({
       type: 'custom',
-      section: 'non_rent',
+      section: item.feeNature === 'deposit' ? 'deposit' : 'non_rent',
       amount: item.amount,
       cadence: item.cadence,
+      feeNature: item.feeNature,
+      isDepositLike: item.feeNature === 'deposit',
       itemKey: item.key,
       itemLabel: item.label
     });
@@ -99,6 +158,12 @@ function buildBillsForLease(lease: Lease, event: CloudEventBase) {
         itemKey: item.itemKey,
         itemLabel: item.itemLabel,
         source: 'system',
+        feeNature: item.feeNature,
+        responsibility: 'tenant',
+        cadence: item.cadence,
+        isDepositLike: item.isDepositLike,
+        isOneTime: item.cadence === 'once',
+        legacy: item.legacy ?? false,
         createdAt: generatedAt,
         updatedAt: generatedAt
       });

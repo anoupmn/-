@@ -14,7 +14,12 @@ function getUpcomingDueWindowDays() {
     return UPCOMING_DUE_WINDOW_DAYS;
 }
 function isBillOverdueTrackable(bill) {
-    return bill.type !== 'deposit';
+    return ((bill.responsibility ?? 'tenant') === 'tenant' &&
+        !bill.isDepositLike &&
+        bill.feeNature !== 'deposit' &&
+        bill.type !== 'deposit' &&
+        bill.type !== 'fire_deposit' &&
+        bill.type !== 'lock_card_deposit');
 }
 function deriveBillStatus(bill, now) {
     if (bill.receivedAt && bill.receivedAmount !== null) {
@@ -32,6 +37,9 @@ function deriveBillStatus(bill, now) {
 }
 function isBillWithinUpcomingWindow(bill, now) {
     if (deriveBillStatus(bill, now) === statuses_1.BILL_STATUSES.paid) {
+        return false;
+    }
+    if (!isBillOverdueTrackable(bill)) {
         return false;
     }
     const today = (0, dayjs_1.default)(now);

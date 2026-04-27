@@ -94,6 +94,32 @@
   padding: 14rpx;
 }
 
+.custom-fee-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.custom-fee-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding: 14rpx;
+  background: #f7f9fc;
+  border: 1rpx solid #dce4ee;
+  border-radius: 14rpx;
+}
+
+.compact-button {
+  width: auto;
+  min-width: 120rpx;
+  margin: 0;
+  padding: 0 18rpx;
+  line-height: 56rpx;
+  font-size: 24rpx;
+}
+
 .submit-message {
   font-size: 24rpx;
   line-height: 1.5;

@@ -9,12 +9,23 @@ export function getUpcomingDueWindowDays() {
   return UPCOMING_DUE_WINDOW_DAYS;
 }
 
-export function isBillOverdueTrackable(bill: Pick<Bill, 'type'>) {
-  return bill.type !== 'deposit';
+type BillTrackabilityInput = Pick<Bill, 'type'> &
+  Partial<Pick<Bill, 'feeNature' | 'responsibility' | 'isDepositLike'>>;
+
+export function isBillOverdueTrackable(bill: BillTrackabilityInput) {
+  return (
+    (bill.responsibility ?? 'tenant') === 'tenant' &&
+    !bill.isDepositLike &&
+    bill.feeNature !== 'deposit' &&
+    bill.type !== 'deposit' &&
+    bill.type !== 'fire_deposit' &&
+    bill.type !== 'lock_card_deposit'
+  );
 }
 
 export function deriveBillStatus(
-  bill: Pick<Bill, 'type' | 'dueDate' | 'receivedAt' | 'receivedAmount'>,
+  bill: Pick<Bill, 'type' | 'dueDate' | 'receivedAt' | 'receivedAmount'> &
+    Partial<Pick<Bill, 'feeNature' | 'responsibility' | 'isDepositLike'>>,
   now: string
 ): BillStatus {
   if (bill.receivedAt && bill.receivedAmount !== null) {
@@ -35,8 +46,16 @@ export function deriveBillStatus(
   return BILL_STATUSES.pending;
 }
 
-export function isBillWithinUpcomingWindow(bill: Pick<Bill, 'dueDate' | 'type' | 'receivedAt' | 'receivedAmount'>, now: string) {
+export function isBillWithinUpcomingWindow(
+  bill: Pick<Bill, 'dueDate' | 'type' | 'receivedAt' | 'receivedAmount'> &
+    Partial<Pick<Bill, 'feeNature' | 'responsibility' | 'isDepositLike'>>,
+  now: string
+) {
   if (deriveBillStatus(bill, now) === BILL_STATUSES.paid) {
+    return false;
+  }
+
+  if (!isBillOverdueTrackable(bill)) {
     return false;
   }
 

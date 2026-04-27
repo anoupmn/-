@@ -16,15 +16,18 @@ function getBillTypeLabel(bill) {
     if (bill.itemLabel) {
         return bill.itemLabel;
     }
-    return {
+    return ({
         rent: '租金',
         deposit: '押金',
+        management: '管理费',
+        fire_deposit: '消防押金',
+        lock_card_deposit: '锁卡押金',
         water: '水费',
         electricity: '电费',
         property: '管理费',
         misc: '杂费',
         custom: '其他费用'
-    }[bill.type];
+    }[bill.type ?? 'custom'] ?? '其他费用');
 }
 function buildMonthlyBillGroups(bills, now) {
     const currentMonth = (0, dayjs_1.default)(now).format('YYYY-MM');

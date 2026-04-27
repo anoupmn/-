@@ -16,6 +16,9 @@ const activeLease: Lease = {
   feeRules: {
     rent: { amount: 2800, cadence: 'cycle' },
     deposit: { amount: 2800, cadence: 'once' },
+    management: { amount: 0, cadence: 'cycle' },
+    fireDeposit: { amount: 0, cadence: 'once' },
+    lockCardDeposit: { amount: 0, cadence: 'once' },
     water: { amount: 120, cadence: 'cycle' },
     electricity: { amount: 80, cadence: 'cycle' },
     property: { amount: 100, cadence: 'cycle' },

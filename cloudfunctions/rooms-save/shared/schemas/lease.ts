@@ -3,9 +3,12 @@ import { z } from 'zod';
 export const leaseFeeCadenceSchema = z.enum(['cycle', 'once']);
 export type LeaseFeeCadence = z.infer<typeof leaseFeeCadenceSchema>;
 
+export const customFeeNatureSchema = z.enum(['recurring', 'one_time', 'deposit']);
+export type CustomFeeNature = z.infer<typeof customFeeNatureSchema>;
+
 export const leaseFeeRuleSchema = z.object({
   amount: z.number().nonnegative(),
-  cadence: leaseFeeCadenceSchema
+  cadence: leaseFeeCadenceSchema.default('cycle')
 });
 export type LeaseFeeRule = z.infer<typeof leaseFeeRuleSchema>;
 
@@ -13,13 +16,27 @@ export const customFeeItemSchema = z.object({
   key: z.string(),
   label: z.string(),
   amount: z.number().nonnegative(),
-  cadence: leaseFeeCadenceSchema
+  cadence: leaseFeeCadenceSchema,
+  feeNature: customFeeNatureSchema.default('recurring')
 });
 export type CustomFeeItem = z.infer<typeof customFeeItemSchema>;
+
+const zeroCycleFeeRule = leaseFeeRuleSchema.default({
+  amount: 0,
+  cadence: 'cycle'
+});
+
+const zeroOnceFeeRule = leaseFeeRuleSchema.default({
+  amount: 0,
+  cadence: 'once'
+});
 
 export const leaseFeeRulesSchema = z.object({
   rent: leaseFeeRuleSchema,
   deposit: leaseFeeRuleSchema,
+  management: zeroCycleFeeRule,
+  fireDeposit: zeroOnceFeeRule,
+  lockCardDeposit: zeroOnceFeeRule,
   water: leaseFeeRuleSchema.optional(),
   electricity: leaseFeeRuleSchema.optional(),
   property: leaseFeeRuleSchema.optional(),
@@ -27,6 +44,7 @@ export const leaseFeeRulesSchema = z.object({
   customFeeItems: z.array(customFeeItemSchema).default([])
 });
 export type LeaseFeeRules = z.infer<typeof leaseFeeRulesSchema>;
+export type LeaseFeeRulesInput = z.input<typeof leaseFeeRulesSchema>;
 
 export const leaseSchema = z.object({
   id: z.string(),
@@ -55,7 +73,7 @@ export const leaseInputSchema = leaseSchema.omit({
   updatedAt: true
 });
 
-export type LeaseInput = z.infer<typeof leaseInputSchema>;
+export type LeaseInput = z.input<typeof leaseInputSchema>;
 
 export function buildDefaultLeaseFeeRules(input: Pick<Lease, 'rentAmount' | 'depositAmount'>): LeaseFeeRules {
   return {
@@ -67,14 +85,33 @@ export function buildDefaultLeaseFeeRules(input: Pick<Lease, 'rentAmount' | 'dep
       amount: input.depositAmount,
       cadence: 'once'
     },
+    management: {
+      amount: 0,
+      cadence: 'cycle'
+    },
+    fireDeposit: {
+      amount: 0,
+      cadence: 'once'
+    },
+    lockCardDeposit: {
+      amount: 0,
+      cadence: 'once'
+    },
     customFeeItems: []
   };
 }
 
-export function getLeaseFeeRules(lease: Pick<Lease, 'rentAmount' | 'depositAmount' | 'feeRules'>): LeaseFeeRules {
+export function getLeaseFeeRules(
+  lease: Pick<Lease, 'rentAmount' | 'depositAmount'> & {
+    feeRules?: LeaseFeeRulesInput | LeaseFeeRules;
+  }
+): LeaseFeeRules {
   const normalized = lease.feeRules ?? buildDefaultLeaseFeeRules(lease);
   return leaseFeeRulesSchema.parse({
     ...normalized,
+    management: normalized.management ?? normalized.property ?? { amount: 0, cadence: 'cycle' },
+    fireDeposit: normalized.fireDeposit ?? { amount: 0, cadence: 'once' },
+    lockCardDeposit: normalized.lockCardDeposit ?? { amount: 0, cadence: 'once' },
     customFeeItems: normalized.customFeeItems ?? []
   });
 }

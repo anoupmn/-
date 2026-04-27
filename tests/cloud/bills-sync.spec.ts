@@ -17,13 +17,17 @@ function createLease(overrides: Partial<Lease> = {}): Lease {
     feeRules: {
       rent: { amount: 2800, cadence: 'cycle' },
       deposit: { amount: 2800, cadence: 'once' },
+      management: { amount: 0, cadence: 'cycle' },
+      fireDeposit: { amount: 0, cadence: 'once' },
+      lockCardDeposit: { amount: 0, cadence: 'once' },
       water: { amount: 120, cadence: 'cycle' },
       customFeeItems: [
         {
           key: 'service_fee',
           label: '服务费',
           amount: 66,
-          cadence: 'cycle'
+          cadence: 'cycle',
+          feeNature: 'recurring'
         }
       ]
     },
@@ -73,6 +77,9 @@ describe('bill repository sync', () => {
         feeRules: {
           rent: { amount: 3100, cadence: 'cycle' },
           deposit: { amount: 2800, cadence: 'once' },
+          management: { amount: 0, cadence: 'cycle' },
+          fireDeposit: { amount: 0, cadence: 'once' },
+          lockCardDeposit: { amount: 0, cadence: 'once' },
           property: { amount: 200, cadence: 'cycle' },
           customFeeItems: []
         }
@@ -142,6 +149,9 @@ describe('bill repository sync', () => {
         feeRules: {
           rent: { amount: 3100, cadence: 'cycle' },
           deposit: { amount: 2800, cadence: 'once' },
+          management: { amount: 0, cadence: 'cycle' },
+          fireDeposit: { amount: 0, cadence: 'once' },
+          lockCardDeposit: { amount: 0, cadence: 'once' },
           customFeeItems: []
         }
       }),
@@ -157,5 +167,63 @@ describe('bill repository sync', () => {
     expect(bills.some((bill) => bill.id === 'manual_bill_1')).toBe(true);
     expect(bills.some((bill) => bill.id === unpaidWaterBill!.id)).toBe(false);
     expect(bills.filter((bill) => bill.type === 'rent' && bill.amount === 3100)).toHaveLength(3);
+  });
+
+  it('generates fixed built-in fees with explicit fee nature', async () => {
+    const store = createMockStore();
+    const db = createMockDb(store);
+
+    await syncBillsForLease(
+      db,
+      createLease({
+        feeRules: {
+          rent: { amount: 2800, cadence: 'cycle' },
+          deposit: { amount: 2800, cadence: 'once' },
+          management: { amount: 180, cadence: 'cycle' },
+          fireDeposit: { amount: 300, cadence: 'once' },
+          lockCardDeposit: { amount: 120, cadence: 'once' },
+          customFeeItems: [
+            {
+              key: 'cleaning_deposit',
+              label: '清洁押金',
+              amount: 200,
+              cadence: 'once',
+              feeNature: 'deposit'
+            }
+          ]
+        }
+      }),
+      {
+        __mockDb: db,
+        now: '2026-04-01T00:00:00.000Z'
+      }
+    );
+
+    const bills = await listBillsByLease(db, 'lease_1');
+    const types = bills.map((bill) => bill.type);
+    const fireDeposit = bills.find((bill) => bill.type === 'fire_deposit');
+    const lockCardDeposit = bills.find((bill) => bill.type === 'lock_card_deposit');
+    const customDeposit = bills.find((bill) => bill.itemKey === 'cleaning_deposit');
+
+    expect(types).toEqual(
+      expect.arrayContaining(['rent', 'deposit', 'management', 'fire_deposit', 'lock_card_deposit', 'custom'])
+    );
+    expect(fireDeposit).toMatchObject({
+      feeNature: 'deposit',
+      cadence: 'once',
+      isDepositLike: true,
+      isOneTime: true,
+      responsibility: 'tenant'
+    });
+    expect(lockCardDeposit).toMatchObject({
+      feeNature: 'deposit',
+      cadence: 'once',
+      isDepositLike: true,
+      isOneTime: true
+    });
+    expect(customDeposit).toMatchObject({
+      feeNature: 'deposit',
+      isDepositLike: true
+    });
   });
 });

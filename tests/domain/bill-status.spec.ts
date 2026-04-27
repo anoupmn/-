@@ -47,6 +47,22 @@ describe('bill status', () => {
     expect(deriveBillStatus(depositBill, '2026-04-20T00:00:00.000Z')).toBe(BILL_STATUSES.pending);
   });
 
+  it('deposit-like bills do not become overdue', () => {
+    const fireDepositBill = billSchema.parse({
+      ...baseBill,
+      id: 'bill_fire_deposit',
+      type: 'fire_deposit',
+      section: 'deposit',
+      feeNature: 'deposit',
+      cadence: 'once',
+      isDepositLike: true,
+      isOneTime: true
+    });
+
+    expect(isBillOverdueTrackable(fireDepositBill)).toBe(false);
+    expect(deriveBillStatus(fireDepositBill, '2026-04-20T00:00:00.000Z')).toBe(BILL_STATUSES.pending);
+  });
+
   it('returns a fixed 15-day upcoming due window', () => {
     expect(getUpcomingDueWindowDays()).toBe(15);
   });
