@@ -39,12 +39,24 @@ async function main(event) {
     }
     const section = event.type === 'rent' ? 'rent' : event.type === 'deposit' ? 'deposit' : 'non_rent';
     const dueDate = `${monthKey}-01`;
+    if (type === 'water' || type === 'electricity') {
+        return (0, bill_repository_1.createMeterBill)(db, {
+            lease,
+            type,
+            dueDate,
+            previousReading: Number(event.previousReading),
+            currentReading: Number(event.currentReading),
+            unitPrice: Number(event.unitPrice),
+            note: event.note
+        }, event);
+    }
     return (0, bill_repository_1.createManualBill)(db, {
         lease,
         type,
         section,
         dueDate,
         amount: Number(event.amount || 0),
-        itemLabel: event.itemLabel
+        itemLabel: event.itemLabel,
+        note: event.note
     }, event);
 }

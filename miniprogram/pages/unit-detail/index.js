@@ -174,7 +174,8 @@ function buildLeaseHistoryViews(detail) {
         const closedDate = normalizeClosedDate(lease.closedAt);
         const actualEndDate = String(lease.actualEndDate || closedDate || lease.endDate || '');
         const inferredEarlyTermination = Boolean(actualEndDate && originalEndDate && actualEndDate < originalEndDate);
-        const terminationRemark = String(lease.terminationRemark || '') || (inferredEarlyTermination ? '提前结束租约' : '');
+        const terminationRemark = String(lease.terminationRemark || '')
+            || (inferredEarlyTermination ? '提前结束租约' : '');
         const repairs = repairHistory
             .filter((repair) => String(repair.leaseId || '') === leaseId)
             .map((repair) => ({
@@ -198,8 +199,8 @@ function buildLeaseHistoryViews(detail) {
     })
         .sort((a, b) => b.endDate.localeCompare(a.endDate) || b.startDate.localeCompare(a.startDate));
 }
-const MANUAL_BILL_TYPE_KEYS = ['water', 'electricity', 'repair', 'custom'];
-const MANUAL_BILL_TYPE_LABELS = ['水费', '电费', '维修费', '其他费用'];
+const MANUAL_BILL_TYPE_KEYS = ['water', 'electricity', 'custom'];
+const MANUAL_BILL_TYPE_LABELS = ['水费', '电费', '其他费用'];
 const REPAIR_CATEGORY_OPTIONS = [
     { key: 'plumbing', label: '水路' },
     { key: 'electrical', label: '电路' },
@@ -209,14 +210,7 @@ const REPAIR_CATEGORY_OPTIONS = [
     { key: 'other', label: '其他' }
 ];
 function buildManualBillMeta(typeIndex, currentLabel = '') {
-    if (typeIndex === 2) {
-        return {
-            showLabelInput: true,
-            labelPlaceholder: '维修费名称，可写成维修费-门锁',
-            itemLabel: currentLabel || '维修费'
-        };
-    }
-    if (typeIndex === 3) {
+    if (MANUAL_BILL_TYPE_KEYS[typeIndex] === 'custom') {
         return {
             showLabelInput: true,
             labelPlaceholder: '请输入费用名称',
@@ -228,6 +222,16 @@ function buildManualBillMeta(typeIndex, currentLabel = '') {
         labelPlaceholder: '',
         itemLabel: ''
     };
+}
+function isUtilityBillType(type) {
+    return type === 'water' || type === 'electricity';
+}
+function formatNumberInput(value) {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric >= 0 ? String(numeric) : '';
 }
 Page({
     data: {
@@ -260,7 +264,11 @@ Page({
             monthLabel: '',
             typeIndex: 0,
             itemLabel: '',
-            amount: ''
+            amount: '',
+            previousReading: '',
+            currentReading: '',
+            unitPrice: '',
+            note: ''
         },
         repairForm: {
             categoryIndex: 0,
@@ -276,7 +284,7 @@ Page({
             ...group,
             items: group.items.map((item) => ({
                 ...item,
-                source: item.source === 'manual' ? 'manual' : 'system',
+                source: (item.source === 'manual' ? 'manual' : 'system'),
                 isManual: item.source === 'manual',
                 isReceivedAmountMismatch: item.isReceivedAmountMismatch === true
                     || (item.receivedAmount != null && Math.abs(Number(item.receivedAmount) - Number(item.amount || 0)) >= 0.01),
@@ -469,6 +477,7 @@ Page({
             return;
         }
         const meta = buildManualBillMeta(0);
+        const meterDefault = this.data.detail?.meterDefaults?.water ?? null;
         this.setData({
             manualBillDialogVisible: true,
             manualBillMeta: {
@@ -480,7 +489,11 @@ Page({
                 monthLabel,
                 typeIndex: 0,
                 itemLabel: meta.itemLabel,
-                amount: ''
+                amount: '',
+                previousReading: formatNumberInput(meterDefault?.previousReading),
+                currentReading: '',
+                unitPrice: formatNumberInput(meterDefault?.unitPrice),
+                note: ''
             }
         });
     },
@@ -492,6 +505,10 @@ Page({
     handleManualBillTypeChange(event) {
         const typeIndex = Number(event.detail.value || 0);
         const meta = buildManualBillMeta(typeIndex);
+        const selectedType = MANUAL_BILL_TYPE_KEYS[typeIndex] ?? 'water';
+        const meterDefault = isUtilityBillType(selectedType)
+            ? this.data.detail?.meterDefaults?.[selectedType] ?? null
+            : null;
         this.setData({
             manualBillMeta: {
                 showLabelInput: meta.showLabelInput,
@@ -500,7 +517,11 @@ Page({
             manualBillForm: {
                 ...this.data.manualBillForm,
                 typeIndex,
-                itemLabel: meta.itemLabel
+                itemLabel: meta.itemLabel,
+                amount: isUtilityBillType(selectedType) ? '' : this.data.manualBillForm.amount,
+                previousReading: formatNumberInput(meterDefault?.previousReading),
+                currentReading: '',
+                unitPrice: formatNumberInput(meterDefault?.unitPrice)
             }
         });
     },
@@ -518,19 +539,12 @@ Page({
             return;
         }
         const leaseId = this.data.detail?.activeLease?.id;
-        const { monthKey, typeIndex, itemLabel, amount } = this.data.manualBillForm;
+        const { monthKey, typeIndex, itemLabel, amount, previousReading, currentReading, unitPrice, note } = this.data.manualBillForm;
         const numericAmount = Number(amount || 0);
         const selectedType = MANUAL_BILL_TYPE_KEYS[typeIndex] ?? 'water';
         if (!leaseId || !monthKey) {
             wx.showToast({
                 title: '当前租约不存在',
-                icon: 'none'
-            });
-            return;
-        }
-        if (!numericAmount) {
-            wx.showToast({
-                title: '请填写有效金额',
                 icon: 'none'
             });
             return;
@@ -543,17 +557,64 @@ Page({
             });
             return;
         }
+        if (selectedType === 'custom' && !numericAmount) {
+            wx.showToast({
+                title: '请填写有效金额',
+                icon: 'none'
+            });
+            return;
+        }
+        const previousReadingValue = Number(previousReading);
+        const currentReadingValue = Number(currentReading);
+        const unitPriceValue = Number(unitPrice);
+        if (isUtilityBillType(selectedType)) {
+            if (![previousReadingValue, currentReadingValue, unitPriceValue].every(Number.isFinite)) {
+                wx.showToast({
+                    title: '请填写水电读数和单价',
+                    icon: 'none'
+                });
+                return;
+            }
+            if (previousReadingValue < 0 || currentReadingValue < 0 || unitPriceValue < 0) {
+                wx.showToast({
+                    title: '读数和单价不能为负',
+                    icon: 'none'
+                });
+                return;
+            }
+            if (currentReadingValue < previousReadingValue) {
+                wx.showToast({
+                    title: '本期读数不能小于上期读数',
+                    icon: 'none'
+                });
+                return;
+            }
+        }
         this.setData({
             manualBillSubmitting: true
         });
         try {
-            await (0, bill_1.saveBill)({
-                leaseId,
-                monthKey,
-                type: selectedType === 'repair' ? 'custom' : selectedType,
-                amount: numericAmount,
-                itemLabel: selectedType === 'repair' ? trimmedLabel || '维修费' : selectedType === 'custom' ? trimmedLabel : undefined
-            });
+            if (isUtilityBillType(selectedType)) {
+                await (0, bill_1.saveBill)({
+                    leaseId,
+                    monthKey,
+                    type: selectedType,
+                    previousReading: previousReadingValue,
+                    currentReading: currentReadingValue,
+                    unitPrice: unitPriceValue,
+                    note: String(note || '').trim()
+                });
+            }
+            else {
+                await (0, bill_1.saveBill)({
+                    leaseId,
+                    monthKey,
+                    type: 'custom',
+                    amount: numericAmount,
+                    itemLabel: trimmedLabel,
+                    note: String(note || '').trim()
+                });
+            }
             this.setData({
                 manualBillDialogVisible: false
             });

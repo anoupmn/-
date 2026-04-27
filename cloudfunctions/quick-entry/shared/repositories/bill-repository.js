@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.calculateMeterBill = calculateMeterBill;
 exports.listBillsByLease = listBillsByLease;
 exports.listOutstandingBillsByRoom = listOutstandingBillsByRoom;
 exports.isReplaceableSystemBill = isReplaceableSystemBill;
@@ -10,6 +11,8 @@ exports.syncBillsForLease = syncBillsForLease;
 exports.ensureBillsForLease = ensureBillsForLease;
 exports.markBillReceived = markBillReceived;
 exports.createManualBill = createManualBill;
+exports.createMeterBill = createMeterBill;
+exports.resolveMeterDefaults = resolveMeterDefaults;
 const dayjs_1 = __importDefault(require("dayjs"));
 const collections_1 = require("../constants/collections");
 const statuses_1 = require("../constants/statuses");
@@ -17,8 +20,37 @@ const bill_status_1 = require("../calculators/bill-status");
 const bill_1 = require("../schemas/bill");
 const lease_1 = require("../schemas/lease");
 const runtime_1 = require("../runtime");
+const LANDLORD_EXPENSE_LABEL_PATTERN = /维修|保洁|打理|请人|管理支出|房东支出/u;
 function resolveFeeNatureFromCadence(cadence) {
     return cadence === 'once' ? 'one_time' : 'recurring';
+}
+function isUtilityBillType(type) {
+    return type === 'water' || type === 'electricity';
+}
+function calculateMeterBill(input) {
+    const previousReading = Number(input.previousReading);
+    const currentReading = Number(input.currentReading);
+    const unitPrice = Number(input.unitPrice);
+    if (![previousReading, currentReading, unitPrice].every(Number.isFinite)) {
+        throw new Error('previousReading, currentReading and unitPrice must be valid numbers.');
+    }
+    if (previousReading < 0 || currentReading < 0 || unitPrice < 0) {
+        throw new Error('previousReading, currentReading and unitPrice must be non-negative.');
+    }
+    if (currentReading < previousReading) {
+        throw new Error('currentReading must be greater than or equal to previousReading.');
+    }
+    const usage = currentReading - previousReading;
+    const amount = Math.round(usage * unitPrice * 100) / 100;
+    return {
+        amount,
+        meterReading: {
+            previousReading,
+            currentReading,
+            usage,
+            unitPrice
+        }
+    };
 }
 function buildRecurringDueDates(lease) {
     const dueDates = [];
@@ -215,6 +247,12 @@ async function markBillReceived(db, input, event) {
     });
 }
 async function createManualBill(db, input, event) {
+    if (isUtilityBillType(input.type)) {
+        throw new Error('Utility bills must be created from meter readings.');
+    }
+    if (LANDLORD_EXPENSE_LABEL_PATTERN.test(String(input.itemLabel || ''))) {
+        throw new Error('Landlord expenses must not be recorded as tenant bills.');
+    }
     if (input.amount <= 0) {
         throw new Error('amount must be greater than 0.');
     }
@@ -231,10 +269,15 @@ async function createManualBill(db, input, event) {
         status: statuses_1.BILL_STATUSES.pending,
         receivedAt: null,
         receivedAmount: null,
-        note: '',
+        note: input.note ?? '',
         itemKey: input.type === 'custom' ? `manual_${Date.now()}` : undefined,
         itemLabel: input.itemLabel,
         source: 'manual',
+        feeNature: 'one_time',
+        responsibility: 'tenant',
+        cadence: 'once',
+        isDepositLike: false,
+        isOneTime: true,
         createdAt,
         updatedAt: createdAt
     });
@@ -244,4 +287,58 @@ async function createManualBill(db, input, event) {
     };
     await (0, runtime_1.insertRecord)(db, collections_1.COLLECTIONS.bills, bill);
     return bill;
+}
+async function createMeterBill(db, input, event) {
+    const { amount, meterReading } = calculateMeterBill(input);
+    const createdAt = (0, runtime_1.resolveNow)(event);
+    const parsed = bill_1.billSchema.parse({
+        id: (0, runtime_1.createId)('bill'),
+        landlordOpenId: input.lease.landlordOpenId,
+        leaseId: input.lease.id,
+        roomId: input.lease.roomId,
+        type: input.type,
+        section: 'non_rent',
+        dueDate: input.dueDate,
+        amount,
+        status: statuses_1.BILL_STATUSES.pending,
+        receivedAt: null,
+        receivedAmount: null,
+        note: input.note ?? '',
+        itemKey: input.type,
+        itemLabel: input.type === 'water' ? '水费' : '电费',
+        source: 'manual',
+        meterReading,
+        feeNature: 'one_time',
+        responsibility: 'tenant',
+        cadence: 'once',
+        isDepositLike: false,
+        isOneTime: true,
+        createdAt,
+        updatedAt: createdAt
+    });
+    const bill = {
+        ...parsed,
+        status: (0, bill_status_1.deriveBillStatus)(parsed, createdAt)
+    };
+    await (0, runtime_1.insertRecord)(db, collections_1.COLLECTIONS.bills, bill);
+    return bill;
+}
+function resolveMeterDefaults(bills, roomId) {
+    const latestByType = (type) => bills
+        .filter((bill) => bill.roomId === roomId && bill.type === type && bill.meterReading)
+        .sort((a, b) => b.dueDate.localeCompare(a.dueDate) || b.updatedAt.localeCompare(a.updatedAt))[0];
+    const toDefault = (bill) => {
+        const meterReading = bill?.meterReading;
+        if (!meterReading) {
+            return null;
+        }
+        return {
+            previousReading: meterReading.currentReading,
+            unitPrice: meterReading.unitPrice
+        };
+    };
+    return {
+        water: toDefault(latestByType('water')),
+        electricity: toDefault(latestByType('electricity'))
+    };
 }

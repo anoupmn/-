@@ -2,8 +2,7 @@ import { main as billsSaveMain } from '../../cloudfunctions/bills-save/index';
 import { createMockDb, createMockStore, getWXContext } from '../helpers/mock-cloud';
 
 describe('bills-save cloud function', () => {
-  it('creates manual bill for active landlord lease', async () => {
-    const store = createMockStore();
+  function seedLease(store: ReturnType<typeof createMockStore>) {
     store.leases.push({
       id: 'lease_1',
       landlordOpenId: 'openid',
@@ -19,6 +18,11 @@ describe('bills-save cloud function', () => {
       createdAt: '',
       updatedAt: ''
     });
+  }
+
+  it('creates manual bill for active landlord lease', async () => {
+    const store = createMockStore();
+    seedLease(store);
 
     const result = await billsSaveMain({
       leaseId: 'lease_1',
@@ -40,6 +44,110 @@ describe('bills-save cloud function', () => {
     expect(result.source).toBe('manual');
     expect(result.itemLabel).toBe('空调清洗费');
     expect(store.bills).toHaveLength(1);
+  });
+
+  it('calculates utility amount from meter readings on server', async () => {
+    const store = createMockStore();
+    seedLease(store);
+
+    const result = await billsSaveMain({
+      leaseId: 'lease_1',
+      monthKey: '2026-04',
+      type: 'water',
+      previousReading: 100,
+      currentReading: 135.5,
+      unitPrice: 3.2,
+      __mockDb: createMockDb(store),
+      __mockContext: {
+        getWXContext: () => getWXContext('openid')
+      },
+      now: '2026-04-10T00:00:00.000Z'
+    });
+
+    if ('deletedBillId' in result) {
+      throw new Error('expected create mode response');
+    }
+
+    expect(result.type).toBe('water');
+    expect(result.meterReading).toEqual({
+      previousReading: 100,
+      currentReading: 135.5,
+      usage: 35.5,
+      unitPrice: 3.2
+    });
+    expect(result.amount).toBe(113.6);
+    expect(store.bills[0]?.amount).toBe(113.6);
+  });
+
+  it('rejects utility bill when current reading is lower than previous reading', async () => {
+    const store = createMockStore();
+    seedLease(store);
+
+    await expect(
+      billsSaveMain({
+        leaseId: 'lease_1',
+        monthKey: '2026-04',
+        type: 'electricity',
+        previousReading: 80,
+        currentReading: 79,
+        unitPrice: 0.8,
+        __mockDb: createMockDb(store),
+        __mockContext: {
+          getWXContext: () => getWXContext('openid')
+        },
+        now: '2026-04-10T00:00:00.000Z'
+      })
+    ).rejects.toThrow('currentReading must be greater than or equal to previousReading.');
+
+    expect(store.bills).toHaveLength(0);
+  });
+
+  it('keeps utility note and does not trust client amount', async () => {
+    const store = createMockStore();
+    seedLease(store);
+
+    const result = await billsSaveMain({
+      leaseId: 'lease_1',
+      monthKey: '2026-04',
+      type: 'electricity',
+      amount: 1,
+      previousReading: 200,
+      currentReading: 260,
+      unitPrice: 0.75,
+      note: '含阶梯电价调整',
+      __mockDb: createMockDb(store),
+      __mockContext: {
+        getWXContext: () => getWXContext('openid')
+      },
+      now: '2026-04-10T00:00:00.000Z'
+    });
+
+    if ('deletedBillId' in result) {
+      throw new Error('expected create mode response');
+    }
+
+    expect(result.amount).toBe(45);
+    expect(result.note).toBe('含阶梯电价调整');
+  });
+
+  it('rejects landlord expense labels in tenant bills', async () => {
+    const store = createMockStore();
+    seedLease(store);
+
+    await expect(
+      billsSaveMain({
+        leaseId: 'lease_1',
+        monthKey: '2026-04',
+        type: 'custom',
+        amount: 120,
+        itemLabel: '维修费-门锁',
+        __mockDb: createMockDb(store),
+        __mockContext: {
+          getWXContext: () => getWXContext('openid')
+        },
+        now: '2026-04-10T00:00:00.000Z'
+      })
+    ).rejects.toThrow('Landlord expenses must not be recorded as tenant bills.');
   });
 
   it('deletes manual bill and keeps system bill protected', async () => {

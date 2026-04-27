@@ -1,22 +1,18 @@
-const { callCloudFunction } = require('./cloud');
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.receiveBill = receiveBill;
+exports.saveBill = saveBill;
+exports.deleteBill = deleteBill;
+const cloud_1 = require("./cloud");
 function receiveBill(payload) {
-  return callCloudFunction('bills-receive', payload);
+    return (0, cloud_1.callCloudFunction)('bills-receive', payload);
 }
-
 function saveBill(payload) {
-  return callCloudFunction('bills-save', payload);
+    return (0, cloud_1.callCloudFunction)('bills-save', payload);
 }
-
 function deleteBill(payload) {
-  return callCloudFunction('bills-save', {
-    mode: 'delete',
-    ...payload
-  });
+    return (0, cloud_1.callCloudFunction)('bills-save', {
+        mode: 'delete',
+        ...payload
+    });
 }
-
-module.exports = {
-  receiveBill,
-  saveBill,
-  deleteBill
-};

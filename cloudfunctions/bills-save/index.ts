@@ -1,4 +1,4 @@
-import { createManualBill } from './shared/repositories/bill-repository';
+import { createManualBill, createMeterBill } from './shared/repositories/bill-repository';
 import { resolveDb, resolveLandlordOpenId, type CloudEventBase, listAll } from './shared/runtime';
 import { COLLECTIONS } from './shared/constants/collections';
 import type { Lease } from './shared/schemas/lease';
@@ -12,6 +12,10 @@ export interface BillsSaveEvent extends CloudEventBase {
   type?: BillType;
   amount?: number;
   itemLabel?: string;
+  previousReading?: number;
+  currentReading?: number;
+  unitPrice?: number;
+  note?: string;
 }
 
 export async function main(event: BillsSaveEvent) {
@@ -58,6 +62,22 @@ export async function main(event: BillsSaveEvent) {
   const section: BillSection = event.type === 'rent' ? 'rent' : event.type === 'deposit' ? 'deposit' : 'non_rent';
   const dueDate = `${monthKey}-01`;
 
+  if (type === 'water' || type === 'electricity') {
+    return createMeterBill(
+      db,
+      {
+        lease,
+        type,
+        dueDate,
+        previousReading: Number(event.previousReading),
+        currentReading: Number(event.currentReading),
+        unitPrice: Number(event.unitPrice),
+        note: event.note
+      },
+      event
+    );
+  }
+
   return createManualBill(
     db,
     {
@@ -66,7 +86,8 @@ export async function main(event: BillsSaveEvent) {
       section,
       dueDate,
       amount: Number(event.amount || 0),
-      itemLabel: event.itemLabel
+      itemLabel: event.itemLabel,
+      note: event.note
     },
     event
   );

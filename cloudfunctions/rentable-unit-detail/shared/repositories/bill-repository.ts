@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import { COLLECTIONS } from '../constants/collections';
 import { BILL_STATUSES } from '../constants/statuses';
 import { deriveBillStatus } from '../calculators/bill-status';
-import { billSchema, type Bill, type BillFeeNature, type BillSection, type BillType } from '../schemas/bill';
+import { billSchema, type Bill, type BillFeeNature, type BillSection, type BillType, type MeterReading } from '../schemas/bill';
 import { getLeaseFeeRules, type CustomFeeItem, type Lease, type LeaseFeeRule } from '../schemas/lease';
 import { createId, findById, insertRecord, listAll, resolveNow, updateRecord, type CloudEventBase, type DbLike } from '../runtime';
 
@@ -19,8 +19,49 @@ type FeeItemDefinition = {
   itemLabel?: string;
 };
 
+const LANDLORD_EXPENSE_LABEL_PATTERN = /维修|保洁|打理|请人|管理支出|房东支出/u;
+
 function resolveFeeNatureFromCadence(cadence: LeaseFeeRule['cadence']): BillFeeNature {
   return cadence === 'once' ? 'one_time' : 'recurring';
+}
+
+function isUtilityBillType(type: BillType) {
+  return type === 'water' || type === 'electricity';
+}
+
+export function calculateMeterBill(input: {
+  previousReading: number;
+  currentReading: number;
+  unitPrice: number;
+}) {
+  const previousReading = Number(input.previousReading);
+  const currentReading = Number(input.currentReading);
+  const unitPrice = Number(input.unitPrice);
+
+  if (![previousReading, currentReading, unitPrice].every(Number.isFinite)) {
+    throw new Error('previousReading, currentReading and unitPrice must be valid numbers.');
+  }
+
+  if (previousReading < 0 || currentReading < 0 || unitPrice < 0) {
+    throw new Error('previousReading, currentReading and unitPrice must be non-negative.');
+  }
+
+  if (currentReading < previousReading) {
+    throw new Error('currentReading must be greater than or equal to previousReading.');
+  }
+
+  const usage = currentReading - previousReading;
+  const amount = Math.round(usage * unitPrice * 100) / 100;
+
+  return {
+    amount,
+    meterReading: {
+      previousReading,
+      currentReading,
+      usage,
+      unitPrice
+    }
+  };
 }
 
 function buildRecurringDueDates(lease: Lease) {
@@ -267,9 +308,18 @@ export async function createManualBill(
     dueDate: string;
     amount: number;
     itemLabel?: string;
+    note?: string;
   },
   event: CloudEventBase
 ) {
+  if (isUtilityBillType(input.type)) {
+    throw new Error('Utility bills must be created from meter readings.');
+  }
+
+  if (LANDLORD_EXPENSE_LABEL_PATTERN.test(String(input.itemLabel || ''))) {
+    throw new Error('Landlord expenses must not be recorded as tenant bills.');
+  }
+
   if (input.amount <= 0) {
     throw new Error('amount must be greater than 0.');
   }
@@ -287,10 +337,15 @@ export async function createManualBill(
     status: BILL_STATUSES.pending,
     receivedAt: null,
     receivedAmount: null,
-    note: '',
+    note: input.note ?? '',
     itemKey: input.type === 'custom' ? `manual_${Date.now()}` : undefined,
     itemLabel: input.itemLabel,
     source: 'manual',
+    feeNature: 'one_time',
+    responsibility: 'tenant',
+    cadence: 'once',
+    isDepositLike: false,
+    isOneTime: true,
     createdAt,
     updatedAt: createdAt
   });
@@ -302,4 +357,78 @@ export async function createManualBill(
 
   await insertRecord(db, COLLECTIONS.bills, bill);
   return bill;
+}
+
+export async function createMeterBill(
+  db: DbLike,
+  input: {
+    lease: Lease;
+    type: 'water' | 'electricity';
+    dueDate: string;
+    previousReading: number;
+    currentReading: number;
+    unitPrice: number;
+    note?: string;
+  },
+  event: CloudEventBase
+) {
+  const { amount, meterReading } = calculateMeterBill(input);
+  const createdAt = resolveNow(event);
+  const parsed = billSchema.parse({
+    id: createId('bill'),
+    landlordOpenId: input.lease.landlordOpenId,
+    leaseId: input.lease.id,
+    roomId: input.lease.roomId,
+    type: input.type,
+    section: 'non_rent',
+    dueDate: input.dueDate,
+    amount,
+    status: BILL_STATUSES.pending,
+    receivedAt: null,
+    receivedAmount: null,
+    note: input.note ?? '',
+    itemKey: input.type,
+    itemLabel: input.type === 'water' ? '水费' : '电费',
+    source: 'manual',
+    meterReading,
+    feeNature: 'one_time',
+    responsibility: 'tenant',
+    cadence: 'once',
+    isDepositLike: false,
+    isOneTime: true,
+    createdAt,
+    updatedAt: createdAt
+  });
+
+  const bill = {
+    ...parsed,
+    status: deriveBillStatus(parsed, createdAt)
+  };
+
+  await insertRecord(db, COLLECTIONS.bills, bill);
+  return bill;
+}
+
+export function resolveMeterDefaults(bills: Bill[], roomId: string): Record<'water' | 'electricity', { previousReading: number; unitPrice: number } | null> {
+  const latestByType = (type: 'water' | 'electricity') =>
+    bills
+      .filter((bill) => bill.roomId === roomId && bill.type === type && bill.meterReading)
+      .sort((a, b) => b.dueDate.localeCompare(a.dueDate) || b.updatedAt.localeCompare(a.updatedAt))[0];
+
+  const toDefault = (bill?: Bill) => {
+    const meterReading = bill?.meterReading as MeterReading | undefined;
+    if (!meterReading) {
+      return null;
+    }
+
+    return {
+      previousReading: meterReading.currentReading,
+      unitPrice: meterReading.unitPrice
+    };
+  };
+
+  return {
+    water: toDefault(latestByType('water')),
+    electricity: toDefault(latestByType('electricity'))
+  };
 }

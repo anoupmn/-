@@ -5,6 +5,7 @@ import { REPAIR_CATEGORY_LABELS } from './shared/constants/repairs';
 import { BILL_STATUSES, LEASE_STATUSES } from './shared/constants/statuses';
 import { deriveBillStatus } from './shared/calculators/bill-status';
 import { deriveLeaseStatus } from './shared/calculators/lease-lifecycle';
+import { resolveMeterDefaults } from './shared/repositories/bill-repository';
 import { buildRoomRepairStats } from './shared/repositories/repair-record-repository';
 import { getAllDomainData, resolveLandlordOpenId, type CloudEventBase, resolveDb } from './shared/runtime';
 import type { Bill } from './shared/schemas/bill';
@@ -53,6 +54,8 @@ function buildMonthlyBillGroups(bills: Bill[], now: string) {
         status: string;
         receivedAt: string | null;
         receivedAmount: number | null;
+        note: string;
+        meterReading: Bill['meterReading'];
         isReceivedAmountMismatch: boolean;
       }>;
     }
@@ -93,6 +96,8 @@ function buildMonthlyBillGroups(bills: Bill[], now: string) {
         status: deriveBillStatus(bill, now),
         receivedAt: bill.receivedAt,
         receivedAmount: bill.receivedAmount,
+        note: bill.note ?? '',
+        meterReading: bill.meterReading,
         isReceivedAmountMismatch:
           bill.receivedAmount != null && Math.abs(Number(bill.receivedAmount) - Number(bill.amount || 0)) >= 0.01
       });
@@ -207,6 +212,7 @@ export async function main(event: RentableUnitDetailEvent) {
     ? bills.filter((bill) => bill.leaseId === activeLease.id)
     : [];
   const allBills = bills;
+  const meterDefaults = resolveMeterDefaults(allBills, room.id);
   const summary = buildRentableUnitSummary({
     asset,
     room,
@@ -280,6 +286,7 @@ export async function main(event: RentableUnitDetailEvent) {
       overdueHint: overdueCount > 0 ? `当前有 ${overdueCount} 笔账单已逾期` : '',
       generatedAt: dayjs(now).format('YYYY-MM-DD')
     },
+    meterDefaults,
     monthlyBillGroups: buildMonthlyBillGroups(activeBills, now),
     repairStats,
     tenantPeriodRepairs,

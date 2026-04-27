@@ -281,6 +281,33 @@
   color: #6b7280;
 }
 
+.meter-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding: 18rpx;
+  border-radius: 16rpx;
+  background: #ffffff;
+  border: 1rpx solid #e5e7eb;
+}
+
+.meter-grid,
+.meter-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12rpx;
+}
+
+.meter-cell {
+  min-width: 0;
+}
+
+.meter-value {
+  margin-top: 4rpx;
+  font-size: 26rpx;
+  color: #111827;
+}
+
 .month-add-button {
   min-width: 180rpx;
   height: 60rpx;

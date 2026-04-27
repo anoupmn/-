@@ -10,6 +10,7 @@ const repairs_1 = require("./shared/constants/repairs");
 const statuses_1 = require("./shared/constants/statuses");
 const bill_status_1 = require("./shared/calculators/bill-status");
 const lease_lifecycle_1 = require("./shared/calculators/lease-lifecycle");
+const bill_repository_1 = require("./shared/repositories/bill-repository");
 const repair_record_repository_1 = require("./shared/repositories/repair-record-repository");
 const runtime_1 = require("./shared/runtime");
 function getBillTypeLabel(bill) {
@@ -64,6 +65,8 @@ function buildMonthlyBillGroups(bills, now) {
             status: (0, bill_status_1.deriveBillStatus)(bill, now),
             receivedAt: bill.receivedAt,
             receivedAmount: bill.receivedAmount,
+            note: bill.note ?? '',
+            meterReading: bill.meterReading,
             isReceivedAmountMismatch: bill.receivedAmount != null && Math.abs(Number(bill.receivedAmount) - Number(bill.amount || 0)) >= 0.01
         });
     });
@@ -154,6 +157,7 @@ async function main(event) {
         ? bills.filter((bill) => bill.leaseId === activeLease.id)
         : [];
     const allBills = bills;
+    const meterDefaults = (0, bill_repository_1.resolveMeterDefaults)(allBills, room.id);
     const summary = (0, rentable_unit_1.buildRentableUnitSummary)({
         asset,
         room,
@@ -223,6 +227,7 @@ async function main(event) {
             overdueHint: overdueCount > 0 ? `当前有 ${overdueCount} 笔账单已逾期` : '',
             generatedAt: (0, dayjs_1.default)(now).format('YYYY-MM-DD')
         },
+        meterDefaults,
         monthlyBillGroups: buildMonthlyBillGroups(activeBills, now),
         repairStats,
         tenantPeriodRepairs,

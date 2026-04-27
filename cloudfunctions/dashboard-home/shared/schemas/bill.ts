@@ -25,6 +25,14 @@ export type BillFeeNature = z.infer<typeof billFeeNatureSchema>;
 export const billCadenceSchema = z.enum(['cycle', 'once']);
 export type BillCadence = z.infer<typeof billCadenceSchema>;
 
+export const meterReadingSchema = z.object({
+  previousReading: z.number().nonnegative(),
+  currentReading: z.number().nonnegative(),
+  usage: z.number().nonnegative(),
+  unitPrice: z.number().nonnegative()
+});
+export type MeterReading = z.infer<typeof meterReadingSchema>;
+
 export const billSchema = z.object({
   id: z.string(),
   landlordOpenId: z.string(),
@@ -41,6 +49,7 @@ export const billSchema = z.object({
   itemKey: z.string().optional(),
   itemLabel: z.string().optional(),
   source: z.enum(['system', 'manual']).optional(),
+  meterReading: meterReadingSchema.optional(),
   feeNature: billFeeNatureSchema.catch('recurring').default('recurring'),
   responsibility: z.literal('tenant').catch('tenant').default('tenant'),
   cadence: billCadenceSchema.catch('cycle').default('cycle'),

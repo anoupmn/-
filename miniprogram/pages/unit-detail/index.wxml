@@ -101,10 +101,32 @@
                 登记缴费
               </button>
             </view>
+            <view wx:if="{{item.meterReading}}" class="meter-block">
+              <view class="meter-grid">
+                <view class="meter-cell">
+                  <view class="field-label">上期读数</view>
+                  <view class="meter-value">{{item.meterReading.previousReading}}</view>
+                </view>
+                <view class="meter-cell">
+                  <view class="field-label">本期读数</view>
+                  <view class="meter-value">{{item.meterReading.currentReading}}</view>
+                </view>
+                <view class="meter-cell">
+                  <view class="field-label">用量</view>
+                  <view class="meter-value">{{item.meterReading.usage}}</view>
+                </view>
+                <view class="meter-cell">
+                  <view class="field-label">单价</view>
+                  <view class="meter-value">¥{{item.meterReading.unitPrice}}</view>
+                </view>
+              </view>
+              <view class="field">金额：¥{{item.amount}}</view>
+            </view>
             <view wx:if="{{item.receivedAt}}" class="field">收款时间：{{item.receivedAt}}</view>
             <view wx:if="{{item.isReceivedAmountMismatch}}" class="fee-note">
               实收 ¥{{item.receivedAmount}}，与应收不一致
             </view>
+            <view wx:if="{{item.note}}" class="fee-note">备注：{{item.note}}</view>
             <view class="fee-note" wx:if="{{item.isManual}}">补录费用</view>
           </view>
           <view class="month-tools">
@@ -216,13 +238,47 @@
         bindinput="handleManualBillInputChange"
         placeholder="{{manualBillMeta.labelPlaceholder}}"
       />
+      <view wx:if="{{manualBillForm.typeIndex < 2}}" class="meter-form">
+        <input
+          class="input"
+          type="digit"
+          data-field="previousReading"
+          value="{{manualBillForm.previousReading}}"
+          bindinput="handleManualBillInputChange"
+          placeholder="上期读数"
+        />
+        <input
+          class="input"
+          type="digit"
+          data-field="currentReading"
+          value="{{manualBillForm.currentReading}}"
+          bindinput="handleManualBillInputChange"
+          placeholder="本期读数"
+        />
+        <input
+          class="input"
+          type="digit"
+          data-field="unitPrice"
+          value="{{manualBillForm.unitPrice}}"
+          bindinput="handleManualBillInputChange"
+          placeholder="单价"
+        />
+      </view>
       <input
+        wx:if="{{manualBillForm.typeIndex >= 2}}"
         class="input"
         type="digit"
         data-field="amount"
         value="{{manualBillForm.amount}}"
         bindinput="handleManualBillInputChange"
         placeholder="请输入本月实际金额"
+      />
+      <input
+        class="input"
+        data-field="note"
+        value="{{manualBillForm.note}}"
+        bindinput="handleManualBillInputChange"
+        placeholder="备注（选填）"
       />
       <view class="dialog-actions">
         <button class="secondary-button" bindtap="closeManualBillDialog">取消</button>

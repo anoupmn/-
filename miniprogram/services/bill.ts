@@ -12,8 +12,12 @@ export function saveBill(payload: {
   leaseId: string;
   monthKey: string;
   type: 'water' | 'electricity' | 'misc' | 'custom';
-  amount: number;
+  amount?: number;
   itemLabel?: string;
+  previousReading?: number;
+  currentReading?: number;
+  unitPrice?: number;
+  note?: string;
 }) {
   return callCloudFunction('bills-save', payload);
 }
