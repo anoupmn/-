@@ -27,5 +27,27 @@ async function main(event) {
         }
         return (0, lease_repository_1.updateLease)(db, event.leaseId, event.lease, event);
     }
+    if (event.renewFromLeaseId) {
+        const leases = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.leases);
+        const sourceLease = leases.find((item) => item.id === event.renewFromLeaseId && item.landlordOpenId === landlordOpenId);
+        if (!sourceLease) {
+            throw new Error(`Lease ${event.renewFromLeaseId} not found.`);
+        }
+        if (sourceLease.roomId !== event.lease.roomId || sourceLease.tenantId !== event.lease.tenantId) {
+            throw new Error('Renewal lease must keep the same room and tenant.');
+        }
+        const renewalLease = await (0, lease_repository_1.createLease)(db, landlordOpenId, {
+            ...event.lease,
+            renewalFromLeaseId: sourceLease.id
+        }, event);
+        const renewedAt = (0, runtime_1.resolveNow)(event);
+        await (0, runtime_1.updateRecord)(db, collections_1.COLLECTIONS.leases, sourceLease.id, {
+            renewedToLeaseId: renewalLease.id,
+            renewedAt,
+            renewalEndDate: renewalLease.endDate,
+            updatedAt: renewedAt
+        });
+        return renewalLease;
+    }
     return (0, lease_repository_1.createLease)(db, landlordOpenId, event.lease, event);
 }

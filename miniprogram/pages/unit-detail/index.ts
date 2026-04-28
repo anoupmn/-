@@ -60,6 +60,12 @@ type RenewBaseLease = Record<string, any> & {
   note?: string;
 };
 
+type RenewCustomFeeDraft = {
+  key: string;
+  label: string;
+  amount: string;
+};
+
 type LeaseHistoryView = {
   leaseId: string;
   tenantName: string;
@@ -284,12 +290,9 @@ function addMonthsInclusive(startDate: string, months: number) {
   return formatDateKey(date);
 }
 
-function resolveRenewFeeRules(baseLease: RenewBaseLease) {
+function buildRenewCustomFeeDrafts(baseLease: RenewBaseLease): RenewCustomFeeDraft[] {
   const feeRules = baseLease.feeRules ?? {};
-  const rentAmount = Number(feeRules.rent?.amount ?? baseLease.rentAmount ?? 0);
-  const managementAmount = Number(feeRules.management?.amount ?? 0);
-  const managementCadence = feeRules.management?.cadence === 'once' ? 'once' : 'cycle';
-  const customFeeItems = Array.isArray(feeRules.customFeeItems)
+  return Array.isArray(feeRules.customFeeItems)
     ? feeRules.customFeeItems
       .filter((item) =>
         item?.feeNature === 'recurring' &&
@@ -299,11 +302,27 @@ function resolveRenewFeeRules(baseLease: RenewBaseLease) {
       .map((item, index) => ({
         key: String(item.key || `renew_custom_${index + 1}`),
         label: String(item.label || '自定义费用'),
-        amount: Number(item.amount || 0),
-        cadence: 'cycle' as const,
-        feeNature: 'recurring' as const
+        amount: String(item.amount || '')
       }))
     : [];
+}
+
+function resolveRenewFeeRules(input: {
+  rentAmount: string;
+  managementAmount: string;
+  customFeeItems: RenewCustomFeeDraft[];
+}) {
+  const rentAmount = Number(input.rentAmount || 0);
+  const managementAmount = Number(input.managementAmount || 0);
+  const customFeeItems = input.customFeeItems
+    .filter((item) => String(item.label || '').trim() && Number(item.amount || 0) > 0)
+    .map((item, index) => ({
+      key: item.key || `renew_custom_${index + 1}`,
+      label: String(item.label || '').trim(),
+      amount: Number(item.amount || 0),
+      cadence: 'cycle' as const,
+      feeNature: 'recurring' as const
+    }));
 
   return {
     rentAmount,
@@ -316,7 +335,7 @@ function resolveRenewFeeRules(baseLease: RenewBaseLease) {
         amount: 0,
         cadence: 'once' as const
       },
-      management: managementAmount > 0 && managementCadence === 'cycle'
+      management: managementAmount > 0
         ? { amount: managementAmount, cadence: 'cycle' as const }
         : undefined,
       customFeeItems
@@ -493,7 +512,16 @@ Page({
     repairCategoryOptions: REPAIR_CATEGORY_OPTIONS.map((item) => item.label),
     ownerExpenseTypeOptions: OWNER_EXPENSE_TYPE_OPTIONS.map((item) => item.label),
     repairDialogVisible: false,
+    renewDialogVisible: false,
     renewingLease: false,
+    renewForm: {
+      sourceLeaseId: '',
+      startDate: '',
+      endDate: '',
+      rentAmount: '',
+      managementAmount: '',
+      customFeeItems: [] as RenewCustomFeeDraft[]
+    },
     manualBillMeta: {
       showLabelInput: false,
       labelPlaceholder: ''
@@ -1184,11 +1212,7 @@ Page({
       });
     }
   },
-  async openRenewLeaseForm(event?: WechatMiniprogram.BaseEvent) {
-    if (this.data.renewingLease) {
-      return;
-    }
-
+  openRenewLeaseForm(event?: WechatMiniprogram.BaseEvent) {
     const eventLeaseId = String(event?.currentTarget?.dataset?.leaseId || '');
     const baseLease = eventLeaseId
       ? resolveRenewBaseLeaseById(this.data.detail, eventLeaseId)
@@ -1203,29 +1227,122 @@ Page({
       return;
     }
 
-    let action: WechatMiniprogram.GeneralCallbackResult & { tapIndex: number };
-    try {
-      action = await wx.showActionSheet({
-        itemList: ['续租6个月', '续租1年', '续租2年']
-      }) as WechatMiniprogram.GeneralCallbackResult & { tapIndex: number };
-    } catch {
+    const baseEndDate = String(baseLease.actualEndDate || baseLease.endDate || '').slice(0, 10);
+    const startDate = addDays(baseEndDate, 1);
+    const endDate = addMonthsInclusive(startDate, 12);
+    const feeRules = baseLease.feeRules ?? {};
+    const rentAmount = Number(feeRules.rent?.amount ?? baseLease.rentAmount ?? 0);
+    const managementAmount = feeRules.management?.cadence === 'once' ? 0 : Number(feeRules.management?.amount ?? 0);
+
+    this.setData({
+      renewDialogVisible: true,
+      renewForm: {
+        sourceLeaseId: String(baseLease.id || ''),
+        startDate,
+        endDate,
+        rentAmount: rentAmount > 0 ? String(rentAmount) : '',
+        managementAmount: managementAmount > 0 ? String(managementAmount) : '',
+        customFeeItems: buildRenewCustomFeeDrafts(baseLease)
+      }
+    });
+  },
+  closeRenewDialog() {
+    if (this.data.renewingLease) {
       return;
     }
 
-    const monthOptions = [6, 12, 24];
-    const months = monthOptions[action.tapIndex] ?? 12;
-    const baseEndDate = String(baseLease.actualEndDate || baseLease.endDate || '').slice(0, 10);
-    const startDate = addDays(baseEndDate, 1);
-    const endDate = addMonthsInclusive(startDate, months);
-    const renewFee = resolveRenewFeeRules(baseLease);
-
-    const confirmation = await wx.showModal({
-      title: '确认续租',
-      content: `新租期：${startDate} 至 ${endDate}。仅生成租金和周期性固定费用，不重复收押金、消防押金、锁卡押金和一次性费用。`,
-      confirmText: '确认续租'
+    this.setData({
+      renewDialogVisible: false
     });
+  },
+  handleRenewDateChange(event: WechatMiniprogram.PickerChange) {
+    this.setData({
+      renewForm: {
+        ...this.data.renewForm,
+        endDate: String(event.detail.value || '')
+      }
+    });
+  },
+  handleRenewInputChange(event: WechatMiniprogram.Input) {
+    const field = event.currentTarget.dataset.field as 'rentAmount' | 'managementAmount';
+    this.setData({
+      renewForm: {
+        ...this.data.renewForm,
+        [field]: event.detail.value
+      }
+    });
+  },
+  addRenewCustomFeeItem() {
+    const index = this.data.renewForm.customFeeItems.length + 1;
+    this.setData({
+      renewForm: {
+        ...this.data.renewForm,
+        customFeeItems: [
+          ...this.data.renewForm.customFeeItems,
+          {
+            key: `renew_custom_${Date.now()}_${index}`,
+            label: '',
+            amount: ''
+          }
+        ]
+      }
+    });
+  },
+  removeRenewCustomFeeItem(event: WechatMiniprogram.BaseEvent) {
+    const index = Number(event.currentTarget.dataset.index || 0);
+    this.setData({
+      renewForm: {
+        ...this.data.renewForm,
+        customFeeItems: this.data.renewForm.customFeeItems.filter((_, itemIndex) => itemIndex !== index)
+      }
+    });
+  },
+  handleRenewCustomFeeInput(event: WechatMiniprogram.Input) {
+    const index = Number(event.currentTarget.dataset.index || 0);
+    const field = event.currentTarget.dataset.field as 'label' | 'amount';
+    const customFeeItems = this.data.renewForm.customFeeItems.slice();
+    customFeeItems[index] = {
+      ...customFeeItems[index],
+      [field]: event.detail.value
+    };
+    this.setData({
+      renewForm: {
+        ...this.data.renewForm,
+        customFeeItems
+      }
+    });
+  },
+  async confirmRenewLease() {
+    if (this.data.renewingLease) {
+      return;
+    }
 
-    if (!confirmation.confirm) {
+    const baseLease = resolveRenewBaseLeaseById(this.data.detail, this.data.renewForm.sourceLeaseId);
+    const roomId = String(this.data.roomId || this.data.detail?.room?.id || '');
+    const { startDate, endDate } = this.data.renewForm;
+
+    if (!baseLease?.id || !roomId || !baseLease.tenantId) {
+      wx.showToast({
+        title: '当前无可续租的租约',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (!endDate || endDate < startDate) {
+      wx.showToast({
+        title: '续租到期日不能早于开始日',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const renewFee = resolveRenewFeeRules(this.data.renewForm);
+    if (!Number.isFinite(renewFee.rentAmount) || renewFee.rentAmount <= 0) {
+      wx.showToast({
+        title: '请填写有效租金',
+        icon: 'none'
+      });
       return;
     }
 
@@ -1245,11 +1362,15 @@ Page({
           depositAmount: 0,
           feeRules: renewFee.feeRules,
           note: String(baseLease.note || '')
-        }
+        },
+        renewFromLeaseId: String(baseLease.id || '')
       });
       wx.showToast({
         title: '续租成功',
         icon: 'success'
+      });
+      this.setData({
+        renewDialogVisible: false
       });
       await this.loadDetail();
     } catch (error) {

@@ -371,11 +371,21 @@ describe('leases-save billing integration', () => {
       },
       __mockDb,
       __mockContext,
+      renewFromLeaseId: oldLease.id,
       now: '2026-03-20T00:00:00.000Z'
     });
+    const markedOldLease = store.leases.find((lease) => lease.id === oldLease.id);
 
     expect(renewal.id).not.toBe(oldLease.id);
     expect(store.leases.map((lease) => lease.id)).toEqual([oldLease.id, renewal.id]);
+    expect(markedOldLease).toMatchObject({
+      renewedToLeaseId: renewal.id,
+      renewalEndDate: '2026-06-30',
+      renewedAt: '2026-03-20T00:00:00.000Z'
+    });
+    expect(renewal).toMatchObject({
+      renewalFromLeaseId: oldLease.id
+    });
     expect(store.bills.filter((bill) => oldBillIds.includes(bill.id))).toHaveLength(oldBillIds.length);
     expect(store.bills.some((bill) => bill.leaseId === renewal.id && bill.amount === 1900)).toBe(true);
     expect(store.bills.some((bill) => bill.leaseId === renewal.id && bill.type === 'deposit')).toBe(false);

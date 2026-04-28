@@ -253,6 +253,67 @@
     </view>
   </view>
 
+  <view wx:if="{{renewDialogVisible}}" class="dialog-mask">
+    <view class="dialog-card renew-dialog-card">
+      <view class="section-subtitle">续租</view>
+      <view class="field">续租开始：{{renewForm.startDate}}</view>
+      <picker mode="date" value="{{renewForm.endDate}}" start="{{renewForm.startDate}}" bindchange="handleRenewDateChange">
+        <view class="field picker-field">续租到期：{{renewForm.endDate || '请选择到期日'}}</view>
+      </picker>
+      <input
+        class="input"
+        type="digit"
+        data-field="rentAmount"
+        value="{{renewForm.rentAmount}}"
+        bindinput="handleRenewInputChange"
+        placeholder="续租租金"
+      />
+      <input
+        class="input"
+        type="digit"
+        data-field="managementAmount"
+        value="{{renewForm.managementAmount}}"
+        bindinput="handleRenewInputChange"
+        placeholder="周期性管理费（可空）"
+      />
+      <view class="renew-fee-head">
+        <view class="field-label">周期性自定义费用</view>
+        <button class="secondary-button compact-button" bindtap="addRenewCustomFeeItem">添加</button>
+      </view>
+      <view wx:if="{{!renewForm.customFeeItems.length}}" class="hint">暂无周期性自定义费用</view>
+      <view wx:for="{{renewForm.customFeeItems}}" wx:key="key" class="renew-fee-item">
+        <view class="renew-fee-head">
+          <view class="field-label">费用 {{index + 1}}</view>
+          <button class="mini-delete-button compact-button" data-index="{{index}}" bindtap="removeRenewCustomFeeItem">删除</button>
+        </view>
+        <input
+          class="input"
+          data-index="{{index}}"
+          data-field="label"
+          value="{{item.label}}"
+          bindinput="handleRenewCustomFeeInput"
+          placeholder="费用名称"
+        />
+        <input
+          class="input"
+          type="digit"
+          data-index="{{index}}"
+          data-field="amount"
+          value="{{item.amount}}"
+          bindinput="handleRenewCustomFeeInput"
+          placeholder="金额"
+        />
+      </view>
+      <view class="hint">续租不会重复收押金、消防押金、锁卡押金和一次性费用；原租约会记录续租关联。</view>
+      <view class="dialog-actions">
+        <button class="secondary-button" disabled="{{renewingLease}}" bindtap="closeRenewDialog">取消</button>
+        <button class="primary-button" loading="{{renewingLease}}" disabled="{{renewingLease}}" bindtap="confirmRenewLease">
+          确认续租
+        </button>
+      </view>
+    </view>
+  </view>
+
   <view wx:if="{{paymentDialogVisible}}" class="dialog-mask">
     <view class="dialog-card">
       <view class="section-subtitle">登记缴费</view>

@@ -58,6 +58,10 @@ export const leaseSchema = z.object({
   depositAmount: z.number().nonnegative(),
   feeRules: leaseFeeRulesSchema.optional(),
   note: z.string().optional().default(''),
+  renewalFromLeaseId: z.string().optional(),
+  renewedToLeaseId: z.string().optional(),
+  renewedAt: z.string().optional(),
+  renewalEndDate: z.string().optional(),
   closedAt: z.string().nullable().optional().default(null),
   createdAt: z.string(),
   updatedAt: z.string()

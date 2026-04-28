@@ -49,6 +49,10 @@ exports.leaseSchema = zod_1.z.object({
     depositAmount: zod_1.z.number().nonnegative(),
     feeRules: exports.leaseFeeRulesSchema.optional(),
     note: zod_1.z.string().optional().default(''),
+    renewalFromLeaseId: zod_1.z.string().optional(),
+    renewedToLeaseId: zod_1.z.string().optional(),
+    renewedAt: zod_1.z.string().optional(),
+    renewalEndDate: zod_1.z.string().optional(),
     closedAt: zod_1.z.string().nullable().optional().default(null),
     createdAt: zod_1.z.string(),
     updatedAt: zod_1.z.string()

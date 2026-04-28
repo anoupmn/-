@@ -399,16 +399,39 @@
 
 .dialog-card {
   width: 100%;
+  max-height: 88vh;
   background: #ffffff;
   border-radius: 24rpx;
   padding: 32rpx;
   display: flex;
   flex-direction: column;
   gap: 20rpx;
+  overflow-y: auto;
 }
 
 .picker-field {
   padding: 20rpx 24rpx;
   border-radius: 16rpx;
   background: #f9fafb;
+}
+
+.renew-dialog-card {
+  gap: 18rpx;
+}
+
+.renew-fee-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.renew-fee-item {
+  padding: 18rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #e5e7eb;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
 }

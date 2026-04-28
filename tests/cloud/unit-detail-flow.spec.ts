@@ -21,8 +21,11 @@ describe('unit detail correction flow wiring', () => {
 
     expect(combined).toContain('yearBillGroups');
     expect(combined).toContain('toggleYear');
+    expect(pageSource).toContain('renewDialogVisible');
+    expect(wxmlSource).toContain('续租到期');
+    expect(wxmlSource).toContain('周期性自定义费用');
     expect(pageSource).toContain('resolveRenewFeeRules');
-    expect(pageSource).toContain('不重复收押金、消防押金、锁卡押金和一次性费用');
+    expect(wxmlSource).toContain('不会重复收押金、消防押金、锁卡押金和一次性费用');
     expect(pageSource).toContain('saveLease');
     expect(combined).not.toContain('/pages/leases-form/index?mode=renew');
   });
