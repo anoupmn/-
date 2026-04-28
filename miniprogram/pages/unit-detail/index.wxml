@@ -121,6 +121,15 @@
               >
                 登记缴费
               </button>
+              <button
+                wx:if="{{item.status === 'paid'}}"
+                class="secondary-button compact-button"
+                data-bill-id="{{item.id}}"
+                data-receipt-id="{{item.receiptId}}"
+                bindtap="openReceiptPage"
+              >
+                {{item.receiptId ? '查看收据' : '生成收据'}}
+              </button>
             </view>
             <view wx:if="{{item.meterReading}}" class="meter-block">
               <view class="meter-grid">

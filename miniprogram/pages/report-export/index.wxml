@@ -1,0 +1,55 @@
+<view class="page-shell">
+  <view class="report-export-shell page-stack">
+    <view class="card intro-card">
+      <view class="page-title">月度经营导出</view>
+      <view class="text-muted">导出文件包含月度明细、账单明细、房东支出明细和退租支出明细。</view>
+    </view>
+
+    <view class="card form-card">
+      <picker mode="date" fields="month" value="{{month}}" bindchange="handleMonthChange">
+        <view class="field picker-field">导出月份：{{month}}</view>
+      </picker>
+
+      <radio-group class="range-group" bindchange="handleRangeChange">
+        <label class="range-option">
+          <radio value="all" checked="{{rangeType === 'all'}}" />全部房源
+        </label>
+        <label class="range-option">
+          <radio value="asset" checked="{{rangeType === 'asset'}}" />单个房源/楼栋
+        </label>
+        <label class="range-option">
+          <radio value="room" checked="{{rangeType === 'room'}}" />单个房间
+        </label>
+      </radio-group>
+
+      <input
+        wx:if="{{rangeType === 'asset'}}"
+        class="input"
+        data-field="assetId"
+        value="{{assetId}}"
+        bindinput="handleInput"
+        placeholder="请输入房源 ID"
+      />
+      <input
+        wx:if="{{rangeType === 'room'}}"
+        class="input"
+        data-field="roomId"
+        value="{{roomId}}"
+        bindinput="handleInput"
+        placeholder="请输入房间 ID"
+      />
+
+      <button class="primary-button" loading="{{exporting}}" disabled="{{exporting}}" bindtap="createExport">生成导出</button>
+    </view>
+
+    <view wx:if="{{result}}" class="card result-card">
+      <view class="section-title">导出结果</view>
+      <view class="field">文件：{{result.fileName}}</view>
+      <view class="field">Sheet：{{result.sheetNames.join('、')}}</view>
+      <view class="field">房间数：{{result.summary.roomCount}} / 账单数：{{result.summary.billCount}}</view>
+      <view class="field">租客收入合计：¥{{result.summary.tenantIncomeTotal}}</view>
+      <view class="field">房东支出合计：¥{{result.summary.ownerExpenseTotal}}</view>
+      <button class="secondary-button" bindtap="openExportFile">打开 Excel</button>
+    </view>
+  </view>
+</view>

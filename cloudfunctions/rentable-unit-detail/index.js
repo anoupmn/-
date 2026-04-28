@@ -77,6 +77,8 @@ function buildMonthlyBillGroups(bills, now) {
             receivedAmount: bill.receivedAmount,
             note: bill.note ?? '',
             meterReading: bill.meterReading,
+            receiptId: bill.receiptId,
+            receiptNo: bill.receiptNo,
             isReceivedAmountMismatch: bill.receivedAmount != null && Math.abs(Number(bill.receivedAmount) - Number(bill.amount || 0)) >= 0.01
         });
     });

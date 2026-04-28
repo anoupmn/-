@@ -28,15 +28,12 @@
       </view>
     </view>
 
-    <view class="card action-card danger-card">
+    <view class="card action-card export-card">
       <view class="section-head-main">
-        <view class="section-title">测试数据重置</view>
-        <view class="text-muted">支持清空当前账号，或高危的全账号清空（仅测试环境）。</view>
+        <view class="section-title">月度经营导出</view>
+        <view class="text-muted">按月份导出房租、水电、房东支出和退租支出明细。</view>
       </view>
-      <view class="ops-grid">
-        <button class="secondary-button" loading="{{resettingData}}" bindtap="resetTestData">清空当前账号数据</button>
-        <button class="danger-button" loading="{{resettingAllData}}" bindtap="resetAllTestData">清空所有账号数据</button>
-      </view>
+      <button class="secondary-button" data-url="/pages/report-export/index" bindtap="navigateTo">月度经营导出</button>
     </view>
   </view>
 </view>

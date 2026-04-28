@@ -23,6 +23,8 @@ type MonthlyBillItem = {
     unitPrice: number;
   };
   isReceivedAmountMismatch?: boolean;
+  receiptId?: string;
+  receiptNo?: string;
 };
 
 type DetailPayload = Record<string, any> & {
@@ -691,6 +693,19 @@ Page({
   closePaymentDialog() {
     this.setData({
       paymentDialogVisible: false
+    });
+  },
+  openReceiptPage(event: WechatMiniprogram.BaseEvent) {
+    const billId = String(event.currentTarget.dataset.billId || '');
+    const receiptId = String(event.currentTarget.dataset.receiptId || '');
+    const query = receiptId ? `receiptId=${receiptId}` : `billId=${billId}`;
+
+    if (!billId && !receiptId) {
+      return;
+    }
+
+    wx.navigateTo({
+      url: `/pages/receipt/index?${query}`
     });
   },
   handlePaymentAmountChange(event: WechatMiniprogram.Input) {

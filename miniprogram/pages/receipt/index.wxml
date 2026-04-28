@@ -1,0 +1,51 @@
+<view class="page-shell">
+  <view class="receipt-shell page-stack">
+    <view wx:if="{{loading}}" class="card">
+      <view class="text-muted">正在加载收据...</view>
+    </view>
+
+    <view wx:elif="{{receipt}}" class="card receipt-card">
+      <view class="receipt-status" wx:if="{{receipt.status === 'voided'}}">已作废</view>
+      <view class="receipt-title">收款收据（非发票）</view>
+      <view class="field">收据编号：{{receipt.receiptNo}}</view>
+      <view class="field">房源/房间：{{receipt.assetName}} / {{receipt.roomName}}</view>
+      <view class="field">租客姓名：{{receipt.tenantName}}</view>
+      <view class="field">收款日期：{{receipt.receivedAt}}</view>
+      <view class="field">收款人：{{receipt.collectorName || '未填写'}}</view>
+
+      <view class="receipt-items">
+        <view wx:for="{{receipt.items}}" wx:key="billId" class="receipt-item">
+          <view class="fee-row">
+            <view>
+              <view class="fee-name">{{item.itemLabel}}</view>
+              <view class="field">应收日期：{{item.dueDate}}</view>
+            </view>
+            <view class="fee-status">¥{{item.receivedAmount}}</view>
+          </view>
+          <view wx:if="{{item.meterReading}}" class="field">
+            读数：{{item.meterReading.previousReading}} → {{item.meterReading.currentReading}}，用量 {{item.meterReading.usage}}
+          </view>
+          <view wx:if="{{item.note}}" class="fee-note">备注：{{item.note}}</view>
+        </view>
+      </view>
+
+      <view class="receipt-total">合计金额：¥{{receipt.totalAmount}}</view>
+      <view class="field">生成时间：{{receipt.createdAt}}</view>
+      <view wx:if="{{receipt.note}}" class="field">备注：{{receipt.note}}</view>
+      <view wx:if="{{receipt.voidReason}}" class="field">作废原因：{{receipt.voidReason}}</view>
+
+      <view class="action-grid">
+        <button
+          wx:if="{{receipt.status !== 'voided'}}"
+          class="danger-button"
+          loading="{{voiding}}"
+          disabled="{{voiding}}"
+          bindtap="handleVoidReceipt"
+        >
+          作废收据
+        </button>
+        <button wx:if="{{receipt.status === 'voided'}}" class="primary-button" bindtap="handleReissueReceipt">重开收据</button>
+      </view>
+    </view>
+  </view>
+</view>

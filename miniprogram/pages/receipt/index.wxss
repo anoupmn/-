@@ -1,0 +1,36 @@
+.receipt-shell,
+.receipt-card,
+.receipt-items,
+.action-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.receipt-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  text-align: center;
+  color: #22272f;
+}
+
+.receipt-status {
+  align-self: flex-start;
+  padding: 6rpx 12rpx;
+  border: 1rpx solid #c0392b;
+  color: #c0392b;
+  font-size: 24rpx;
+}
+
+.receipt-item {
+  padding: 16rpx 0;
+  border-top: 1rpx solid #eef1f5;
+}
+
+.receipt-total {
+  padding-top: 16rpx;
+  border-top: 1rpx solid #d9dee8;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #22272f;
+}

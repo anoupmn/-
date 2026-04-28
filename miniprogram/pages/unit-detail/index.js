@@ -525,6 +525,17 @@ Page({
             paymentDialogVisible: false
         });
     },
+    openReceiptPage(event) {
+        const billId = String(event.currentTarget.dataset.billId || '');
+        const receiptId = String(event.currentTarget.dataset.receiptId || '');
+        const query = receiptId ? `receiptId=${receiptId}` : `billId=${billId}`;
+        if (!billId && !receiptId) {
+            return;
+        }
+        wx.navigateTo({
+            url: `/pages/receipt/index?${query}`
+        });
+    },
     handlePaymentAmountChange(event) {
         this.setData({
             paymentForm: {

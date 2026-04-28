@@ -8,6 +8,7 @@ export const COLLECTIONS = {
   repairRecords: 'repair_records',
   ownerExpenses: 'owner_expenses',
   receipts: 'receipts',
+  reportExports: 'report_exports',
   alerts: 'alerts',
   abnormalFlags: 'abnormal_flags',
   notificationPreferences: 'notification_preferences'

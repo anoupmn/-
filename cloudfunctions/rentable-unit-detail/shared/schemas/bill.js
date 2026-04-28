@@ -47,6 +47,8 @@ exports.billSchema = zod_1.z.object({
     isDepositLike: zod_1.z.boolean().catch(false).default(false),
     isOneTime: zod_1.z.boolean().catch(false).default(false),
     legacy: zod_1.z.boolean().catch(false).default(false),
+    receiptId: zod_1.z.string().optional(),
+    receiptNo: zod_1.z.string().optional(),
     createdAt: zod_1.z.string(),
     updatedAt: zod_1.z.string()
 });

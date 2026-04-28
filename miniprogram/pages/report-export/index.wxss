@@ -1,0 +1,25 @@
+.report-export-shell,
+.form-card,
+.result-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.intro-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f4f8ff 100%);
+}
+
+.range-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.range-option {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  color: #22272f;
+  font-size: 28rpx;
+}

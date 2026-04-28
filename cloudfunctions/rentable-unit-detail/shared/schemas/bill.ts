@@ -56,6 +56,8 @@ export const billSchema = z.object({
   isDepositLike: z.boolean().catch(false).default(false),
   isOneTime: z.boolean().catch(false).default(false),
   legacy: z.boolean().catch(false).default(false),
+  receiptId: z.string().optional(),
+  receiptNo: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });

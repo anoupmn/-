@@ -12,7 +12,9 @@
     "pages/rooms-form/index",
     "pages/tenants-form/index",
     "pages/leases-form/index",
-    "pages/unit-detail/index"
+    "pages/unit-detail/index",
+    "pages/report-export/index",
+    "pages/receipt/index"
   ],
   "tabBar": {
     "color": "#5f6672",

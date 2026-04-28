@@ -68,6 +68,8 @@ function buildMonthlyBillGroups(bills: Bill[], now: string) {
         note: string;
         meterReading: Bill['meterReading'];
         isReceivedAmountMismatch: boolean;
+        receiptId?: string;
+        receiptNo?: string;
       }>;
     }
   >();
@@ -109,6 +111,8 @@ function buildMonthlyBillGroups(bills: Bill[], now: string) {
         receivedAmount: bill.receivedAmount,
         note: bill.note ?? '',
         meterReading: bill.meterReading,
+        receiptId: bill.receiptId,
+        receiptNo: bill.receiptNo,
         isReceivedAmountMismatch:
           bill.receivedAmount != null && Math.abs(Number(bill.receivedAmount) - Number(bill.amount || 0)) >= 0.01
       });
