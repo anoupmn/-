@@ -52,9 +52,8 @@ describe('unit detail correction flow wiring', () => {
     expect(reportExportWxml).toContain('导出记录');
     expect(reportExportWxml).not.toContain('请输入房源 ID');
     expect(reportExportWxml).not.toContain('请输入房间 ID');
-    expect(detailSource).toContain('openReceiptPage');
-    expect(detailWxml).toContain('生成收据');
-    expect(detailWxml).toContain('已开具收据');
+    expect(detailWxml).toContain('开具本租约本月收据');
+    expect(detailWxml).toContain('查看本月收据');
     expect(receiptWxml).toContain('收款收据（非发票）');
     expect(receiptWxml).toContain('作废收据');
     expect(receiptWxml).toContain('重开收据');
@@ -98,7 +97,10 @@ describe('unit detail correction flow wiring', () => {
     const combined = `${detailSource}\n${detailWxml}\n${receiptCreateSource}\n${receiptRepositorySource}`;
 
     expect(detailWxml).toContain('开具本租约本月收据');
-    expect(detailWxml).toContain('已开具收据');
+    expect(detailWxml).toContain('查看本月收据');
+    expect(detailWxml).not.toContain('生成收据');
+    expect(detailWxml).not.toContain('已开具收据');
+    expect(detailSource).not.toContain('openReceiptPage');
     expect(detailSource).toContain('收据已生成');
     expect(detailSource).toContain('createReceipt({ leaseId, month })');
     expect(combined).toMatch(/month.*leaseId|leaseId.*month/);

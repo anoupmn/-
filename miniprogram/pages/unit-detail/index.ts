@@ -41,9 +41,12 @@ type DetailPayload = Record<string, any> & {
     monthLabel: string;
     expandedByDefault: boolean;
     items: MonthlyBillItem[];
-    receiptCandidateItems?: MonthlyBillItem[];
-    canMergeReceipt?: boolean;
+    monthReceiptId?: string;
+    monthReceiptNo?: string;
+    canIssueMonthReceipt?: boolean;
     receiptLeaseId?: string;
+    receiptableBillCount?: number;
+    receiptableTotalAmount?: number;
   }>;
   historyCollapsedByDefault?: boolean;
 };
@@ -585,13 +588,17 @@ Page({
         })
       }));
       const receiptCandidateItems = items.filter(canCreateReceiptFromBill);
+      const monthReceiptItem = items.find((item) => item.receiptId);
 
       return {
         ...group,
         items,
-        receiptCandidateItems,
-        canMergeReceipt: receiptCandidateItems.length > 0,
-        receiptLeaseId: receiptCandidateItems[0]?.leaseId || detail.activeLease?.id || ''
+        monthReceiptId: monthReceiptItem?.receiptId || '',
+        monthReceiptNo: monthReceiptItem?.receiptNo || '',
+        canIssueMonthReceipt: !monthReceiptItem?.receiptId && receiptCandidateItems.length > 0,
+        receiptLeaseId: receiptCandidateItems[0]?.leaseId || monthReceiptItem?.leaseId || detail.activeLease?.id || '',
+        receiptableBillCount: receiptCandidateItems.length,
+        receiptableTotalAmount: receiptCandidateItems.reduce((sum, item) => sum + Number(item.receivedAmount ?? 0), 0)
       };
     });
     const leaseHistoryViews = buildLeaseHistoryViews(detail);
@@ -726,22 +733,17 @@ Page({
       paymentDialogVisible: false
     });
   },
-  openReceiptPage(event: WechatMiniprogram.BaseEvent) {
-    const billId = String(event.currentTarget.dataset.billId || '');
-    const receiptId = String(event.currentTarget.dataset.receiptId || '');
-    const query = receiptId ? `receiptId=${receiptId}` : `billId=${billId}`;
-
-    if (!billId && !receiptId) {
-      return;
-    }
-
-    wx.navigateTo({
-      url: `/pages/receipt/index?${query}`
-    });
-  },
   async createMergedMonthReceipt(event: WechatMiniprogram.BaseEvent) {
     const month = String(event.currentTarget.dataset.monthKey || '');
     const leaseId = String(event.currentTarget.dataset.leaseId || '');
+    const receiptId = String(event.currentTarget.dataset.receiptId || '');
+
+    if (receiptId) {
+      wx.navigateTo({
+        url: `/pages/receipt/index?receiptId=${receiptId}`
+      });
+      return;
+    }
 
     if (!month || !leaseId || this.data.creatingMergedReceiptMonth) {
       return;

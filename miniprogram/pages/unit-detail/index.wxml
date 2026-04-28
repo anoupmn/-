@@ -121,15 +121,6 @@
               >
                 登记缴费
               </button>
-              <button
-                wx:if="{{item.status === 'paid'}}"
-                class="secondary-button compact-button"
-                data-bill-id="{{item.id}}"
-                data-receipt-id="{{item.receiptId}}"
-                bindtap="openReceiptPage"
-              >
-                {{item.receiptId ? '已开具收据' : '生成收据'}}
-              </button>
             </view>
             <view wx:if="{{item.meterReading}}" class="meter-block">
               <view class="meter-grid">
@@ -159,34 +150,22 @@
             <view wx:if="{{item.note}}" class="fee-note">备注：{{item.note}}</view>
             <view class="fee-note" wx:if="{{item.isManual}}">补录费用</view>
           </view>
-          <view wx:if="{{monthGroup.receiptCandidateItems.length}}" class="receipt-candidate-panel">
-            <view class="candidate-head">
-              <view>
-                <view class="field-label">可纳入本月收据</view>
-                <view class="hint">已收且尚未开具收据的租客账单</view>
-              </view>
+          <view class="month-tools">
+            <view class="month-receipt-summary" wx:if="{{monthGroup.monthReceiptId || monthGroup.canIssueMonthReceipt}}">
+              <view wx:if="{{monthGroup.monthReceiptId}}" class="field">本月收据：{{monthGroup.monthReceiptNo}}</view>
+              <view wx:else class="field">本月已收 {{monthGroup.receiptableBillCount}} 笔，合计 ¥{{monthGroup.receiptableTotalAmount}}</view>
               <button
-                wx:if="{{monthGroup.canMergeReceipt}}"
-                class="primary-button compact-button merge-receipt-button"
+                class="primary-button month-receipt-button"
                 data-month-key="{{monthGroup.monthKey}}"
                 data-lease-id="{{monthGroup.receiptLeaseId}}"
+                data-receipt-id="{{monthGroup.monthReceiptId}}"
                 loading="{{creatingMergedReceiptMonth==monthGroup.monthKey}}"
                 disabled="{{creatingMergedReceiptMonth}}"
                 bindtap="createMergedMonthReceipt"
               >
-                开具本租约本月收据
+                {{monthGroup.monthReceiptId ? '查看本月收据' : '开具本租约本月收据'}}
               </button>
             </view>
-            <view wx:for="{{monthGroup.receiptCandidateItems}}" wx:key="id" wx:for-item="candidate" class="candidate-item">
-              <view>
-                <view class="fee-name">{{candidate.label}}</view>
-                <view class="field">应收日期：{{candidate.dueDate}}</view>
-                <view class="field">实收日期：{{candidate.receivedAt}}</view>
-              </view>
-              <view class="fee-status">¥{{candidate.receivedAmount}}</view>
-            </view>
-          </view>
-          <view class="month-tools">
             <button
               class="secondary-button month-add-button"
               data-month-key="{{monthGroup.monthKey}}"
