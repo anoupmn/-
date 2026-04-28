@@ -88,4 +88,18 @@ describe('receipt-void cloud function', () => {
     expect(reissued.reissueFromReceiptId).toBe(receipt.id);
     expect(store.receipts).toHaveLength(2);
   });
+
+  it('rejects voiding receipt without a reason', async () => {
+    const store = createMockStore();
+    seedReceiptData(store);
+    const receipt = await receiptCreateMain({ ...context(store, '2026-04-28T10:00:00.000Z'), billIds: ['bill_paid'] } as any);
+
+    await expect(
+      receiptVoidMain({
+        ...context(store, '2026-04-28T11:00:00.000Z'),
+        receiptId: receipt.id,
+        voidReason: '   '
+      } as any)
+    ).rejects.toThrow('voidReason is required');
+  });
 });

@@ -5,6 +5,7 @@ function seedReceiptData(store: ReturnType<typeof createMockStore>) {
   store.assets.push({ id: 'asset_1', landlordOpenId: 'openid', name: '152号楼', rentalMode: 'split', createdAt: '', updatedAt: '' });
   store.rooms.push({ id: 'room_101', landlordOpenId: 'openid', assetId: 'asset_1', name: '101', isWholeUnitDefault: false, createdAt: '', updatedAt: '' });
   store.tenants.push({ id: 'tenant_1', landlordOpenId: 'openid', name: '张三', createdAt: '', updatedAt: '' });
+  store.tenants.push({ id: 'tenant_2', landlordOpenId: 'openid', name: '李四', createdAt: '', updatedAt: '' });
   store.leases.push({
     id: 'lease_1',
     landlordOpenId: 'openid',
@@ -15,6 +16,20 @@ function seedReceiptData(store: ReturnType<typeof createMockStore>) {
     billingCycleDays: 30,
     rentAmount: 2600,
     depositAmount: 2600,
+    closedAt: null,
+    createdAt: '',
+    updatedAt: ''
+  });
+  store.leases.push({
+    id: 'lease_2',
+    landlordOpenId: 'openid',
+    roomId: 'room_101',
+    tenantId: 'tenant_2',
+    startDate: '2026-04-15',
+    endDate: '2026-12-31',
+    billingCycleDays: 30,
+    rentAmount: 2000,
+    depositAmount: 2000,
     closedAt: null,
     createdAt: '',
     updatedAt: ''
@@ -32,6 +47,48 @@ function seedReceiptData(store: ReturnType<typeof createMockStore>) {
       status: 'paid',
       receivedAt: '2026-04-05T00:00:00.000Z',
       receivedAmount: 2600,
+      source: 'system',
+      feeNature: 'recurring',
+      responsibility: 'tenant',
+      cadence: 'cycle',
+      isDepositLike: false,
+      isOneTime: false,
+      createdAt: '',
+      updatedAt: ''
+    },
+    {
+      id: 'bill_management',
+      landlordOpenId: 'openid',
+      leaseId: 'lease_1',
+      roomId: 'room_101',
+      type: 'management',
+      section: 'non_rent',
+      dueDate: '2026-04-01',
+      amount: 100,
+      status: 'paid',
+      receivedAt: '2026-04-06T00:00:00.000Z',
+      receivedAmount: 100,
+      source: 'system',
+      feeNature: 'recurring',
+      responsibility: 'tenant',
+      cadence: 'cycle',
+      isDepositLike: false,
+      isOneTime: false,
+      createdAt: '',
+      updatedAt: ''
+    },
+    {
+      id: 'bill_other_tenant',
+      landlordOpenId: 'openid',
+      leaseId: 'lease_2',
+      roomId: 'room_101',
+      type: 'rent',
+      section: 'rent',
+      dueDate: '2026-05-01',
+      amount: 2000,
+      status: 'paid',
+      receivedAt: '2026-04-20T00:00:00.000Z',
+      receivedAmount: 2000,
       source: 'system',
       feeNature: 'recurring',
       responsibility: 'tenant',
@@ -120,5 +177,37 @@ describe('receipt-create cloud function', () => {
 
     expect(store.receipts.find((item) => item.id === receipt.id)?.totalAmount).toBe(2600);
     expect(store.receipts.find((item) => item.id === receipt.id)?.items).toEqual(receipt.items);
+  });
+
+  it('creates one monthly receipt from multiple paid bills in the same room', async () => {
+    const store = createMockStore();
+    seedReceiptData(store);
+
+    const receipt = await callCreate(store, { month: '2026-04', roomId: 'room_101' });
+
+    expect(receipt.billIds).toEqual(['bill_paid', 'bill_management']);
+    expect(receipt.items.map((item: any) => item.billId)).toEqual(['bill_paid', 'bill_management']);
+    expect(receipt.totalAmount).toBe(2700);
+  });
+
+  it('rejects monthly receipt when paid bills belong to different tenants', async () => {
+    const store = createMockStore();
+    seedReceiptData(store);
+
+    await expect(callCreate(store, { billIds: ['bill_paid', 'bill_other_tenant'] })).rejects.toThrow('same tenant');
+  });
+
+  it('rejects receipt creation when any bill already appears in an active receipt', async () => {
+    const store = createMockStore();
+    seedReceiptData(store);
+    const receipt = await callCreate(store, { billIds: ['bill_paid'] });
+    const bill = store.bills.find((item) => item.id === 'bill_paid');
+    if (bill) {
+      delete bill.receiptId;
+      delete bill.receiptNo;
+    }
+
+    await expect(callCreate(store, { billIds: ['bill_paid'] })).rejects.toThrow('already has an active receipt');
+    expect(store.receipts.find((item) => item.id === receipt.id)).toBeTruthy();
   });
 });

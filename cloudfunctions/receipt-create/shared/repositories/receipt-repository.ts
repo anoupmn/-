@@ -16,6 +16,32 @@ type CreateReceiptInput = {
   reissueFromReceiptId?: string;
 };
 
+type ReceiptListFilters = {
+  month?: string;
+  assetId?: string;
+  roomId?: string;
+  tenantId?: string;
+  status?: 'all' | 'active' | 'voided';
+};
+
+export type ReceiptRecord = {
+  id: string;
+  receiptNo: string;
+  monthKey: string;
+  assetName: string;
+  roomName: string;
+  tenantName: string;
+  receivedAt: string;
+  totalAmount: number;
+  status: Receipt['status'];
+  voidReason: string | null;
+  reissueFromReceiptId: string | null;
+  billCount: number;
+  billIds: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 function monthOf(date?: string | null) {
   return String(date || '').slice(0, 7);
 }
@@ -26,7 +52,7 @@ function receiptNo(now: string) {
 }
 
 function isReceivedTenantBill(bill: Bill) {
-  return bill.responsibility === 'tenant' && Boolean(bill.receivedAt) && bill.receivedAmount !== null;
+  return bill.responsibility === 'tenant' && Boolean(bill.receivedAt) && bill.receivedAmount != null;
 }
 
 function itemLabel(bill: Bill) {
@@ -51,6 +77,71 @@ function itemLabel(bill: Bill) {
 
 async function listReceipts(db: DbLike) {
   return listAll<Receipt>(db, COLLECTIONS.receipts);
+}
+
+function receiptMonthKey(receipt: Receipt) {
+  return String(receipt.items[0]?.dueDate ?? '').slice(0, 7);
+}
+
+function matchesReceiptFilters(receipt: Receipt, filters: ReceiptListFilters) {
+  const status = filters.status ?? 'all';
+  if (status !== 'all' && receipt.status !== status) {
+    return false;
+  }
+
+  if (filters.month && !receipt.items.some((item) => String(item.dueDate).slice(0, 7) === filters.month)) {
+    return false;
+  }
+
+  if (filters.assetId && receipt.assetId !== filters.assetId) {
+    return false;
+  }
+
+  if (filters.roomId && receipt.roomId !== filters.roomId) {
+    return false;
+  }
+
+  if (filters.tenantId && receipt.tenantId !== filters.tenantId) {
+    return false;
+  }
+
+  return true;
+}
+
+function toReceiptRecord(receipt: Receipt): ReceiptRecord {
+  return {
+    id: receipt.id,
+    receiptNo: receipt.receiptNo,
+    monthKey: receiptMonthKey(receipt),
+    assetName: receipt.assetName,
+    roomName: receipt.roomName,
+    tenantName: receipt.tenantName,
+    receivedAt: receipt.receivedAt,
+    totalAmount: receipt.totalAmount,
+    status: receipt.status,
+    voidReason: receipt.voidReason,
+    reissueFromReceiptId: receipt.reissueFromReceiptId,
+    billCount: receipt.billIds.length,
+    billIds: [...receipt.billIds],
+    createdAt: receipt.createdAt,
+    updatedAt: receipt.updatedAt
+  };
+}
+
+export async function listReceiptRecords(db: DbLike, landlordOpenId: string, filters: ReceiptListFilters = {}) {
+  const receipts = await listReceipts(db);
+  return receipts
+    .filter((receipt) => receipt.landlordOpenId === landlordOpenId)
+    .filter((receipt) => matchesReceiptFilters(receipt, filters))
+    .sort((left, right) => {
+      const createdOrder = String(right.createdAt || '').localeCompare(String(left.createdAt || ''));
+      if (createdOrder !== 0) {
+        return createdOrder;
+      }
+
+      return String(right.receiptNo || '').localeCompare(String(left.receiptNo || ''));
+    })
+    .map(toReceiptRecord);
 }
 
 async function selectReceiptBills(db: DbLike, landlordOpenId: string, input: CreateReceiptInput) {
@@ -97,14 +188,16 @@ export async function createReceipt(db: DbLike, landlordOpenId: string, input: C
     throw new Error('No paid tenant bills can be used for receipt.');
   }
 
-  const receipts = await listReceipts(db);
-  const effectiveReceiptsById = new Map(receipts.filter((receipt) => receipt.status !== 'voided').map((receipt) => [receipt.id, receipt]));
   const invalidBill = bills.find((bill) => !isReceivedTenantBill(bill));
   if (invalidBill) {
     throw new Error('Receipt can only be created from paid tenant bills.');
   }
 
-  const duplicateBill = bills.find((bill) => bill.receiptId && effectiveReceiptsById.has(bill.receiptId));
+  const receipts = await listReceipts(db);
+  const activeReceipts = receipts.filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active');
+  const activeReceiptIds = new Set(activeReceipts.map((receipt) => receipt.id));
+  const activeBillIds = new Set(activeReceipts.flatMap((receipt) => receipt.billIds));
+  const duplicateBill = bills.find((bill) => activeBillIds.has(bill.id) || (bill.receiptId && activeReceiptIds.has(bill.receiptId)));
   if (duplicateBill) {
     throw new Error(`Bill ${duplicateBill.id} already has an active receipt.`);
   }
@@ -123,6 +216,21 @@ export async function createReceipt(db: DbLike, landlordOpenId: string, input: C
 
   if (!lease || !room || !tenant || !asset) {
     throw new Error('Receipt snapshot source data is incomplete.');
+  }
+
+  const billMonth = monthOf(firstBill.dueDate);
+  const invalidGroupBill = bills.find((bill) => {
+    const billLease = leases.find((item) => item.id === bill.leaseId && item.landlordOpenId === landlordOpenId);
+    return (
+      bill.roomId !== firstBill.roomId ||
+      bill.leaseId !== firstBill.leaseId ||
+      billLease?.tenantId !== tenant.id ||
+      monthOf(bill.dueDate) !== billMonth
+    );
+  });
+
+  if (invalidGroupBill) {
+    throw new Error('Receipt bills must belong to the same room, same tenant, same lease, and same bill month.');
   }
 
   const now = resolveNow(event);
@@ -192,6 +300,11 @@ export async function voidReceipt(
   input: { receiptId: string; voidReason?: string },
   event: CloudEventBase
 ) {
+  const voidReason = String(input.voidReason || '').trim();
+  if (!voidReason) {
+    throw new Error('voidReason is required.');
+  }
+
   const receipt = await findById<Receipt>(db, COLLECTIONS.receipts, input.receiptId);
   if (!receipt || receipt.landlordOpenId !== landlordOpenId) {
     throw new Error(`Receipt ${input.receiptId} not found.`);
@@ -204,7 +317,7 @@ export async function voidReceipt(
   return updateRecord<Receipt>(db, COLLECTIONS.receipts, receipt.id, {
     status: 'voided',
     voidedAt: resolveNow(event),
-    voidReason: input.voidReason ?? '',
+    voidReason,
     updatedAt: resolveNow(event)
   });
 }

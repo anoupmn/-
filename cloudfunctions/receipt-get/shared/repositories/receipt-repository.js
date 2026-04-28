@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.listReceiptRecords = listReceiptRecords;
 exports.createReceipt = createReceipt;
 exports.getReceipt = getReceipt;
 exports.voidReceipt = voidReceipt;
@@ -14,7 +15,7 @@ function receiptNo(now) {
     return `R${timestamp}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 function isReceivedTenantBill(bill) {
-    return bill.responsibility === 'tenant' && Boolean(bill.receivedAt) && bill.receivedAmount !== null;
+    return bill.responsibility === 'tenant' && Boolean(bill.receivedAt) && bill.receivedAmount != null;
 }
 function itemLabel(bill) {
     if (bill.itemLabel) {
@@ -36,6 +37,61 @@ function itemLabel(bill) {
 }
 async function listReceipts(db) {
     return (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.receipts);
+}
+function receiptMonthKey(receipt) {
+    return String(receipt.items[0]?.dueDate ?? '').slice(0, 7);
+}
+function matchesReceiptFilters(receipt, filters) {
+    const status = filters.status ?? 'all';
+    if (status !== 'all' && receipt.status !== status) {
+        return false;
+    }
+    if (filters.month && !receipt.items.some((item) => String(item.dueDate).slice(0, 7) === filters.month)) {
+        return false;
+    }
+    if (filters.assetId && receipt.assetId !== filters.assetId) {
+        return false;
+    }
+    if (filters.roomId && receipt.roomId !== filters.roomId) {
+        return false;
+    }
+    if (filters.tenantId && receipt.tenantId !== filters.tenantId) {
+        return false;
+    }
+    return true;
+}
+function toReceiptRecord(receipt) {
+    return {
+        id: receipt.id,
+        receiptNo: receipt.receiptNo,
+        monthKey: receiptMonthKey(receipt),
+        assetName: receipt.assetName,
+        roomName: receipt.roomName,
+        tenantName: receipt.tenantName,
+        receivedAt: receipt.receivedAt,
+        totalAmount: receipt.totalAmount,
+        status: receipt.status,
+        voidReason: receipt.voidReason,
+        reissueFromReceiptId: receipt.reissueFromReceiptId,
+        billCount: receipt.billIds.length,
+        billIds: [...receipt.billIds],
+        createdAt: receipt.createdAt,
+        updatedAt: receipt.updatedAt
+    };
+}
+async function listReceiptRecords(db, landlordOpenId, filters = {}) {
+    const receipts = await listReceipts(db);
+    return receipts
+        .filter((receipt) => receipt.landlordOpenId === landlordOpenId)
+        .filter((receipt) => matchesReceiptFilters(receipt, filters))
+        .sort((left, right) => {
+        const createdOrder = String(right.createdAt || '').localeCompare(String(left.createdAt || ''));
+        if (createdOrder !== 0) {
+            return createdOrder;
+        }
+        return String(right.receiptNo || '').localeCompare(String(left.receiptNo || ''));
+    })
+        .map(toReceiptRecord);
 }
 async function selectReceiptBills(db, landlordOpenId, input) {
     const bills = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.bills);
@@ -71,13 +127,15 @@ async function createReceipt(db, landlordOpenId, input, event) {
     if (bills.length === 0) {
         throw new Error('No paid tenant bills can be used for receipt.');
     }
-    const receipts = await listReceipts(db);
-    const effectiveReceiptsById = new Map(receipts.filter((receipt) => receipt.status !== 'voided').map((receipt) => [receipt.id, receipt]));
     const invalidBill = bills.find((bill) => !isReceivedTenantBill(bill));
     if (invalidBill) {
         throw new Error('Receipt can only be created from paid tenant bills.');
     }
-    const duplicateBill = bills.find((bill) => bill.receiptId && effectiveReceiptsById.has(bill.receiptId));
+    const receipts = await listReceipts(db);
+    const activeReceipts = receipts.filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active');
+    const activeReceiptIds = new Set(activeReceipts.map((receipt) => receipt.id));
+    const activeBillIds = new Set(activeReceipts.flatMap((receipt) => receipt.billIds));
+    const duplicateBill = bills.find((bill) => activeBillIds.has(bill.id) || (bill.receiptId && activeReceiptIds.has(bill.receiptId)));
     if (duplicateBill) {
         throw new Error(`Bill ${duplicateBill.id} already has an active receipt.`);
     }
@@ -94,6 +152,17 @@ async function createReceipt(db, landlordOpenId, input, event) {
     const asset = room ? assets.find((item) => item.id === room.assetId && item.landlordOpenId === landlordOpenId) : undefined;
     if (!lease || !room || !tenant || !asset) {
         throw new Error('Receipt snapshot source data is incomplete.');
+    }
+    const billMonth = monthOf(firstBill.dueDate);
+    const invalidGroupBill = bills.find((bill) => {
+        const billLease = leases.find((item) => item.id === bill.leaseId && item.landlordOpenId === landlordOpenId);
+        return (bill.roomId !== firstBill.roomId ||
+            bill.leaseId !== firstBill.leaseId ||
+            billLease?.tenantId !== tenant.id ||
+            monthOf(bill.dueDate) !== billMonth);
+    });
+    if (invalidGroupBill) {
+        throw new Error('Receipt bills must belong to the same room, same tenant, same lease, and same bill month.');
     }
     const now = (0, runtime_1.resolveNow)(event);
     const nextReceiptNo = receiptNo(now);
@@ -151,6 +220,10 @@ async function getReceipt(db, landlordOpenId, receiptId) {
     return receipt;
 }
 async function voidReceipt(db, landlordOpenId, input, event) {
+    const voidReason = String(input.voidReason || '').trim();
+    if (!voidReason) {
+        throw new Error('voidReason is required.');
+    }
     const receipt = await (0, runtime_1.findById)(db, collections_1.COLLECTIONS.receipts, input.receiptId);
     if (!receipt || receipt.landlordOpenId !== landlordOpenId) {
         throw new Error(`Receipt ${input.receiptId} not found.`);
@@ -161,7 +234,7 @@ async function voidReceipt(db, landlordOpenId, input, event) {
     return (0, runtime_1.updateRecord)(db, collections_1.COLLECTIONS.receipts, receipt.id, {
         status: 'voided',
         voidedAt: (0, runtime_1.resolveNow)(event),
-        voidReason: input.voidReason ?? '',
+        voidReason,
         updatedAt: (0, runtime_1.resolveNow)(event)
     });
 }
