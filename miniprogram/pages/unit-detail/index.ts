@@ -1,4 +1,4 @@
-import { deleteLease, endLease, saveLease } from '../../services/lease';
+import { deleteLease, endLease } from '../../services/lease';
 import { deleteBill, receiveBill, saveBill } from '../../services/bill';
 import { saveOwnerExpense } from '../../services/owner-expense';
 import { getRentableUnitDetail } from '../../services/rentable-unit';
@@ -37,6 +37,13 @@ type DetailPayload = Record<string, any> & {
     items: MonthlyBillItem[];
   }>;
   historyCollapsedByDefault?: boolean;
+};
+
+type YearlyBillGroup = {
+  yearKey: string;
+  yearLabel: string;
+  expandedByDefault: boolean;
+  months: Array<NonNullable<DetailPayload['monthlyBillGroups']>[number]>;
 };
 
 type LeaseHistoryView = {
@@ -185,52 +192,13 @@ function resolveRepairSaveErrorMessage(error: unknown) {
   return '维修记录保存失败，请稍后重试';
 }
 
-function resolveLeaseSaveErrorMessage(error: unknown) {
-  const payload = error as { message?: string; errMsg?: string } | undefined;
-  const rawMessage = `${payload?.message ?? ''} ${payload?.errMsg ?? ''}`.trim();
-
-  if (!rawMessage) {
-    return '续租失败，请稍后重试';
-  }
-
-  if (rawMessage.includes('租约开始日期不能晚于结束日期')) {
-    return '续租日期异常：开始日期不能晚于结束日期';
-  }
-
-  if (rawMessage.includes('租约时间冲突')) {
-    const matched = rawMessage.match(/租约时间冲突[^。]*。?/);
-    return matched?.[0] ?? '续租失败：新租期与现有租约冲突';
-  }
-
-  if (rawMessage.includes('租约日期不完整')) {
-    return '续租失败：租约日期不完整';
-  }
-
-  return '续租失败，请稍后重试';
-}
-
-function addDays(dateKey: string, days: number) {
-  const date = new Date(`${dateKey}T00:00:00`);
-  date.setDate(date.getDate() + days);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function addMonthsInclusive(startDate: string, months: number) {
-  const date = new Date(`${startDate}T00:00:00`);
-  date.setMonth(date.getMonth() + months);
-  date.setDate(date.getDate() - 1);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 function resolveRenewBaseLease(detail: DetailPayload | null) {
-  if (!detail || detail.activeLease) {
+  if (!detail) {
     return null;
+  }
+
+  if (detail.activeLease?.id) {
+    return detail.activeLease;
   }
 
   const leaseHistory = Array.isArray(detail.leaseHistory) ? detail.leaseHistory : [];
@@ -303,6 +271,43 @@ function buildLeaseHistoryViews(detail: DetailPayload): LeaseHistoryView[] {
     .sort((a, b) => b.endDate.localeCompare(a.endDate) || b.startDate.localeCompare(a.startDate));
 }
 
+function buildYearlyBillGroups(monthlyBillGroups: NonNullable<DetailPayload['monthlyBillGroups']>): YearlyBillGroup[] {
+  const currentYear = String(new Date().getFullYear());
+  const yearMap = monthlyBillGroups.reduce<Map<string, YearlyBillGroup>>((acc, group) => {
+    const yearKey = String(group.monthKey || '').slice(0, 4);
+    if (!yearKey) {
+      return acc;
+    }
+
+    if (!acc.has(yearKey)) {
+      acc.set(yearKey, {
+        yearKey,
+        yearLabel: `${yearKey}年`,
+        expandedByDefault: yearKey === currentYear,
+        months: []
+      });
+    }
+
+    acc.get(yearKey)?.months.push(group);
+    return acc;
+  }, new Map<string, YearlyBillGroup>());
+  const yearGroups = Array.from(yearMap.values())
+    .map((group) => ({
+      ...group,
+      months: group.months.sort((a, b) => a.monthKey.localeCompare(b.monthKey))
+    }))
+    .sort((a, b) => b.yearKey.localeCompare(a.yearKey));
+
+  if (yearGroups.length && !yearGroups.some((group) => group.expandedByDefault)) {
+    yearGroups[0] = {
+      ...yearGroups[0],
+      expandedByDefault: true
+    };
+  }
+
+  return yearGroups;
+}
+
 const MANUAL_BILL_TYPE_KEYS = ['water', 'electricity', 'custom'] as const;
 const MANUAL_BILL_TYPE_LABELS = ['水费', '电费', '其他费用'];
 const REPAIR_CATEGORY_OPTIONS = [
@@ -356,6 +361,7 @@ Page({
     detail: null as DetailPayload | null,
     leaseHistoryViews: [] as LeaseHistoryView[],
     expandedLeaseHistory: {} as Record<string, boolean>,
+    expandedYears: {} as Record<string, boolean>,
     expandedMonths: {} as Record<string, boolean>,
     paymentDialogVisible: false,
     paymentSubmitting: false,
@@ -372,7 +378,6 @@ Page({
     repairCategoryOptions: REPAIR_CATEGORY_OPTIONS.map((item) => item.label),
     ownerExpenseTypeOptions: OWNER_EXPENSE_TYPE_OPTIONS.map((item) => item.label),
     repairDialogVisible: false,
-    renewingLease: false,
     manualBillMeta: {
       showLabelInput: false,
       labelPlaceholder: ''
@@ -427,6 +432,11 @@ Page({
       expandedLeaseHistory[leaseHistoryViews[0].leaseId] = true;
     }
 
+    const yearBillGroups = buildYearlyBillGroups(monthlyBillGroups);
+    const expandedYears = yearBillGroups.reduce<Record<string, boolean>>((acc, group) => {
+      acc[group.yearKey] = group.expandedByDefault;
+      return acc;
+    }, {});
     const expandedMonths = monthlyBillGroups.reduce<Record<string, boolean>>((acc, group) => {
       acc[group.monthKey] = group.expandedByDefault;
       return acc;
@@ -438,11 +448,13 @@ Page({
       detail: {
         ...detail,
         monthlyBillGroups,
+        yearBillGroups,
         ownerExpenseSummary: detail.ownerExpenseSummary ?? { count: 0, totalAmount: 0, amountByType: {} },
         ownerExpenses: Array.isArray(detail.ownerExpenses) ? detail.ownerExpenses : []
       },
       leaseHistoryViews,
       expandedLeaseHistory,
+      expandedYears,
       expandedMonths,
       canRenewLease: Boolean(renewBaseLease?.id)
     });
@@ -496,6 +508,19 @@ Page({
       expandedMonths: {
         ...expandedMonths,
         [monthKey]: nextExpanded
+      }
+    });
+  },
+  toggleYear(event: WechatMiniprogram.BaseEvent) {
+    const yearKey = String(event.currentTarget.dataset.yearKey || '');
+    if (!yearKey) {
+      return;
+    }
+
+    this.setData({
+      expandedYears: {
+        ...this.data.expandedYears,
+        [yearKey]: !this.data.expandedYears[yearKey]
       }
     });
   },
@@ -1043,13 +1068,14 @@ Page({
       });
     }
   },
-  async handleRenewLease() {
-    if (this.data.renewingLease) {
-      return;
-    }
+  openRenewLeaseForm(event?: WechatMiniprogram.BaseEvent) {
+    const eventLeaseId = String(event?.currentTarget?.dataset?.leaseId || '');
+    const baseLease = eventLeaseId
+      ? { id: eventLeaseId }
+      : resolveRenewBaseLease(this.data.detail);
+    const roomId = String(this.data.roomId || this.data.detail?.room?.id || '');
 
-    const baseLease = resolveRenewBaseLease(this.data.detail);
-    if (!baseLease?.id) {
+    if (!baseLease?.id || !roomId) {
       wx.showToast({
         title: '当前无可续租的到期租约',
         icon: 'none'
@@ -1057,64 +1083,9 @@ Page({
       return;
     }
 
-    let action: WechatMiniprogram.GeneralCallbackResult & { tapIndex: number };
-    try {
-      action = await wx.showActionSheet({
-        itemList: ['续租3个月', '续租半年', '续租1年']
-      }) as WechatMiniprogram.GeneralCallbackResult & { tapIndex: number };
-    } catch {
-      return;
-    }
-    const monthOptions = [3, 6, 12];
-    const months = monthOptions[action.tapIndex] ?? 3;
-    const baseEndDate = String(baseLease.actualEndDate || baseLease.endDate || '').slice(0, 10);
-    const startDate = addDays(baseEndDate, 1);
-    const endDate = addMonthsInclusive(startDate, months);
-
-    const confirmation = await wx.showModal({
-      title: '确认续租',
-      content: `将按原租约创建新租约：${startDate} 至 ${endDate}。是否继续？`,
-      confirmText: '确认续租'
+    wx.navigateTo({
+      url: `/pages/leases-form/index?mode=renew&roomId=${encodeURIComponent(roomId)}&leaseId=${encodeURIComponent(String(baseLease.id))}`
     });
-
-    if (!confirmation.confirm) {
-      return;
-    }
-
-    this.setData({
-      renewingLease: true
-    });
-
-    try {
-      await saveLease({
-        lease: {
-          roomId: baseLease.roomId,
-          tenantId: baseLease.tenantId,
-          startDate,
-          endDate,
-          billingCycleDays: Number(baseLease.billingCycleDays || 30),
-          rentAmount: Number(baseLease.rentAmount || 0),
-          depositAmount: Number(baseLease.depositAmount || 0),
-          feeRules: baseLease.feeRules,
-          note: String(baseLease.note || '')
-        }
-      });
-      wx.showToast({
-        title: '续租成功',
-        icon: 'success'
-      });
-      await this.loadDetail();
-    } catch (error) {
-      console.error('renew lease failed', error);
-      wx.showToast({
-        title: resolveLeaseSaveErrorMessage(error),
-        icon: 'none'
-      });
-    } finally {
-      this.setData({
-        renewingLease: false
-      });
-    }
   },
   async endLeaseWithRetry(leaseId: string) {
     const confirmLeaseClosed = async () => {

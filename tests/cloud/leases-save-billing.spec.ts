@@ -300,4 +300,70 @@ describe('leases-save billing integration', () => {
       isOneTime: true
     });
   });
+
+  it('creates renewal as a new lease and keeps old lease bills untouched', async () => {
+    const store = createMockStore();
+    const __mockDb = createMockDb(store);
+    const __mockContext = {
+      getWXContext: () => getWXContext('openid-save')
+    };
+    store.rooms.push({
+      id: 'room_1',
+      landlordOpenId: 'openid-save',
+      assetId: 'asset_1',
+      name: 'A101',
+      note: '',
+      isWholeUnitDefault: false,
+      createdAt: '',
+      updatedAt: ''
+    });
+    store.tenants.push({
+      id: 'tenant_1',
+      landlordOpenId: 'openid-save',
+      name: '王租客',
+      phone: '',
+      note: '',
+      createdAt: '',
+      updatedAt: ''
+    });
+
+    const oldLease = await leasesSaveMain({
+      lease: {
+        roomId: 'room_1',
+        tenantId: 'tenant_1',
+        startDate: '2026-01-01',
+        endDate: '2026-03-31',
+        billingCycleDays: 30,
+        rentAmount: 1800,
+        depositAmount: 1800,
+        note: ''
+      },
+      __mockDb,
+      __mockContext,
+      now: '2026-01-01T00:00:00.000Z'
+    });
+    const oldBillIds = store.bills.filter((bill) => bill.leaseId === oldLease.id).map((bill) => bill.id);
+
+    const renewal = await leasesSaveMain({
+      lease: {
+        roomId: 'room_1',
+        tenantId: 'tenant_1',
+        startDate: '2026-04-01',
+        endDate: '2026-06-30',
+        billingCycleDays: 30,
+        rentAmount: 1900,
+        depositAmount: 1800,
+        note: ''
+      },
+      __mockDb,
+      __mockContext,
+      now: '2026-03-20T00:00:00.000Z'
+    });
+
+    expect(renewal.id).not.toBe(oldLease.id);
+    expect(store.leases.map((lease) => lease.id)).toEqual([oldLease.id, renewal.id]);
+    expect(store.bills.filter((bill) => oldBillIds.includes(bill.id))).toHaveLength(oldBillIds.length);
+    expect(store.bills.some((bill) => bill.leaseId === renewal.id && bill.amount === 1900)).toBe(true);
+    expect(store.bills.every((bill) => bill.leaseId === oldLease.id || bill.leaseId === renewal.id)).toBe(true);
+  });
 });

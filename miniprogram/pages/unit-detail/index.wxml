@@ -34,30 +34,47 @@
       <view class="field" wx:if="{{detail.activeLease}}">押金：¥{{detail.activeLease.depositAmount}}</view>
       <view class="hint" wx:if="{{!detail.activeLease}}">当前没有生效中的租约。</view>
       <button
+        wx:if="{{detail.activeLease}}"
+        class="secondary-button single-action"
+        data-lease-id="{{detail.activeLease.id}}"
+        bindtap="openRenewLeaseForm"
+      >
+        续租
+      </button>
+      <button
         wx:if="{{!detail.activeLease && canRenewLease}}"
         class="secondary-button single-action"
-        loading="{{renewingLease}}"
-        disabled="{{renewingLease}}"
-        bindtap="handleRenewLease"
+        bindtap="openRenewLeaseForm"
       >
-        一键续租
+        续租
       </button>
     </view>
 
     <view class="card">
       <view class="section-subtitle">月度账单</view>
-      <view wx:for="{{detail.monthlyBillGroups}}" wx:key="monthKey" class="month-card">
-        <view class="month-head" data-month-key="{{item.monthKey}}" bindtap="toggleMonth">
+      <view wx:if="{{!detail.yearBillGroups.length}}" class="hint">暂无账单记录</view>
+      <view wx:for="{{detail.yearBillGroups}}" wx:key="yearKey" wx:for-item="yearGroup" class="year-card">
+        <view class="year-head" data-year-key="{{yearGroup.yearKey}}" bindtap="toggleYear">
           <view>
-            <view class="fee-title">{{item.monthLabel}}</view>
-            <view class="hint" wx:if="{{item.isCurrentMonth}}">当前月份</view>
+            <view class="fee-title">{{yearGroup.yearLabel}}</view>
+            <view class="hint">{{yearGroup.months.length}} 个月账单</view>
           </view>
-          <view class="text-button">{{expandedMonths[item.monthKey] ? '收起' : '展开'}}</view>
+          <view class="text-button">{{expandedYears[yearGroup.yearKey] ? '收起' : '展开'}}</view>
         </view>
 
-        <view wx:if="{{expandedMonths[item.monthKey]}}">
-          <view wx:if="{{!item.items.length}}" class="hint">暂无账单记录</view>
-          <view wx:for="{{item.items}}" wx:key="id" class="fee-item">
+        <view wx:if="{{expandedYears[yearGroup.yearKey]}}" class="year-months">
+          <view wx:for="{{yearGroup.months}}" wx:key="monthKey" wx:for-item="monthGroup" class="month-card">
+        <view class="month-head" data-month-key="{{monthGroup.monthKey}}" bindtap="toggleMonth">
+          <view>
+            <view class="month-title">{{monthGroup.monthLabel}}</view>
+            <view class="hint" wx:if="{{monthGroup.isCurrentMonth}}">当前月份</view>
+          </view>
+          <view class="text-button">{{expandedMonths[monthGroup.monthKey] ? '收起' : '展开'}}</view>
+        </view>
+
+        <view wx:if="{{expandedMonths[monthGroup.monthKey]}}">
+          <view wx:if="{{!monthGroup.items.length}}" class="hint">暂无账单记录</view>
+          <view wx:for="{{monthGroup.items}}" wx:key="id" class="fee-item">
             <view class="fee-row">
               <view>
                 <view class="fee-name">{{item.label}}</view>
@@ -132,12 +149,14 @@
           <view class="month-tools">
             <button
               class="secondary-button month-add-button"
-              data-month-key="{{item.monthKey}}"
-              data-month-label="{{item.monthLabel}}"
+              data-month-key="{{monthGroup.monthKey}}"
+              data-month-label="{{monthGroup.monthLabel}}"
               bindtap="openManualBillDialog"
             >
               补录本月费用
             </button>
+          </view>
+        </view>
           </view>
         </view>
       </view>
@@ -201,6 +220,13 @@
           <view class="lease-side">
             <view class="lease-count">{{item.repairCount}} 次维修</view>
             <view class="lease-toggle">{{expandedLeaseHistory[item.leaseId] ? '收起' : '展开'}}</view>
+            <button
+              class="secondary-button compact-button renew-lease-button"
+              data-lease-id="{{item.leaseId}}"
+              catchtap="openRenewLeaseForm"
+            >
+              续租
+            </button>
           </view>
         </view>
 

@@ -2,8 +2,45 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const asset_1 = require("../../services/asset");
 const lease_1 = require("../../services/lease");
+const rentable_unit_1 = require("../../services/rentable-unit");
 const room_1 = require("../../services/room");
 const tenant_1 = require("../../services/tenant");
+function formatDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+function addDays(dateKey, days) {
+    const date = new Date(`${dateKey}T00:00:00`);
+    date.setDate(date.getDate() + days);
+    return formatDateKey(date);
+}
+function addMonthsInclusive(startDate, months) {
+    const date = new Date(`${startDate}T00:00:00`);
+    date.setMonth(date.getMonth() + months);
+    date.setDate(date.getDate() - 1);
+    return formatDateKey(date);
+}
+function resolveFeeRuleAmount(feeRules, key, fallback = 0) {
+    const amount = Number(feeRules?.[key]?.amount ?? fallback);
+    return Number.isFinite(amount) && amount > 0 ? String(amount) : '';
+}
+function resolveFeeRuleCadence(feeRules, key) {
+    return feeRules?.[key]?.cadence === 'once' ? 'once' : 'cycle';
+}
+function buildRenewCustomFees(feeRules) {
+    const customItems = Array.isArray(feeRules?.customFeeItems) ? feeRules.customFeeItems : [];
+    return customItems.map((item, index) => ({
+        key: `renew_custom_${Date.now()}_${index}`,
+        label: String(item.label || ''),
+        amount: Number(item.amount || 0) > 0 ? String(item.amount) : '',
+        cadence: item.cadence === 'once' ? 'once' : 'cycle',
+        feeNature: item.feeNature === 'deposit' || item.feeNature === 'one_time' || item.feeNature === 'recurring'
+            ? item.feeNature
+            : ''
+    }));
+}
 function resolveLeaseSaveErrorMessage(error) {
     const payload = error;
     const rawMessage = `${payload?.message ?? ''} ${payload?.errMsg ?? ''}`.trim();
@@ -24,6 +61,15 @@ function resolveLeaseSaveErrorMessage(error) {
 }
 Page({
     data: {
+        pageTitle: '租约维护',
+        pageIntro: '先选房源和房间，再录入租户与费用，保存后即可进入账单与提醒链路。',
+        pageHint: '所有信息会用于首页建议、异常识别和详情处理。',
+        submitButtonText: '保存租约',
+        isRenewMode: false,
+        renewRoomId: '',
+        renewSourceLeaseId: '',
+        renewTenantId: '',
+        renewPrefilled: false,
         assets: [],
         rooms: [],
         roomIndex: 0,
@@ -53,6 +99,21 @@ Page({
         roomHint: '请先通过搜索并点选房源',
         submitting: false
     },
+    onLoad(query) {
+        const isRenewMode = query.mode === 'renew' && Boolean(query.roomId) && Boolean(query.leaseId);
+        if (!isRenewMode) {
+            return;
+        }
+        this.setData({
+            pageTitle: '续租',
+            pageIntro: '沿用原租户与费用规则生成新的租约，原租约和历史账单会保留。',
+            pageHint: '续租只会新增一条租约，请确认新租期没有与已有租约重叠。',
+            submitButtonText: '保存续租',
+            isRenewMode: true,
+            renewRoomId: String(query.roomId || ''),
+            renewSourceLeaseId: String(query.leaseId || '')
+        });
+    },
     async onShow() {
         await this.loadAssets();
     },
@@ -74,6 +135,68 @@ Page({
             roomHint: nextAssets.length ? '请先通过搜索并点选房源' : '请先去房源维护录入房源'
         });
         this.applyAssetFilter(nextAssets, this.data.assetSearchKeyword);
+        if (this.data.isRenewMode && this.data.renewRoomId && !this.data.renewPrefilled) {
+            await this.applyRenewPrefill(nextAssets);
+        }
+    },
+    async applyRenewPrefill(assets) {
+        try {
+            const detail = await (0, rentable_unit_1.getRentableUnitDetail)({ roomId: this.data.renewRoomId });
+            const activeLease = detail.activeLease?.id ? detail.activeLease : null;
+            const history = Array.isArray(detail.leaseHistory) ? detail.leaseHistory : [];
+            const allLeases = [activeLease, ...history].filter((item) => Boolean(item?.id));
+            const baseLease = allLeases.find((lease) => lease.id === this.data.renewSourceLeaseId) ?? allLeases[0];
+            if (!baseLease?.id) {
+                throw new Error('Renew source lease not found.');
+            }
+            const assetId = String(detail.asset?.id || '');
+            const roomId = String(detail.room?.id || baseLease.roomId || this.data.renewRoomId);
+            const asset = assets.find((item) => item.id === assetId) ?? {
+                id: assetId,
+                name: String(detail.asset?.name || ''),
+                address: String(detail.asset?.address || '')
+            };
+            const rooms = assetId ? (await (0, room_1.listRoomsByAsset)(assetId)) : [];
+            const roomIndex = Math.max(0, rooms.findIndex((room) => String(room.id || '') === roomId));
+            const tenantHistory = Array.isArray(detail.tenantHistory) ? detail.tenantHistory : [];
+            const tenant = tenantHistory.find((item) => String(item.id || '') === String(baseLease.tenantId || '') ||
+                String(item._id || '') === String(baseLease.tenantId || '')) ?? null;
+            const baseEndDate = String(baseLease.actualEndDate || baseLease.endDate || '').slice(0, 10);
+            const nextStartDate = addDays(baseEndDate, 1);
+            const nextEndDate = addMonthsInclusive(nextStartDate, 12);
+            const feeRules = baseLease.feeRules ?? {};
+            this.setData({
+                visibleAssets: asset.id ? [asset] : [],
+                selectedAssetId: asset.id,
+                selectedAssetName: asset.name,
+                rooms,
+                roomIndex,
+                selectedRoomId: roomId,
+                roomHint: '续租沿用原房源与房间',
+                tenantName: String(tenant?.name || baseLease.tenantName || ''),
+                tenantPhone: String(tenant?.phone || ''),
+                renewTenantId: String(baseLease.tenantId || ''),
+                startDate: nextStartDate,
+                endDate: nextEndDate,
+                billingCycleDays: String(baseLease.billingCycleDays || 30),
+                rentAmount: resolveFeeRuleAmount(feeRules, 'rent', baseLease.rentAmount),
+                depositAmount: resolveFeeRuleAmount(feeRules, 'deposit', baseLease.depositAmount),
+                managementAmount: resolveFeeRuleAmount(feeRules, 'management'),
+                managementCadence: resolveFeeRuleCadence(feeRules, 'management'),
+                fireDepositAmount: resolveFeeRuleAmount(feeRules, 'fireDeposit'),
+                lockCardDepositAmount: resolveFeeRuleAmount(feeRules, 'lockCardDeposit'),
+                miscAmount: resolveFeeRuleAmount(feeRules, 'misc'),
+                customFeeItems: buildRenewCustomFees(feeRules),
+                renewPrefilled: true
+            });
+        }
+        catch (error) {
+            console.error('prefill renew lease failed', error);
+            wx.showToast({
+                title: '续租信息加载失败',
+                icon: 'none'
+            });
+        }
     },
     async loadRooms(assetId) {
         const rooms = (await (0, room_1.listRoomsByAsset)(assetId));
@@ -241,17 +364,24 @@ Page({
             message: ''
         });
         try {
-            const tenant = (await (0, tenant_1.saveTenant)({
-                tenant: {
-                    name: this.data.tenantName,
-                    phone: this.data.tenantPhone,
-                    note: ''
-                }
-            }));
+            const tenantPayload = {
+                name: this.data.tenantName,
+                phone: this.data.tenantPhone,
+                note: ''
+            };
+            const tenant = this.data.isRenewMode && this.data.renewTenantId
+                ? (await (0, tenant_1.saveTenant)({
+                    tenantId: this.data.renewTenantId,
+                    tenant: tenantPayload
+                }))
+                : (await (0, tenant_1.saveTenant)({
+                    tenant: tenantPayload
+                }));
+            const tenantId = String(tenant.id || this.data.renewTenantId || '');
             await (0, lease_1.saveLease)({
                 lease: {
                     roomId: this.data.selectedRoomId,
-                    tenantId: tenant.id,
+                    tenantId,
                     startDate: this.data.startDate,
                     endDate: this.data.endDate,
                     billingCycleDays: Number(this.data.billingCycleDays || 30),
@@ -283,6 +413,15 @@ Page({
                     note: ''
                 }
             });
+            if (this.data.isRenewMode) {
+                await wx.showModal({
+                    title: '续租成功',
+                    content: '新租约已保存，原租约与历史账单已保留。',
+                    showCancel: false
+                });
+                this.exitPageAfterSave();
+                return;
+            }
             this.setData({
                 tenantName: '',
                 tenantPhone: '',

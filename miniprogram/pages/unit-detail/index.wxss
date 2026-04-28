@@ -9,6 +9,7 @@
 .summary-card,
 .action-card,
 .history-card,
+.year-card,
 .month-card {
   display: flex;
   flex-direction: column;
@@ -17,6 +18,7 @@
 
 .summary-top,
 .history-head,
+.year-head,
 .month-head,
 .month-tools,
 .fee-row,
@@ -31,6 +33,24 @@
 .month-tools {
   justify-content: flex-end;
   margin-top: 20rpx;
+}
+
+.year-card {
+  padding: 24rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid #e5e7eb;
+  background: #ffffff;
+  margin-top: 20rpx;
+}
+
+.year-head {
+  align-items: center;
+}
+
+.year-months {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
 }
 
 .summary-block {
@@ -108,14 +128,19 @@
 }
 
 .month-card {
-  padding: 24rpx;
-  border-radius: 20rpx;
+  padding: 20rpx;
+  border-radius: 16rpx;
   background: #f9fafb;
-  margin-top: 20rpx;
 }
 
 .fee-title {
   font-size: 28rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.month-title {
+  font-size: 26rpx;
   font-weight: 600;
   color: #111827;
 }
@@ -196,6 +221,11 @@
 .lease-toggle {
   font-size: 24rpx;
   color: #2563eb;
+}
+
+.renew-lease-button {
+  padding: 8rpx 18rpx;
+  font-size: 22rpx;
 }
 
 .lease-detail {
