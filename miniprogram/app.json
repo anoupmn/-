@@ -14,7 +14,8 @@
     "pages/leases-form/index",
     "pages/unit-detail/index",
     "pages/report-export/index",
-    "pages/receipt/index"
+    "pages/receipt/index",
+    "pages/receipt-records/index"
   ],
   "tabBar": {
     "color": "#5f6672",

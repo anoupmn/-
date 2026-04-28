@@ -28,6 +28,9 @@ export type ReceiptRecord = {
   id: string;
   receiptNo: string;
   monthKey: string;
+  assetId: string;
+  roomId: string;
+  tenantId: string;
   assetName: string;
   roomName: string;
   tenantName: string;
@@ -113,6 +116,9 @@ function toReceiptRecord(receipt: Receipt): ReceiptRecord {
     id: receipt.id,
     receiptNo: receipt.receiptNo,
     monthKey: receiptMonthKey(receipt),
+    assetId: receipt.assetId,
+    roomId: receipt.roomId,
+    tenantId: receipt.tenantId,
     assetName: receipt.assetName,
     roomName: receipt.roomName,
     tenantName: receipt.tenantName,

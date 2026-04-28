@@ -30,10 +30,13 @@
 
     <view class="card action-card export-card">
       <view class="section-head-main">
-        <view class="section-title">月度经营导出</view>
-        <view class="text-muted">按月份导出房租、水电、房东支出和退租支出明细。</view>
+        <view class="section-title">经营凭证</view>
+        <view class="text-muted">按月份导出经营明细，也可以集中查看、筛选和追溯收据。</view>
       </view>
-      <button class="secondary-button" data-url="/pages/report-export/index" bindtap="navigateTo">月度经营导出</button>
+      <view class="ops-grid">
+        <button class="secondary-button" data-url="/pages/report-export/index" bindtap="navigateTo">月度经营导出</button>
+        <button class="secondary-button" data-url="/pages/receipt-records/index" bindtap="navigateTo">收据记录</button>
+      </view>
     </view>
   </view>
 </view>

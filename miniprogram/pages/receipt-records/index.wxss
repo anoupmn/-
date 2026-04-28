@@ -1,0 +1,41 @@
+.receipt-records-shell,
+.filter-card,
+.records-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.intro-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f4f8ff 100%);
+}
+
+.filter-row {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+}
+
+.filter-row .picker-field {
+  flex: 1;
+}
+
+.receipt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  padding: 18rpx 0;
+  border-top: 1rpx solid #eef1f5;
+}
+
+.receipt-card-head,
+.record-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.voided-pill {
+  color: #8a1f11;
+  background: #fff1f0;
+}

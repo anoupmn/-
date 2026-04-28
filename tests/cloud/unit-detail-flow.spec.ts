@@ -61,4 +61,27 @@ describe('unit detail correction flow wiring', () => {
     expect(combined).not.toContain('data-reset');
     expect(combined).not.toContain('测试数据重置');
   });
+
+  it('wires receipt records page through ops tab', () => {
+    const appJson = fs.readFileSync('miniprogram/app.json', 'utf8');
+    const opsWxml = fs.readFileSync('miniprogram/pages/ops/index.wxml', 'utf8');
+    const receiptRecordsSource = fs.readFileSync('miniprogram/pages/receipt-records/index.ts', 'utf8');
+    const receiptRecordsWxml = fs.readFileSync('miniprogram/pages/receipt-records/index.wxml', 'utf8');
+    const serviceSource = fs.readFileSync('miniprogram/services/receipt.ts', 'utf8');
+
+    expect(appJson).toContain('pages/receipt-records/index');
+    expect(opsWxml).toContain('收据记录');
+    expect(opsWxml).toContain('/pages/receipt-records/index');
+    expect(receiptRecordsSource).toContain('listReceiptRecords');
+    expect(serviceSource).toContain('receipt-list');
+    expect(receiptRecordsWxml).toContain('全部月份');
+    expect(receiptRecordsWxml).toContain('全部');
+    expect(receiptRecordsWxml).toContain('有效');
+    expect(receiptRecordsWxml).toContain('已作废');
+    expect(receiptRecordsWxml).toContain('查看收据');
+    expect(receiptRecordsWxml).toContain('回到房间');
+    expect(receiptRecordsWxml).toContain('暂无符合条件的收据');
+    expect(receiptRecordsWxml).not.toContain('receiptId:');
+    expect(receiptRecordsWxml).not.toContain('billIds');
+  });
 });
