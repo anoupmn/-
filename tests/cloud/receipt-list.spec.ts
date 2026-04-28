@@ -166,6 +166,27 @@ function seedReceiptListData(store: ReturnType<typeof createMockStore>) {
       receiptNo: 'R202604280001',
       createdAt: '',
       updatedAt: ''
+    },
+    {
+      id: 'bill_april_unreceipted',
+      landlordOpenId: 'openid',
+      leaseId: 'lease_1',
+      roomId: 'room_101',
+      type: 'water',
+      section: 'non_rent',
+      dueDate: '2026-04-01',
+      amount: 80,
+      status: 'paid',
+      receivedAt: '2026-04-04T00:00:00.000Z',
+      receivedAmount: 80,
+      source: 'manual',
+      feeNature: 'one_time',
+      responsibility: 'tenant',
+      cadence: 'once',
+      isDepositLike: false,
+      isOneTime: true,
+      createdAt: '',
+      updatedAt: ''
     }
   );
 }
@@ -249,6 +270,7 @@ describe('receipt-list cloud function', () => {
       leaseId: 'lease_1',
       label: '152号楼 / 101 / 张三（2026-04-01 至 2026-12-31）'
     });
+    expect(result.leases[0].months.map((item: any) => item.month)).not.toContain('2026-04');
     expect(result.leases[0].months).toEqual([
       expect.objectContaining({
         month: '2026-05',

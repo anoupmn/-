@@ -63,6 +63,25 @@ function uniqueTenantOptions(receipts: ReceiptRecord[]): Option[] {
   return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
 }
 
+function resolveReceiptCloudError(error: unknown, fallback: string) {
+  const record = error as { message?: string; errMsg?: string };
+  const raw = `${record?.message ?? ''} ${record?.errMsg ?? ''}`.toLowerCase();
+
+  if (
+    raw.includes('functionname parameter could not be found') ||
+    raw.includes('function_not_found') ||
+    raw.includes('function not found')
+  ) {
+    return '收据云函数未部署，请上传 receipt-list、receipt-lease-options、receipt-create';
+  }
+
+  if (raw.includes('already has an active receipt')) {
+    return '该租约本月已开过收据，请刷新后查看本月收据';
+  }
+
+  return fallback;
+}
+
 Page({
   data: {
     month: currentMonthKey(),
@@ -81,6 +100,7 @@ Page({
     creatingReceipt: false,
     loading: false,
     error: '',
+    issueError: '',
     assetOptions: [{ label: '全部房源', value: '' }] as Option[],
     roomOptions: [{ label: '全部房间', value: '' }] as Option[],
     tenantOptions: [{ label: '全部租客', value: '' }] as Option[],
@@ -173,7 +193,7 @@ Page({
       this.setData({
         receipts: [],
         loading: false,
-        error: '收据记录加载失败，请稍后重试'
+        error: resolveReceiptCloudError(error, '收据记录加载失败，请稍后重试')
       });
     }
   },
@@ -190,7 +210,8 @@ Page({
         selectedReceiptLeaseIndex: 0,
         selectedReceiptMonthIndex: 0,
         selectedReceiptLeaseId: firstLease?.leaseId || '',
-        selectedReceiptMonth: firstMonth?.month || ''
+        selectedReceiptMonth: firstMonth?.month || '',
+        issueError: ''
       });
     } catch (error) {
       console.error('load receipt lease options failed', error);
@@ -198,7 +219,8 @@ Page({
         receiptLeaseOptions: [],
         receiptMonthOptions: [],
         selectedReceiptLeaseId: '',
-        selectedReceiptMonth: ''
+        selectedReceiptMonth: '',
+        issueError: resolveReceiptCloudError(error, '可开收据月份加载失败，请稍后重试')
       });
     }
   },
@@ -233,7 +255,8 @@ Page({
     }
 
     this.setData({
-      creatingReceipt: true
+      creatingReceipt: true,
+      issueError: ''
     });
 
     try {
@@ -251,8 +274,15 @@ Page({
       });
     } catch (error) {
       console.error('create receipt from lease failed', error);
+      const message = resolveReceiptCloudError(error, '开具收据失败');
+      this.setData({
+        issueError: message
+      });
+      if (message.includes('已开过收据')) {
+        await Promise.all([this.loadReceipts(), this.loadReceiptLeaseOptions()]);
+      }
       wx.showToast({
-        title: '开具收据失败',
+        title: message,
         icon: 'none'
       });
     } finally {

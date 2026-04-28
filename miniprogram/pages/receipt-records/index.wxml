@@ -7,7 +7,8 @@
 
     <view class="card issue-card">
       <view class="section-title">按租约开收据</view>
-      <view class="text-muted">每个租约每个月开一张收据，系统只纳入该租约下已收且未开具有效收据的账单。</view>
+      <view class="text-muted">每个租约每个月开一张收据，已有有效收据的月份不会重复开具。</view>
+      <view wx:if="{{issueError}}" class="fee-note">{{issueError}}</view>
       <view wx:if="{{!receiptLeaseOptions.length}}" class="text-muted">暂无可开收据的租约月份</view>
       <block wx:else>
         <picker range="{{receiptLeaseOptions}}" range-key="label" value="{{selectedReceiptLeaseIndex}}" bindchange="handleReceiptLeaseChange">

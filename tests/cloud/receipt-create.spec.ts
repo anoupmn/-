@@ -220,4 +220,17 @@ describe('receipt-create cloud function', () => {
     await expect(callCreate(store, { billIds: ['bill_paid'] })).rejects.toThrow('already has an active receipt');
     expect(store.receipts.find((item) => item.id === receipt.id)).toBeTruthy();
   });
+
+  it('returns existing monthly receipt when lease month already has one', async () => {
+    const store = createMockStore();
+    seedReceiptData(store);
+    const receipt = await callCreate(store, { billIds: ['bill_paid'] });
+
+    const result = await callCreate(store, { month: '2026-04', leaseId: 'lease_1' });
+
+    expect(result.id).toBe(receipt.id);
+    expect(result.billIds).toEqual(['bill_paid']);
+    expect(store.receipts).toHaveLength(1);
+    expect(store.bills.find((item) => item.id === 'bill_management')?.receiptId).toBeUndefined();
+  });
 });

@@ -116,6 +116,10 @@ function receiptMonthKey(receipt: Receipt) {
   return String(receipt.items[0]?.dueDate ?? '').slice(0, 7);
 }
 
+function matchesLeaseMonth(receipt: Receipt, leaseId: string, month: string) {
+  return receipt.leaseId === leaseId && receipt.items.some((item) => monthOf(item.dueDate) === month);
+}
+
 function matchesReceiptFilters(receipt: Receipt, filters: ReceiptListFilters) {
   const status = filters.status ?? 'all';
   if (status !== 'all' && receipt.status !== status) {
@@ -224,6 +228,15 @@ async function assertReissueAllowed(db: DbLike, landlordOpenId: string, input: C
 
 export async function createReceipt(db: DbLike, landlordOpenId: string, input: CreateReceiptInput, event: CloudEventBase) {
   const previousReceipt = await assertReissueAllowed(db, landlordOpenId, input);
+  const receipts = await listReceipts(db);
+  const activeReceipts = receipts.filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active');
+  if (!input.reissueFromReceiptId && input.month && input.leaseId) {
+    const existingMonthlyReceipt = activeReceipts.find((receipt) => matchesLeaseMonth(receipt, input.leaseId as string, input.month as string));
+    if (existingMonthlyReceipt) {
+      return existingMonthlyReceipt;
+    }
+  }
+
   const bills = await selectReceiptBills(db, landlordOpenId, input);
   if (input.billIds?.length && bills.length !== input.billIds.length) {
     throw new Error('Some bills were not found for current landlord.');
@@ -238,8 +251,6 @@ export async function createReceipt(db: DbLike, landlordOpenId: string, input: C
     throw new Error('Receipt can only be created from paid tenant bills.');
   }
 
-  const receipts = await listReceipts(db);
-  const activeReceipts = receipts.filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active');
   const activeReceiptIds = new Set(activeReceipts.map((receipt) => receipt.id));
   const activeBillIds = new Set(activeReceipts.flatMap((receipt) => receipt.billIds));
   const duplicateBill = bills.find((bill) => activeBillIds.has(bill.id) || (bill.receiptId && activeReceiptIds.has(bill.receiptId)));
@@ -386,6 +397,11 @@ export async function listReceiptLeaseOptions(db: DbLike, landlordOpenId: string
       .filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active')
       .flatMap((receipt) => receipt.billIds)
   );
+  const activeLeaseMonthKeys = new Set(
+    receipts
+      .filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active')
+      .flatMap((receipt) => receipt.items.map((item) => `${receipt.leaseId}:${monthOf(item.dueDate)}`))
+  );
   const ownedLeases = leases.filter((lease) => lease.landlordOpenId === landlordOpenId);
 
   return ownedLeases
@@ -397,6 +413,7 @@ export async function listReceiptLeaseOptions(db: DbLike, landlordOpenId: string
         bill.landlordOpenId === landlordOpenId &&
         bill.leaseId === lease.id &&
         isReceivedTenantBill(bill) &&
+        !activeLeaseMonthKeys.has(`${lease.id}:${monthOf(bill.dueDate)}`) &&
         !activeBillIds.has(bill.id) &&
         !(bill.receiptId && activeReceiptIds.has(bill.receiptId))
       );
