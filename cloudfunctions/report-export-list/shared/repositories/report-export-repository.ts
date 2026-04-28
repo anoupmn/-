@@ -311,11 +311,12 @@ export async function saveReportExportMetadata(
   sheetNames: string[],
   summary: ReturnType<typeof summarizeReportWorkbook>,
   event: CloudEventBase,
-  fileID?: string
+  fileID?: string,
+  exportId?: string
 ) {
   const now = resolveNow(event);
   const metadata = reportExportMetadataSchema.parse({
-    id: createId('report_export'),
+    id: exportId ?? createId('report_export'),
     landlordOpenId,
     month: request.month,
     assetId: request.assetId ?? null,

@@ -224,6 +224,11 @@ describe('report-export-create cloud function', () => {
 
     expect(result.sheetNames).toEqual(['月度明细', '账单明细', '房东支出明细', '退租支出明细']);
     expect(result.workbook.月度明细).toHaveLength(3);
+    expect(result.workbook.月度明细.map((row: any) => `${row['房源/楼栋']}/${row['房号/房间']}`)).toEqual([
+      '152号楼/101',
+      '152号楼/102',
+      '153号楼/201'
+    ]);
     expect(result.workbook.账单明细.map((row: any) => row.应收金额)).not.toContain(9999);
     expect(result.summary.billCount).toBe(4);
   });
@@ -265,6 +270,21 @@ describe('report-export-create cloud function', () => {
     expect(row['电（上月）']).toBe(200);
     expect(row['电（本月）']).toBe(240);
     expect(row['实用（度）']).toBe(40);
+  });
+
+  it('generates unique files per export scope to avoid overwriting all-room reports', async () => {
+    const store = createMockStore();
+    seedReportData(store);
+
+    const allResult = await callReport(store);
+    const roomResult = await callReport(store, { roomId: 'room_101' });
+
+    expect(allResult.fileName).not.toBe(roomResult.fileName);
+    expect(allResult.fileName).toContain('全部房源');
+    expect(roomResult.fileName).toContain('152号楼-101');
+    expect(allResult.summary.roomCount).toBe(3);
+    expect(roomResult.summary.roomCount).toBe(1);
+    expect(store.reportExports.map((item) => item.fileName)).toEqual([allResult.fileName, roomResult.fileName]);
   });
 
   it('lists and deletes report export records for current landlord', async () => {

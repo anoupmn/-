@@ -239,10 +239,10 @@ async function deleteReportExport(db, landlordOpenId, exportId) {
     });
     return parsed;
 }
-async function saveReportExportMetadata(db, landlordOpenId, request, fileName, scopeLabel, sheetNames, summary, event, fileID) {
+async function saveReportExportMetadata(db, landlordOpenId, request, fileName, scopeLabel, sheetNames, summary, event, fileID, exportId) {
     const now = (0, runtime_1.resolveNow)(event);
     const metadata = report_export_1.reportExportMetadataSchema.parse({
-        id: (0, runtime_1.createId)('report_export'),
+        id: exportId ?? (0, runtime_1.createId)('report_export'),
         landlordOpenId,
         month: request.month,
         assetId: request.assetId ?? null,

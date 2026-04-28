@@ -6,7 +6,7 @@ import {
   summarizeReportWorkbook
 } from './shared/repositories/report-export-repository';
 import { reportExportRequestSchema } from './shared/schemas/report-export';
-import { resolveDb, resolveLandlordOpenId, resolveNow, type CloudEventBase } from './shared/runtime';
+import { createId, resolveDb, resolveLandlordOpenId, resolveNow, type CloudEventBase } from './shared/runtime';
 
 const cloudSdk = (() => {
   try {
@@ -57,9 +57,31 @@ async function uploadWorkbook(fileName: string, buffer: Buffer, shouldSkipUpload
   return result.fileID as string | undefined;
 }
 
+function safeFileSegment(value: string) {
+  return (
+    value
+      .trim()
+      .replace(/[\\/:*?"<>|\s]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 40) || '全部房源'
+  );
+}
+
+function compactTimestamp(value: string) {
+  return value.replace(/\D/g, '').slice(0, 14) || String(Date.now());
+}
+
+export function buildReportFileName(month: string, scopeLabel: string, generatedAt: string, exportId: string) {
+  const shortId = exportId.replace(/^report_export_/, '').slice(0, 8);
+  return `收租吧-${month}-${safeFileSegment(scopeLabel)}-月度经营明细-${compactTimestamp(generatedAt)}-${shortId}.xlsx`;
+}
+
 export async function main(event: ReportExportCreateEvent) {
   const db = resolveDb(event);
   const landlordOpenId = resolveLandlordOpenId(event);
+  const generatedAt = resolveNow(event);
+  const exportId = createId('report_export');
   const request = reportExportRequestSchema.parse({
     month: event.month,
     assetId: event.assetId,
@@ -68,7 +90,7 @@ export async function main(event: ReportExportCreateEvent) {
   const workbook = await buildMonthlyReportData(db, landlordOpenId, request);
   const summary = summarizeReportWorkbook(workbook);
   const scopeLabel = await resolveReportScopeLabel(db, landlordOpenId, request);
-  const fileName = `收租吧-${request.month}-月度经营明细.xlsx`;
+  const fileName = buildReportFileName(request.month, scopeLabel, generatedAt, exportId);
   const buffer = buildWorkbookBuffer(workbook);
   const fileID = await uploadWorkbook(fileName, buffer, Boolean(event.__mockDb));
 
@@ -81,7 +103,8 @@ export async function main(event: ReportExportCreateEvent) {
     [...REPORT_SHEET_NAMES],
     summary,
     event,
-    fileID
+    fileID,
+    exportId
   );
 
   return {
@@ -91,6 +114,6 @@ export async function main(event: ReportExportCreateEvent) {
     sheetNames: [...REPORT_SHEET_NAMES],
     summary,
     workbook,
-    generatedAt: resolveNow(event)
+    generatedAt
   };
 }
