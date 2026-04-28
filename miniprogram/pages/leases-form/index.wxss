@@ -120,6 +120,12 @@
   font-size: 24rpx;
 }
 
+.delete-fee-button {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
 .submit-message {
   font-size: 24rpx;
   line-height: 1.5;

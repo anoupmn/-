@@ -352,7 +352,21 @@ describe('leases-save billing integration', () => {
         endDate: '2026-06-30',
         billingCycleDays: 30,
         rentAmount: 1900,
-        depositAmount: 1800,
+        depositAmount: 0,
+        feeRules: {
+          rent: { amount: 1900, cadence: 'cycle' },
+          deposit: { amount: 0, cadence: 'once' },
+          management: { amount: 120, cadence: 'cycle' },
+          customFeeItems: [
+            {
+              key: 'custom_cleaning',
+              label: '卫生费',
+              amount: 30,
+              cadence: 'cycle',
+              feeNature: 'recurring'
+            }
+          ]
+        },
         note: ''
       },
       __mockDb,
@@ -364,6 +378,9 @@ describe('leases-save billing integration', () => {
     expect(store.leases.map((lease) => lease.id)).toEqual([oldLease.id, renewal.id]);
     expect(store.bills.filter((bill) => oldBillIds.includes(bill.id))).toHaveLength(oldBillIds.length);
     expect(store.bills.some((bill) => bill.leaseId === renewal.id && bill.amount === 1900)).toBe(true);
+    expect(store.bills.some((bill) => bill.leaseId === renewal.id && bill.type === 'deposit')).toBe(false);
+    expect(store.bills.some((bill) => bill.leaseId === renewal.id && bill.type === 'management')).toBe(true);
+    expect(store.bills.some((bill) => bill.leaseId === renewal.id && bill.itemLabel === '卫生费')).toBe(true);
     expect(store.bills.every((bill) => bill.leaseId === oldLease.id || bill.leaseId === renewal.id)).toBe(true);
   });
 });

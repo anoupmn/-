@@ -1,27 +1,22 @@
 <view class="page-shell">
   <view class="lease-shell page-stack">
     <view class="card intro-card">
-      <view class="page-title">{{pageTitle}}</view>
-      <view class="text-body">{{pageIntro}}</view>
-      <view class="text-muted">{{pageHint}}</view>
+      <view class="page-title">租约维护</view>
+      <view class="text-body">先选房源和房间，再录入租户与费用，保存后即可进入账单与提醒链路。</view>
+      <view class="text-muted">所有信息会用于首页建议、异常识别和详情处理。</view>
     </view>
 
     <view class="card selection-card">
       <view class="section-title">选择房源与房间</view>
-      <block wx:if="{{!isRenewMode}}">
-        <input
-          class="search-input"
-          placeholder="搜索房源名称、地址或编号"
-          bindinput="handleAssetSearch"
-          value="{{assetSearchKeyword}}"
-        />
-        <view class="search-guide">
-          <view class="text-muted">默认仅展示 3 条房源，请先输入关键词模糊搜索。</view>
-          <view class="text-muted">找到后直接点击整条房源卡片，卡片变蓝即选中。</view>
-        </view>
-      </block>
-      <view wx:else class="tip-block">
-        <view class="text-muted">续租会沿用原房间，新租期保存为独立租约。</view>
+      <input
+        class="search-input"
+        placeholder="搜索房源名称、地址或编号"
+        bindinput="handleAssetSearch"
+        value="{{assetSearchKeyword}}"
+      />
+      <view class="search-guide">
+        <view class="text-muted">默认仅展示 3 条房源，请先输入关键词模糊搜索。</view>
+        <view class="text-muted">找到后直接点击整条房源卡片，卡片变蓝即选中。</view>
       </view>
       <view class="tip-row">
         <view class="field-label">当前房源</view>
@@ -29,7 +24,6 @@
       </view>
 
       <view
-        wx:if="{{!isRenewMode}}"
         wx:for="{{visibleAssets}}"
         wx:key="id"
         class="asset-item {{selectedAssetId === item.id ? 'asset-item-selected' : ''}}"
@@ -42,7 +36,7 @@
         <view class="asset-select-hint">{{selectedAssetId === item.id ? '已选中' : '点击卡片选中'}}</view>
       </view>
 
-      <picker range="{{rooms}}" range-key="name" value="{{roomIndex}}" bindchange="handleRoomChange" disabled="{{isRenewMode}}">
+      <picker range="{{rooms}}" range-key="name" value="{{roomIndex}}" bindchange="handleRoomChange">
         <view class="picker-field">
           <view class="field-label">房间选择</view>
           <view class="picker-value">{{rooms.length ? rooms[roomIndex].name : roomHint}}</view>
@@ -90,13 +84,16 @@
       </picker>
       <input class="search-input" placeholder="消防押金（一次性押金类，元）" data-field="fireDepositAmount" bindinput="handleInputChange" value="{{fireDepositAmount}}" />
       <input class="search-input" placeholder="锁卡押金（一次性押金类，元）" data-field="lockCardDepositAmount" bindinput="handleInputChange" value="{{lockCardDepositAmount}}" />
-      <input class="search-input" placeholder="其他固定费用（元）" data-field="miscAmount" bindinput="handleInputChange" value="{{miscAmount}}" />
 
       <view class="custom-fee-header">
         <view class="sub-title">自定义费用</view>
         <button class="secondary-button compact-button" bindtap="addCustomFeeItem">添加</button>
       </view>
       <view wx:for="{{customFeeItems}}" wx:key="key" class="custom-fee-item">
+        <view class="custom-fee-header">
+          <view class="text-muted">自定义费用 {{index + 1}}</view>
+          <button class="secondary-button compact-button delete-fee-button" data-index="{{index}}" bindtap="removeCustomFeeItem">删除</button>
+        </view>
         <input class="search-input" placeholder="费用名称" data-index="{{index}}" data-field="label" bindinput="handleCustomFeeInput" value="{{item.label}}" />
         <input class="search-input" placeholder="金额（元）" data-index="{{index}}" data-field="amount" bindinput="handleCustomFeeInput" value="{{item.amount}}" />
         <picker range="{{customFeeNatureOptions}}" data-index="{{index}}" bindchange="handleCustomFeeNatureChange">
@@ -114,7 +111,7 @@
         <view class="text-muted">请在“房源列表 > 单元详情 > 月度账单”按当月实际金额逐月补录。</view>
       </view>
 
-      <button class="primary-button" bindtap="handleSubmit" loading="{{submitting}}" disabled="{{submitting}}">{{submitButtonText}}</button>
+      <button class="primary-button" bindtap="handleSubmit" loading="{{submitting}}" disabled="{{submitting}}">保存租约</button>
       <view wx:if="{{message}}" class="submit-message">{{message}}</view>
     </view>
   </view>

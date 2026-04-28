@@ -37,6 +37,8 @@
         wx:if="{{detail.activeLease}}"
         class="secondary-button single-action"
         data-lease-id="{{detail.activeLease.id}}"
+        loading="{{renewingLease}}"
+        disabled="{{renewingLease}}"
         bindtap="openRenewLeaseForm"
       >
         续租
@@ -44,6 +46,8 @@
       <button
         wx:if="{{!detail.activeLease && canRenewLease}}"
         class="secondary-button single-action"
+        loading="{{renewingLease}}"
+        disabled="{{renewingLease}}"
         bindtap="openRenewLeaseForm"
       >
         续租
@@ -223,6 +227,8 @@
             <button
               class="secondary-button compact-button renew-lease-button"
               data-lease-id="{{item.leaseId}}"
+              loading="{{renewingLease}}"
+              disabled="{{renewingLease}}"
               catchtap="openRenewLeaseForm"
             >
               续租

@@ -72,16 +72,18 @@ function mapLeaseFeeItems(lease) {
             cadence: feeRules.rent.cadence,
             feeNature: 'recurring',
             isDepositLike: false
-        },
-        {
+        }
+    ];
+    if (feeRules.deposit.amount > 0) {
+        items.push({
             type: 'deposit',
             section: 'deposit',
             amount: feeRules.deposit.amount,
             cadence: feeRules.deposit.cadence,
             feeNature: 'deposit',
             isDepositLike: true
-        }
-    ];
+        });
+    }
     if (feeRules.management.amount > 0) {
         items.push({
             type: 'management',
