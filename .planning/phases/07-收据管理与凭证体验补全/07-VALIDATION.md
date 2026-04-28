@@ -1,7 +1,7 @@
 ---
 phase: 07
 slug: receipt-management-credential-experience
-status: draft
+status: complete
 nyquist_compliant: true
 wave_0_complete: false
 created: 2026-04-28
@@ -19,7 +19,7 @@ created: 2026-04-28
 |----------|-------|
 | **Framework** | Jest with `ts-jest` |
 | **Config file** | `jest.config.cjs` |
-| **Quick run command** | `npm test -- --runTestsByPath tests/cloud/receipt-create.spec.ts tests/cloud/receipt-void.spec.ts tests/cloud/receipt-list.spec.ts tests/cloud/unit-detail-flow.spec.ts --runInBand` |
+| **Quick run command** | `npm test -- --runTestsByPath tests/cloud/receipt-create.spec.ts tests/cloud/receipt-delete.spec.ts tests/cloud/receipt-list.spec.ts tests/cloud/receipt-pdf.spec.ts tests/cloud/unit-detail-flow.spec.ts --runInBand` |
 | **Full suite command** | `npm test -- --runInBand && npm run typecheck` |
 | **Estimated runtime** | ~45 seconds targeted, ~90 seconds full suite |
 
@@ -39,11 +39,11 @@ created: 2026-04-28
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
 | 07-01-01 | 01 | 1 | RCPT-03, RCPT-04 | cloud unit | `npm test -- --runTestsByPath tests/cloud/receipt-list.spec.ts --runInBand` | no - Wave 0 | pending |
-| 07-01-02 | 01 | 1 | RCPT-05, RCPT-06 | cloud unit | `npm test -- --runTestsByPath tests/cloud/receipt-create.spec.ts tests/cloud/receipt-void.spec.ts --runInBand` | partial | pending |
+| 07-01-02 | 01 | 1 | RCPT-05, RCPT-06 | cloud unit | `npm test -- --runTestsByPath tests/cloud/receipt-create.spec.ts tests/cloud/receipt-delete.spec.ts --runInBand` | yes | complete |
 | 07-02-01 | 02 | 2 | RCPT-03, RCPT-04 | static UI + typecheck | `npm test -- --runTestsByPath tests/cloud/unit-detail-flow.spec.ts tests/cloud/receipt-list.spec.ts --runInBand && npm run typecheck` | partial | pending |
 | 07-02-02 | 02 | 2 | RCPT-04, RCPT-08 | static UI + cloud unit | `npm test -- --runTestsByPath tests/cloud/unit-detail-flow.spec.ts tests/cloud/receipt-list.spec.ts --runInBand` | partial | pending |
 | 07-03-01 | 03 | 2 | RCPT-06 | cloud unit + static UI | `npm test -- --runTestsByPath tests/cloud/receipt-create.spec.ts tests/cloud/unit-detail-flow.spec.ts --runInBand` | partial | pending |
-| 07-03-02 | 03 | 2 | RCPT-05 | cloud unit + static UI | `npm test -- --runTestsByPath tests/cloud/receipt-void.spec.ts tests/cloud/unit-detail-flow.spec.ts --runInBand` | partial | pending |
+| 07-03-02 | 03 | 2 | RCPT-05 | cloud unit + static UI | `npm test -- --runTestsByPath tests/cloud/receipt-delete.spec.ts tests/cloud/unit-detail-flow.spec.ts --runInBand` | yes | complete |
 | 07-04-01 | 04 | 3 | RCPT-07 | static UI + typecheck | `npm test -- --runTestsByPath tests/cloud/unit-detail-flow.spec.ts --runInBand && npm run typecheck` | partial | pending |
 | 07-04-02 | 04 | 3 | RCPT-03, RCPT-04, RCPT-05, RCPT-06, RCPT-07, RCPT-08 | full regression | `npm test -- --runInBand && npm run typecheck` | yes | pending |
 
@@ -51,9 +51,9 @@ created: 2026-04-28
 
 ## Wave 0 Requirements
 
-- [ ] `tests/cloud/receipt-list.spec.ts` - covers `receipt-list` filters, snapshot rows, status handling, and cross-landlord isolation.
+- [x] `tests/cloud/receipt-list.spec.ts` - covers `receipt-list` filters, snapshot rows and cross-landlord isolation.
 - [ ] Extend `tests/cloud/receipt-create.spec.ts` - covers merged monthly receipt, same-room/same-tenant guard, and active receipt overlap guard via `receipts.billIds`.
-- [ ] Extend `tests/cloud/receipt-void.spec.ts` - covers required non-empty `voidReason`.
+- [x] `tests/cloud/receipt-delete.spec.ts` - covers deleting a receipt, unlinking bills, cross-landlord protection and reissue availability.
 - [ ] Extend `tests/cloud/unit-detail-flow.spec.ts` - covers page registration, business maintenance entry, receipt records entry, formal receipt controls, and no visible internal ID labels.
 
 ---
@@ -77,4 +77,4 @@ created: 2026-04-28
 - [x] Feedback latency target is under 90 seconds.
 - [x] `nyquist_compliant: true` set in frontmatter.
 
-**Approval:** pending
+**Approval:** complete

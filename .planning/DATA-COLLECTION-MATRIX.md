@@ -15,7 +15,7 @@
 | `bills` | 租客应收/实收账单事实 | 是 |
 | `repair_records` | 房间维修事实、问题类型、发生日期、问题分析依据 | 是 |
 | `owner_expenses` | 房东经营支出：维修成本、保洁、打理、请人管理、其他支出 | 是 |
-| `receipts` | 收据快照、编号、作废重开记录 | 是 |
+| `receipts` | 收据快照、编号、租约月度收据记录 | 是 |
 | `report_exports` | 导出任务/文件元数据（如需要异步生成） | 是 |
 | `abnormal_flags` | 人工异常标记与维修高频异常事实 | 是 |
 | `notification_preferences` | 提醒偏好设置 | 是 |
@@ -46,7 +46,7 @@
 | 列表/详情展示 | 真相集合 | 不写 | `rentable-units-list`/`rentable-unit-detail` |
 | 月度导出 | `assets`/`rooms`/`tenants`/`leases`/`bills`/`owner_expenses`/`receipts` | `report_exports`（可选） | `report-export-create`（Phase 06 新增） |
 | 生成收据 | `bills`/`leases`/`rooms`/`tenants`/`assets` | `receipts` | `receipt-create`（Phase 06 新增） |
-| 作废收据 | `receipts` | `receipts` | `receipt-void`（Phase 06 新增或合并） |
+| 删除收据 | `receipts`/`bills` | `receipts`/`bills.receiptId`/`bills.receiptNo` | `receipt-delete` |
 
 ## 3. 强约束（必须执行）
 
@@ -66,7 +66,7 @@
 说明：这类费用进入 `owner_expenses`，只用于留痕、复盘、问题房间分析和导出。
 
 6. 收据必须保存快照，不得动态引用当前账单结果。  
-说明：账单后续更正不能悄悄改变旧收据；录错时只能作废重开。
+说明：账单后续更正不能悄悄改变旧收据；误开时必须显式删除收据，并解除账单收据引用后重新开具。
 
 7. 全量读取必须分页。  
 说明：所有 `listAll()` 禁止只调用一次 `get()`；统一分页拉全量，避免“第一页偏差”。
@@ -139,4 +139,4 @@
 4. 水电费由读数和单价计算，前端不手填最终金额。
 5. 维修、保洁、打理支出不出现在租客应收账单和收据中。
 6. 月度导出可以同时看到租客应收/实收与房东支出，但二者分区清晰。
-7. 收据生成后内容快照固定，作废重开有记录。
+7. 收据生成后内容快照固定，误开时删除收据并解除账单引用。

@@ -5,11 +5,11 @@ subsystem: backend
 tags: [receipt-list, receipt-snapshot, cloudfunctions, jest]
 requires:
   - phase: 06-月度导出与收据
-    provides: 基础收据创建、读取、作废和重开能力
+    provides: 基础收据创建、读取和删除管理能力
 provides:
   - 收据记录列表云函数 `receipt-list`
   - 快照型收据列表行与筛选能力
-  - 作废原因、合并开具和有效收据重复保护后端约束
+  - 删除收据、月度开具和有效收据重复保护后端约束
 affects: [receipt, unit-detail, receipt-records, phase-07]
 tech-stack:
   added: []
@@ -24,14 +24,14 @@ key-files:
   modified:
     - cloudfunctions/shared/repositories/receipt-repository.ts
     - cloudfunctions/receipt-create/shared/repositories/receipt-repository.ts
-    - cloudfunctions/receipt-void/shared/repositories/receipt-repository.ts
+    - cloudfunctions/receipt-delete/shared/repositories/receipt-repository.ts
     - miniprogram/services/receipt.ts
     - tests/cloud/receipt-create.spec.ts
-    - tests/cloud/receipt-void.spec.ts
+    - tests/cloud/receipt-delete.spec.ts
 key-decisions:
   - "收据记录列表的月份筛选按账单应收月份 `item.dueDate.slice(0, 7)`，收款日期只展示。"
   - "重复开具保护以 active receipts 的 `billIds` 为权威，同时兼容账单反向引用。"
-  - "作废原因在服务端强制非空并 trim，前端后续只负责收集用户输入。"
+  - "误开收据通过删除处理；删除会解除账单 `receiptId` 引用，允许重新按租约月份开具。"
 patterns-established:
   - "Receipt list row: 从收据快照映射 `receiptNo/monthKey/assetName/roomName/tenantName/receivedAt/totalAmount/status/billCount`。"
   - "Merged receipt guard: 所有账单必须同房间、同租客、同租约、同账单月份。"
@@ -42,7 +42,7 @@ completed: 2026-04-28
 
 # Phase 07 Plan 01: 收据管理后端列表、快照行和不变量加固 Summary
 
-**收据后端现在能按房东隔离列出快照记录，并拒绝无原因作废、跨租客合并和重复有效收据。**
+**收据后端现在能按房东隔离列出快照记录，并支持删除收据、解除账单引用、拒绝跨租客合并和重复有效收据。**
 
 ## Performance
 
@@ -55,9 +55,9 @@ completed: 2026-04-28
 ## Accomplishments
 
 - 新增 `receipt-list` 云函数和 `listReceiptRecords` 服务封装。
-- 新增 `tests/cloud/receipt-list.spec.ts`，覆盖当前房东隔离、月份/房源/房间/租客/状态筛选和快照名称稳定性。
+- 新增 `tests/cloud/receipt-list.spec.ts`，覆盖当前房东隔离、月份/房源/房间/租客筛选和快照名称稳定性。
 - 加固 `receipt-create`，合并收据必须同房间、同租客、同租约、同月份，并通过 active receipts 的 `billIds` 防重复。
-- 加固 `receipt-void`，作废原因必须非空。
+- 加固 `receipt-delete`，删除收据时解除关联账单引用，避免误开记录堆积后无法管理。
 
 ## Task Commits
 
@@ -69,13 +69,13 @@ completed: 2026-04-28
 
 - `cloudfunctions/receipt-list/index.ts` - 新增收据列表云函数。
 - `cloudfunctions/receipt-list/shared/` - 新云函数部署所需 shared 副本。
-- `cloudfunctions/shared/repositories/receipt-repository.ts` - 新增列表筛选与快照行映射，并加固创建/作废规则。
+- `cloudfunctions/shared/repositories/receipt-repository.ts` - 新增列表筛选与快照行映射，并加固创建/删除规则。
 - `cloudfunctions/receipt-create/shared/repositories/receipt-repository.ts` - 同步收据创建云函数 shared 副本。
-- `cloudfunctions/receipt-void/shared/repositories/receipt-repository.ts` - 同步收据作废云函数 shared 副本。
+- `cloudfunctions/receipt-delete/shared/repositories/receipt-repository.ts` - 同步收据删除云函数 shared 副本。
 - `miniprogram/services/receipt.ts` - 增加 `listReceiptRecords` 服务调用。
 - `tests/cloud/receipt-list.spec.ts` - 新增收据列表测试。
 - `tests/cloud/receipt-create.spec.ts` - 增加合并开具与重复保护测试。
-- `tests/cloud/receipt-void.spec.ts` - 增加作废原因测试。
+- `tests/cloud/receipt-delete.spec.ts` - 增加删除收据与解除账单引用测试。
 
 ## Decisions Made
 
@@ -89,10 +89,10 @@ completed: 2026-04-28
 
 **1. [Rule 3 - Blocking] 同步云函数 shared 副本**
 - **Found during:** Task 1/2
-- **Issue:** `receipt-create` 和 `receipt-void` 实际导入各自目录下的 `shared/repositories/receipt-repository`，只改根 `cloudfunctions/shared` 会让测试和部署读到旧逻辑。
-- **Fix:** 同步 `receipt-create`、`receipt-get`、`receipt-void` 的收据 repository 副本，并为新 `receipt-list` 携带完整 shared 副本。
-- **Files modified:** `cloudfunctions/receipt-create/shared/repositories/receipt-repository.*`, `cloudfunctions/receipt-get/shared/repositories/receipt-repository.*`, `cloudfunctions/receipt-void/shared/repositories/receipt-repository.*`, `cloudfunctions/receipt-list/shared/**`
-- **Verification:** `npm test -- --runTestsByPath tests/cloud/receipt-list.spec.ts tests/cloud/receipt-create.spec.ts tests/cloud/receipt-void.spec.ts --runInBand` 通过；`npm run typecheck` 通过。
+- **Issue:** `receipt-create` 和收据管理云函数实际导入各自目录下的 `shared/repositories/receipt-repository`，只改根 `cloudfunctions/shared` 会让测试和部署读到旧逻辑。
+- **Fix:** 同步 `receipt-create`、`receipt-get`、`receipt-delete` 的收据 repository 副本，并为新 `receipt-list` 携带完整 shared 副本。
+- **Files modified:** `cloudfunctions/receipt-create/shared/repositories/receipt-repository.*`, `cloudfunctions/receipt-get/shared/repositories/receipt-repository.*`, `cloudfunctions/receipt-delete/shared/repositories/receipt-repository.*`, `cloudfunctions/receipt-list/shared/**`
+- **Verification:** `npm test -- --runTestsByPath tests/cloud/receipt-list.spec.ts tests/cloud/receipt-create.spec.ts tests/cloud/receipt-delete.spec.ts --runInBand` 通过；`npm run typecheck` 通过。
 - **Committed in:** `102b3bc`
 
 **Total deviations:** 1 auto-fixed (Rule 3).  
@@ -100,7 +100,7 @@ completed: 2026-04-28
 
 ## Issues Encountered
 
-- RED 阶段如预期失败：`receipt-list` 不存在，旧逻辑允许空作废原因、跨租客合并和仅依赖账单反向引用防重复。
+- RED 阶段如预期失败：`receipt-list` 不存在，旧逻辑缺少删除管理、跨租客合并保护和有效收据重复保护。
 - 生成 `.js` 输出时曾触碰不相关 shared 文件，已收回，只保留收据相关文件。
 
 ## User Setup Required

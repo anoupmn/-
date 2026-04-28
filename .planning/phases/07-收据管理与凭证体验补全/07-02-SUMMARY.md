@@ -9,7 +9,7 @@ requires:
 provides:
   - 业务维护内的收据记录入口
   - `pages/receipt-records` 收据记录管理页
-  - 月份、房源、房间、租客、状态筛选
+  - 月份、房源、房间、租客筛选
   - 查看收据与回到房间的记录卡片动作
 affects: [ops, receipt-records, receipt, unit-detail]
 tech-stack:
@@ -31,7 +31,7 @@ key-decisions:
   - "租客筛选第一版从收据列表行中提取已有租客选项，不新增 `tenants-list` 云函数。"
   - "收据记录页内部保留 receipt/room ids 用于跳转，但 WXML 不展示 ID 标签。"
 patterns-established:
-  - "Receipt records filters: month/asset/room/tenant/status 全部通过 `receipt-list` filters 传递。"
+  - "Receipt records filters: month/asset/room/tenant 全部通过 `receipt-list` filters 传递。"
   - "Receipt card actions: `查看收据` 进入收据页，`回到房间` 返回房间详情。"
 requirements-completed: [RCPT-03, RCPT-04, RCPT-08]
 duration: 24 min
@@ -54,8 +54,8 @@ completed: 2026-04-28
 
 - `app.json` 注册 `pages/receipt-records/index`。
 - 业务维护的“月度经营导出”区域升级为“经营凭证”，新增 `收据记录` 入口。
-- 新增收据记录页，支持全部月份、房源、房间、租客和状态筛选。
-- 列表卡片展示收据编号、房源/房间、租客、收款日期、金额、账单数和状态。
+- 新增收据记录页，支持全部月份、房源、房间和租客筛选。
+- 列表卡片展示收据编号、房源/房间、租客、收款日期、金额和账单数。
 - 卡片提供 `查看收据` 和 `回到房间` 动作，界面不展示内部 ID。
 
 ## Task Commits
@@ -103,7 +103,7 @@ None - no external service configuration required.
 
 ## Next Phase Readiness
 
-07-03 可以在房间详情和收据页继续补合并开具、作废原因输入与重开追溯。
+07-03 可以在房间详情和收据页继续补租约月度开具、已开收据查看和删除管理闭环。
 
 ---
 *Phase: 07-收据管理与凭证体验补全*

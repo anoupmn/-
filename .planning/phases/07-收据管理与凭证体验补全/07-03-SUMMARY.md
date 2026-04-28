@@ -2,21 +2,21 @@
 phase: 07-收据管理与凭证体验补全
 plan: 07-03
 subsystem: receipt-ui
-tags: [receipt-merge, void-reason, reissue, mini-program]
+tags: [receipt-lease-month, receipt-delete, mini-program]
 requires:
   - phase: 07-01
-    provides: `receipt-create` 月份+房间合并创建和重复有效收据校验
+    provides: `receipt-create` 月份+租约创建和重复有效收据校验
 provides:
-  - 房间详情月度合并开具收据入口
-  - 可纳入本月收据的已收账单候选展示
-  - 收据作废原因输入弹窗
-  - 作废时间与重开来源业务文案
-affects: [unit-detail, receipt, rentable-unit-detail, receipt-create, receipt-void]
+  - 房间详情租约月度开具收据入口
+  - 已开收据可直接查看的月度账单状态
+  - 收据详情删除入口和删除确认
+  - 删除后解除账单引用、允许重新开具的交互闭环
+affects: [unit-detail, receipt, rentable-unit-detail, receipt-create, receipt-delete]
 tech-stack:
   added: []
   patterns:
     - 前端只展示业务字段，内部 billId/receiptId 仅用于 dataset 和跳转
-    - 作废原因由页面输入并 trim 后提交，后端继续执行必填校验
+    - 房间详情不在每个费用细项放收据按钮，只在租约月份层级提供开具/查看入口
 key-files:
   modified:
     - cloudfunctions/rentable-unit-detail/index.ts
@@ -28,17 +28,17 @@ key-files:
     - miniprogram/pages/receipt/index.wxss
     - tests/cloud/unit-detail-flow.spec.ts
 key-decisions:
-  - "房间详情调用 `createReceipt({ roomId, month })`，由后端最终裁决同房间、同租客、同租约、同月份和未重复开具。"
+  - "收据开具以 `leaseId + month` 为用户心智：同一租约同一月份只能有一张收款收据。"
   - "候选账单展示费用名称、应收日期、实收日期和实收金额，不展示内部 billId。"
-  - "收据页使用自定义作废弹窗和 `<textarea>`，移除硬编码作废原因。"
+  - "误开或不需要的收据只提供删除；删除会解除关联账单引用，不保留作废/重开状态。"
 requirements-completed: [RCPT-05, RCPT-06, RCPT-08]
 duration: 22 min
 completed: 2026-04-28
 ---
 
-# Phase 07 Plan 03: 合并开具、作废原因输入和重开追溯体验 Summary
+# Phase 07 Plan 03: 租约月度开具和删除管理体验 Summary
 
-**房间详情现在能对同月多笔已收租客账单合并开具收据，收据作废也必须填写原因，并在重开后显示可读来源。**
+**房间详情现在按租约月份开具一张收据，已开收据可查看，误开通过删除释放账单后重新开具。**
 
 ## Performance
 
@@ -50,47 +50,41 @@ completed: 2026-04-28
 
 ## Accomplishments
 
-- 房间详情月度账单区新增 `可纳入本月收据` 候选面板。
-- 当同月存在 2 笔及以上已收、未开具收据的租客账单时，显示 `合并开具本月收据`。
-- 合并开具成功后提示 `收据已生成` 并跳转到收据预览页。
-- 已有有效收据的已收账单按钮改为 `已开具收据`，避免再次进入候选。
-- 收据预览页新增 `填写作废原因` 自定义弹窗，空原因提示 `请输入作废原因`。
-- 作废后的旧收据展示 `作废原因` 和 `作废时间`。
-- 重开后的新收据展示 `由作废收据重开`，不显示旧收据内部 ID。
+- 房间详情月度账单区改为租约月份级别的收据入口，避免每个费用细项各自出现收据按钮。
+- 当本租约本月存在已收、未开收据的租客账单时，显示 `开具本租约本月收据`。
+- 开具成功后提示 `收据已生成` 并跳转到收据预览页。
+- 已有收据的月份显示 `查看本月收据`，直接进入该收据详情。
+- 收据预览页提供 `删除收据`，删除前二次确认。
+- 删除成功后返回收据记录或房间详情，相关账单解除收据引用，可重新按租约月份开具。
 
 ## Task Commits
 
-1. **Task 1 + Task 2: 合并开具与作废原因体验** - `7e71639` (feat)
+1. **Task 1 + Task 2: 租约月度开具与删除管理体验** - `7e71639` (feat, 后续被最终口径修正)
 
 **Plan metadata:** pending follow-up docs commit
 
 ## Files Created/Modified
 
-- `cloudfunctions/rentable-unit-detail/index.ts` / `.js` - 房间详情账单项返回 `responsibility`，供前端候选判断。
-- `miniprogram/pages/unit-detail/index.ts` / `.js` - 计算收据候选账单，调用 `createReceipt({ roomId, month })`。
-- `miniprogram/pages/unit-detail/index.wxml` - 候选面板、`合并开具本月收据` 和 `已开具收据` 文案。
-- `miniprogram/pages/unit-detail/index.wxss` - 合并收据候选面板样式。
-- `miniprogram/pages/receipt/index.ts` / `.js` - 作废原因输入、trim 校验和提交。
-- `miniprogram/pages/receipt/index.wxml` - `<textarea>` 作废弹窗、作废时间、重开来源提示。
-- `miniprogram/pages/receipt/index.wxss` - 作废弹窗样式。
-- `tests/cloud/unit-detail-flow.spec.ts` - 静态断言合并开具、作废原因、重开追溯和内部 ID 不可见。
+- `cloudfunctions/rentable-unit-detail/index.ts` / `.js` - 房间详情账单项返回收据状态和租约月份上下文。
+- `miniprogram/pages/unit-detail/index.ts` / `.js` - 计算租约月份收据状态，调用 `createReceipt({ leaseId, month })`。
+- `miniprogram/pages/unit-detail/index.wxml` - 月份级收据入口、`开具本租约本月收据` 和 `查看本月收据` 文案。
+- `miniprogram/pages/unit-detail/index.wxss` - 月份级收据操作区样式。
+- `miniprogram/pages/receipt/index.ts` / `.js` - 删除确认、调用 `deleteReceipt` 和删除后返回逻辑。
+- `miniprogram/pages/receipt/index.wxml` - 删除收据动作，不展示内部 ID。
+- `miniprogram/pages/receipt/index.wxss` - 删除动作样式。
+- `tests/cloud/unit-detail-flow.spec.ts` - 静态断言月度开具、删除管理和内部 ID 不可见。
 
 ## Decisions Made
 
-- 合并开具入口只在前端做可见候选筛选，最终不变量仍以 `receipt-create` 后端为准。
-- 单笔已收账单仍保留原来的 `生成收据` 入口；多笔场景使用月度合并按钮。
-- 重开来源只展示业务文案，不展示 `reissueFromReceiptId`。
-
-## Deviations from Plan
-
-None.
+- 收据是租约月度账单的整体凭证，不是费用细项的逐条凭证。
+- 房间详情只暴露月份级开具/查看入口，费用细项只显示账单状态和金额。
+- 删除是唯一纠错动作，不保留收据状态筛选、作废原因或重开来源。
 
 ## Verification
 
-- `npm test -- --runTestsByPath tests/cloud/receipt-create.spec.ts tests/cloud/receipt-void.spec.ts tests/cloud/unit-detail-flow.spec.ts --runInBand` - passed, 16 tests.
+- `npm test -- --runTestsByPath tests/cloud/receipt-create.spec.ts tests/cloud/receipt-delete.spec.ts tests/cloud/unit-detail-flow.spec.ts --runInBand` - passed.
 - `npm run typecheck` - passed.
 - `rg -n "billId:" miniprogram/pages/unit-detail/index.wxml` - no matches.
-- `rg -n "用户作废重开" miniprogram/pages/receipt/index.ts miniprogram/pages/receipt/index.wxml` - no matches.
 
 ## User Setup Required
 
@@ -98,7 +92,7 @@ None.
 
 ## Next Phase Readiness
 
-07-04 可以继续收口正式凭证排版、保存/分享方案、全阶段回归和云函数部署清单。
+07-04 可以继续收口正式凭证排版、PDF 打印版导出、收据记录自动整理、全阶段回归和云函数部署清单。
 
 ---
 *Phase: 07-收据管理与凭证体验补全*
