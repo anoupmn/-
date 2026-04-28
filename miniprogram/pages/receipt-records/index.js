@@ -26,6 +26,30 @@ function uniqueTenantOptions(receipts) {
     });
     return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
 }
+function monthLabel(month) {
+    const [year, value] = month.split('-');
+    return year && value ? `${year}年${value}月` : month || '未分组';
+}
+function groupReceipts(receipts) {
+    const groups = receipts.reduce((acc, receipt) => {
+        const month = receipt.monthKey || 'unknown';
+        acc.set(month, [...(acc.get(month) ?? []), receipt]);
+        return acc;
+    }, new Map());
+    return Array.from(groups.entries())
+        .map(([month, groupReceipts]) => {
+        const sortedReceipts = [...groupReceipts].sort((left, right) => `${left.assetName}/${left.roomName}/${left.tenantName}`.localeCompare(`${right.assetName}/${right.roomName}/${right.tenantName}`) ||
+            String(right.createdAt || '').localeCompare(String(left.createdAt || '')));
+        return {
+            month,
+            monthLabel: monthLabel(month),
+            count: sortedReceipts.length,
+            totalAmount: sortedReceipts.reduce((sum, receipt) => sum + Number(receipt.totalAmount || 0), 0),
+            receipts: sortedReceipts
+        };
+    })
+        .sort((left, right) => right.month.localeCompare(left.month));
+}
 function resolveReceiptCloudError(error, fallback) {
     const record = error;
     const raw = `${record?.message ?? ''} ${record?.errMsg ?? ''}`.toLowerCase();
@@ -45,8 +69,8 @@ Page({
         assetId: '',
         roomId: '',
         tenantId: '',
-        status: 'all',
         receipts: [],
+        receiptGroups: [],
         allReceipts: [],
         receiptLeaseOptions: [],
         receiptMonthOptions: [],
@@ -55,21 +79,16 @@ Page({
         selectedReceiptLeaseId: '',
         selectedReceiptMonth: '',
         creatingReceipt: false,
+        deletingReceiptId: '',
         loading: false,
         error: '',
         issueError: '',
         assetOptions: [{ label: '全部房源', value: '' }],
         roomOptions: [{ label: '全部房间', value: '' }],
         tenantOptions: [{ label: '全部租客', value: '' }],
-        statusOptions: [
-            { label: '全部', value: 'all' },
-            { label: '有效', value: 'active' },
-            { label: '已作废', value: 'voided' }
-        ],
         selectedAssetIndex: 0,
         selectedRoomIndex: 0,
-        selectedTenantIndex: 0,
-        selectedStatusIndex: 0
+        selectedTenantIndex: 0
     },
     async onLoad() {
         await Promise.all([this.loadFilterOptions(), this.loadReceipts(), this.loadReceiptLeaseOptions()]);
@@ -126,9 +145,6 @@ Page({
         if (this.data.tenantId) {
             filters.tenantId = this.data.tenantId;
         }
-        if (this.data.status) {
-            filters.status = this.data.status;
-        }
         return filters;
     },
     async loadReceipts() {
@@ -141,6 +157,7 @@ Page({
             const receipts = result.receipts || [];
             this.setData({
                 receipts,
+                receiptGroups: groupReceipts(receipts),
                 allReceipts: receipts,
                 tenantOptions: [{ label: '全部租客', value: '' }, ...uniqueTenantOptions(receipts)],
                 loading: false
@@ -150,6 +167,7 @@ Page({
             console.error('load receipt records failed', error);
             this.setData({
                 receipts: [],
+                receiptGroups: [],
                 loading: false,
                 error: resolveReceiptCloudError(error, '收据记录加载失败，请稍后重试')
             });
@@ -294,15 +312,6 @@ Page({
         });
         await this.loadReceipts();
     },
-    async handleStatusChange(event) {
-        const selectedStatusIndex = Number(event.detail.value || 0);
-        const status = this.data.statusOptions[selectedStatusIndex];
-        this.setData({
-            selectedStatusIndex,
-            status: status?.value || 'all'
-        });
-        await this.loadReceipts();
-    },
     openReceipt(event) {
         const id = String(event.currentTarget.dataset.id || '');
         if (!id) {
@@ -320,5 +329,43 @@ Page({
         wx.navigateTo({
             url: `/pages/unit-detail/index?roomId=${id}`
         });
+    },
+    async deleteReceiptRecord(event) {
+        const id = String(event.currentTarget.dataset.id || '');
+        if (!id || this.data.deletingReceiptId) {
+            return;
+        }
+        const confirmed = await wx.showModal({
+            title: '删除收据',
+            content: '删除后会解除对应账单的收据引用，该租约月份可重新开具。',
+            confirmText: '删除',
+            confirmColor: '#c0392b'
+        });
+        if (!confirmed.confirm) {
+            return;
+        }
+        this.setData({
+            deletingReceiptId: id
+        });
+        try {
+            await (0, receipt_1.deleteReceipt)({ receiptId: id });
+            wx.showToast({
+                title: '已删除',
+                icon: 'none'
+            });
+            await Promise.all([this.loadReceipts(), this.loadReceiptLeaseOptions()]);
+        }
+        catch (error) {
+            console.error('delete receipt record failed', error);
+            wx.showToast({
+                title: '删除失败',
+                icon: 'none'
+            });
+        }
+        finally {
+            this.setData({
+                deletingReceiptId: ''
+            });
+        }
     }
 });

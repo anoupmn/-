@@ -1,5 +1,6 @@
 import { main as receiptCreateMain } from '../../cloudfunctions/receipt-create/index';
-import { main as receiptVoidMain } from '../../cloudfunctions/receipt-void/index';
+import { main as receiptDeleteMain } from '../../cloudfunctions/receipt-delete/index';
+import { main as receiptLeaseOptionsMain } from '../../cloudfunctions/receipt-lease-options/index';
 import { createMockDb, createMockStore, getWXContext } from '../helpers/mock-cloud';
 
 function seedReceiptData(store: ReturnType<typeof createMockStore>) {
@@ -53,53 +54,44 @@ function context(store: ReturnType<typeof createMockStore>, now: string) {
   };
 }
 
-describe('receipt-void cloud function', () => {
-  it('voids receipt without deleting snapshot', async () => {
+describe('receipt-delete cloud function', () => {
+  it('deletes receipt record and unlocks its bills for monthly reissue', async () => {
     const store = createMockStore();
     seedReceiptData(store);
-    const receipt = await receiptCreateMain({ ...context(store, '2026-04-28T10:00:00.000Z'), billIds: ['bill_paid'] } as any);
+    const receipt = await receiptCreateMain({ ...context(store, '2026-04-28T10:00:00.000Z'), month: '2026-04', leaseId: 'lease_1' } as any);
 
-    const voided = await receiptVoidMain({
+    const result = await receiptDeleteMain({
       ...context(store, '2026-04-28T11:00:00.000Z'),
-      receiptId: receipt.id,
-      voidReason: '金额录错'
+      receiptId: receipt.id
     } as any);
 
-    expect(voided.status).toBe('voided');
-    expect(voided.voidReason).toBe('金额录错');
-    expect(voided.items).toEqual(receipt.items);
-    expect(store.receipts).toHaveLength(1);
+    expect(result).toMatchObject({
+      deleted: true,
+      deletedReceiptId: receipt.id,
+      unlinkedBillCount: 1
+    });
+    expect(store.receipts).toHaveLength(0);
+    expect(store.bills[0].receiptId).toBe('');
+    expect(store.bills[0].receiptNo).toBe('');
+
+    const options = await receiptLeaseOptionsMain(context(store, '2026-04-28T12:00:00.000Z') as any);
+    expect(options.leases[0].months[0].month).toBe('2026-04');
   });
 
-  it('allows reissue from voided receipt', async () => {
-    const store = createMockStore();
-    seedReceiptData(store);
-    const receipt = await receiptCreateMain({ ...context(store, '2026-04-28T10:00:00.000Z'), billIds: ['bill_paid'] } as any);
-    await receiptVoidMain({ ...context(store, '2026-04-28T11:00:00.000Z'), receiptId: receipt.id, voidReason: '金额录错' } as any);
-
-    const reissued = await receiptCreateMain({
-      ...context(store, '2026-04-28T12:00:00.000Z'),
-      billIds: ['bill_paid'],
-      reissueFromReceiptId: receipt.id
-    } as any);
-
-    expect(reissued.id).not.toBe(receipt.id);
-    expect(reissued.receiptNo).not.toBe(receipt.receiptNo);
-    expect(reissued.reissueFromReceiptId).toBe(receipt.id);
-    expect(store.receipts).toHaveLength(2);
-  });
-
-  it('rejects voiding receipt without a reason', async () => {
+  it('rejects deleting another landlord receipt', async () => {
     const store = createMockStore();
     seedReceiptData(store);
     const receipt = await receiptCreateMain({ ...context(store, '2026-04-28T10:00:00.000Z'), billIds: ['bill_paid'] } as any);
 
     await expect(
-      receiptVoidMain({
-        ...context(store, '2026-04-28T11:00:00.000Z'),
-        receiptId: receipt.id,
-        voidReason: '   '
+      receiptDeleteMain({
+        __mockDb: createMockDb(store),
+        __mockContext: {
+          getWXContext: () => getWXContext('other-openid')
+        },
+        now: '2026-04-28T11:00:00.000Z',
+        receiptId: receipt.id
       } as any)
-    ).rejects.toThrow('voidReason is required');
+    ).rejects.toThrow('not found');
   });
 });

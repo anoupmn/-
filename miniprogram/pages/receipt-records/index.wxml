@@ -2,7 +2,7 @@
   <view class="receipt-records-shell page-stack">
     <view class="card intro-card">
       <view class="page-title">收据记录</view>
-      <view class="text-muted">集中查询已开具和已作废的收款收据。</view>
+      <view class="text-muted">按月份自动整理已开具收据，可按房源筛选和删除误开的记录。</view>
     </view>
 
     <view class="card issue-card">
@@ -50,35 +50,40 @@
       <picker range="{{tenantOptions}}" range-key="label" value="{{selectedTenantIndex}}" bindchange="handleTenantChange">
         <view class="field picker-field">租客：{{tenantOptions[selectedTenantIndex].label}}</view>
       </picker>
-
-      <picker range="{{statusOptions}}" range-key="label" value="{{selectedStatusIndex}}" bindchange="handleStatusChange">
-        <view class="field picker-field">状态：{{statusOptions[selectedStatusIndex].label}}</view>
-      </picker>
     </view>
 
     <view class="card records-card">
-      <view class="section-title">收据卡片列表</view>
+      <view class="section-title">收据管理</view>
       <view wx:if="{{loading}}" class="text-muted">正在加载收据记录...</view>
       <view wx:elif="{{error}}" class="text-muted">{{error}}</view>
       <view wx:elif="{{!receipts.length}}" class="text-muted">暂无符合条件的收据</view>
-      <view wx:for="{{receipts}}" wx:key="id" class="receipt-card">
-        <view class="receipt-card-head">
-          <view>
-            <view class="fee-name">{{item.receiptNo}}</view>
-            <view class="field">{{item.assetName}} / {{item.roomName}}</view>
-          </view>
-          <view class="status-pill {{item.status === 'voided' ? 'voided-pill' : ''}}">
-            {{item.status === 'voided' ? '已作废' : '有效'}}
-          </view>
+      <view wx:for="{{receiptGroups}}" wx:key="month" wx:for-item="group" class="receipt-month-group">
+        <view class="month-group-head">
+          <view class="fee-name">{{group.monthLabel}}</view>
+          <view class="field">{{group.count}} 张收据 / 合计 ¥{{group.totalAmount}}</view>
         </view>
-        <view class="field">租客：{{item.tenantName}}</view>
-        <view class="field">收款日期：{{item.receivedAt}}</view>
-        <view class="field">金额：¥{{item.totalAmount}} / {{item.billCount}} 笔账单</view>
-        <view wx:if="{{item.reissueFromReceiptId}}" class="fee-note">由作废收据重开</view>
-        <view wx:if="{{item.voidReason}}" class="fee-note">作废原因：{{item.voidReason}}</view>
-        <view class="record-actions">
-          <button class="secondary-button compact-button" data-id="{{item.id}}" bindtap="openReceipt">查看收据</button>
-          <button class="secondary-button compact-button" data-id="{{item.roomId}}" bindtap="openRoom">回到房间</button>
+        <view wx:for="{{group.receipts}}" wx:key="id" wx:for-item="item" class="receipt-card">
+          <view class="receipt-card-head">
+            <view>
+              <view class="fee-name">{{item.assetName}} / {{item.roomName}}</view>
+              <view class="field">{{item.tenantName}} · {{item.receiptNo}}</view>
+            </view>
+          </view>
+          <view class="field">收款日期：{{item.receivedAt}}</view>
+          <view class="field">金额：¥{{item.totalAmount}} / {{item.billCount}} 笔账单</view>
+          <view class="record-actions">
+            <button class="secondary-button compact-button" data-id="{{item.id}}" bindtap="openReceipt">查看</button>
+            <button class="secondary-button compact-button" data-id="{{item.roomId}}" bindtap="openRoom">房间</button>
+            <button
+              class="danger-button compact-button"
+              loading="{{deletingReceiptId === item.id}}"
+              disabled="{{!!deletingReceiptId}}"
+              data-id="{{item.id}}"
+              bindtap="deleteReceiptRecord"
+            >
+              删除
+            </button>
+          </view>
         </view>
       </view>
     </view>

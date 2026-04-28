@@ -55,8 +55,9 @@ describe('unit detail correction flow wiring', () => {
     expect(detailWxml).toContain('开具本租约本月收据');
     expect(detailWxml).toContain('查看本月收据');
     expect(receiptWxml).toContain('收款收据（非发票）');
-    expect(receiptWxml).toContain('作废收据');
-    expect(receiptWxml).toContain('重开收据');
+    expect(receiptWxml).toContain('删除收据');
+    expect(receiptWxml).not.toContain('作废收据');
+    expect(receiptWxml).not.toContain('重开收据');
     expect(combined).not.toContain('data-reset');
     expect(combined).not.toContain('测试数据重置');
   });
@@ -74,17 +75,20 @@ describe('unit detail correction flow wiring', () => {
     expect(receiptRecordsSource).toContain('listReceiptRecords');
     expect(receiptRecordsSource).toContain('listReceiptLeaseOptions');
     expect(receiptRecordsSource).toContain('createReceipt');
+    expect(receiptRecordsSource).toContain('deleteReceipt');
     expect(serviceSource).toContain('receipt-list');
     expect(serviceSource).toContain('receipt-lease-options');
+    expect(serviceSource).toContain('receipt-delete');
     expect(receiptRecordsWxml).toContain('全部月份');
     expect(receiptRecordsWxml).toContain('按租约开收据');
     expect(receiptRecordsWxml).toContain('开具该租约本月收据');
-    expect(receiptRecordsWxml).toContain('全部');
-    expect(receiptRecordsWxml).toContain('有效');
-    expect(receiptRecordsWxml).toContain('已作废');
-    expect(receiptRecordsWxml).toContain('查看收据');
-    expect(receiptRecordsWxml).toContain('回到房间');
+    expect(receiptRecordsWxml).toContain('收据管理');
+    expect(receiptRecordsWxml).toContain('receiptGroups');
+    expect(receiptRecordsWxml).toContain('查看');
+    expect(receiptRecordsWxml).toContain('房间');
+    expect(receiptRecordsWxml).toContain('删除');
     expect(receiptRecordsWxml).toContain('暂无符合条件的收据');
+    expect(receiptRecordsWxml).not.toContain('已作废');
     expect(receiptRecordsWxml).not.toContain('receiptId:');
     expect(receiptRecordsWxml).not.toContain('billIds');
   });
@@ -108,23 +112,19 @@ describe('unit detail correction flow wiring', () => {
     expect(detailWxml).not.toContain('billId:');
   });
 
-  it('requires a typed void reason and shows reissue trace copy', () => {
+  it('uses direct receipt delete instead of void and reissue actions', () => {
     const receiptSource = fs.readFileSync('miniprogram/pages/receipt/index.ts', 'utf8');
     const receiptWxml = fs.readFileSync('miniprogram/pages/receipt/index.wxml', 'utf8');
     const receiptRepositorySource = fs.readFileSync('cloudfunctions/shared/repositories/receipt-repository.ts', 'utf8');
     const combined = `${receiptSource}\n${receiptWxml}\n${receiptRepositorySource}`;
 
-    expect(receiptWxml).toContain('填写作废原因');
-    expect(receiptWxml).toContain('textarea');
-    expect(receiptWxml).toContain('请输入作废原因');
-    expect(receiptWxml).toContain('作废原因');
-    expect(receiptWxml).toContain('作废时间');
-    expect(receiptWxml).toContain('由作废收据重开');
-    expect(receiptWxml).toContain('重开收据');
-    expect(receiptSource).toContain('voidReason');
-    expect(receiptSource).toContain('trim()');
-    expect(receiptRepositorySource).toContain('voidReason is required');
-    expect(combined).not.toContain('用户作废重开');
+    expect(receiptWxml).toContain('删除收据');
+    expect(receiptSource).toContain('deleteReceipt');
+    expect(receiptRepositorySource).toContain('deleteReceipt');
+    expect(combined).not.toContain('填写作废原因');
+    expect(combined).not.toContain('作废收据');
+    expect(combined).not.toContain('重开收据');
+    expect(combined).not.toContain('voidReason');
   });
 
   it('renders receipt as a formal voucher with pdf share and copy fallbacks', () => {
@@ -139,7 +139,6 @@ describe('unit detail correction flow wiring', () => {
     expect(receiptWxml).toContain('收款项目明细');
     expect(receiptWxml).toContain('实收日期');
     expect(receiptWxml).toContain('合计金额');
-    expect(receiptWxml).toContain('收款人');
     expect(receiptWxml).toContain('生成时间');
     expect(receiptWxml).toContain('导出PDF打印版');
     expect(receiptWxml).toContain('复制收据摘要');
@@ -152,6 +151,8 @@ describe('unit detail correction flow wiring', () => {
     expect(receiptSource).toContain('setClipboardData');
     expect(receiptPdfSource).toContain('application/pdf');
     expect(receiptPdfSource).toContain('STSong-Light');
+    expect(receiptPdfSource).toContain('Helvetica');
+    expect(receiptWxml).not.toContain('收款人');
     expect(receiptWxml).not.toContain('receiptId:');
     expect(combined).not.toMatch(/jspdf|pdfmake/);
   });

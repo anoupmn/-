@@ -20,48 +20,88 @@ function utf16Hex(value: string) {
     .toUpperCase();
 }
 
-function pdfText(value: string, x: number, y: number, size = 11) {
-  return `BT /F1 ${size} Tf ${x} ${y} Td <${utf16Hex(value)}> Tj ET`;
+function pdfText(value: string, x: number, y: number, size = 11, font = 'F1') {
+  if (font === 'F2') {
+    return `BT /${font} ${size} Tf ${x} ${y} Td (${escapePdfText(value)}) Tj ET`;
+  }
+
+  return `BT /${font} ${size} Tf ${x} ${y} Td <${utf16Hex(value)}> Tj ET`;
+}
+
+function pdfLine(x1: number, y1: number, x2: number, y2: number) {
+  return `0.7 w ${x1} ${y1} m ${x2} ${y2} l S`;
+}
+
+function escapePdfText(value: string) {
+  return String(value || '').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
 }
 
 function money(value: unknown) {
-  return `¥${Number(value || 0).toFixed(2)}`;
+  return Number(value || 0).toFixed(2);
+}
+
+function dateOnly(value: unknown) {
+  return String(value || '').slice(0, 10);
+}
+
+function shortText(value: unknown, maxLength = 16) {
+  const text = String(value || '').trim();
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
 }
 
 function buildPdf(receipt: Record<string, any>, generatedAt: string) {
+  const items = ((receipt.items || []) as Array<Record<string, any>>).slice(0, 14);
+  const rows = items.flatMap((item, index) => {
+    const y = 590 - index * 28;
+    return [
+      pdfText(String(index + 1), 76, y, 10, 'F2'),
+      pdfText(shortText(item.itemLabel, 14), 108, y, 10),
+      pdfText(dateOnly(item.dueDate), 245, y, 10, 'F2'),
+      pdfText(dateOnly(item.receivedAt), 335, y, 10, 'F2'),
+      pdfText(money(item.receivedAmount), 455, y, 10, 'F2')
+    ];
+  });
+  const totalY = Math.max(150, 590 - items.length * 28 - 24);
   const lines = [
-    pdfText('收款收据（非发票）', 210, 790, 18),
-    pdfText(`收据编号：${receipt.receiptNo || ''}`, 72, 755),
-    pdfText(`房源/房间：${receipt.assetName || ''} / ${receipt.roomName || ''}`, 72, 735),
-    pdfText(`租客：${receipt.tenantName || ''}`, 72, 715),
-    pdfText(`收款日期：${receipt.receivedAt || ''}`, 72, 695),
-    pdfText(`状态：${receipt.status === 'voided' ? '已作废' : '有效'}`, 72, 675),
-    pdfText('收款项目明细', 72, 640, 13),
-    ...((receipt.items || []) as Array<Record<string, any>>).flatMap((item, index) => {
-      const y = 615 - index * 42;
-      return [
-        pdfText(`${index + 1}. ${item.itemLabel || ''}`, 86, y),
-        pdfText(`应收日期：${item.dueDate || ''}`, 100, y - 16),
-        pdfText(`实收日期：${item.receivedAt || ''}`, 230, y - 16),
-        pdfText(`金额：${money(item.receivedAmount)}`, 410, y - 16)
-      ];
-    }),
-    pdfText(`合计金额：${money(receipt.totalAmount)}`, 72, 170, 14),
-    pdfText(`收款人：${receipt.collectorName || '未填写'}`, 72, 145),
-    pdfText(`生成时间：${receipt.createdAt || ''}`, 72, 125),
-    ...(receipt.voidReason ? [pdfText(`作废原因：${receipt.voidReason}`, 72, 105)] : []),
-    ...(receipt.reissueFromReceiptId ? [pdfText('由作废收据重开', 72, 85)] : []),
-    pdfText(`PDF生成时间：${generatedAt}`, 72, 50, 9)
+    pdfText('收款收据（非发票）', 222, 790, 18),
+    pdfLine(72, 770, 523, 770),
+    pdfText('收据编号', 72, 742, 10),
+    pdfText(String(receipt.receiptNo || ''), 135, 742, 10, 'F2'),
+    pdfText('房源/房间', 72, 718, 10),
+    pdfText(`${receipt.assetName || ''} / ${receipt.roomName || ''}`, 135, 718, 10),
+    pdfText('租客', 72, 694, 10),
+    pdfText(String(receipt.tenantName || ''), 135, 694, 10),
+    pdfText('收款日期', 330, 694, 10),
+    pdfText(dateOnly(receipt.receivedAt), 398, 694, 10, 'F2'),
+    pdfText('收款项目明细', 72, 652, 13),
+    pdfLine(72, 632, 523, 632),
+    pdfText('序号', 76, 612, 10),
+    pdfText('项目', 108, 612, 10),
+    pdfText('应收日期', 245, 612, 10),
+    pdfText('实收日期', 335, 612, 10),
+    pdfText('金额', 455, 612, 10),
+    pdfLine(72, 602, 523, 602),
+    ...rows,
+    pdfLine(72, totalY + 16, 523, totalY + 16),
+    pdfText('合计金额', 72, totalY, 13),
+    pdfText('¥', 430, totalY, 13),
+    pdfText(money(receipt.totalAmount), 455, totalY, 13, 'F2'),
+    pdfText('生成时间', 72, totalY - 30, 10),
+    pdfText(dateOnly(receipt.createdAt), 135, totalY - 30, 10, 'F2'),
+    pdfText('本收据仅作为租金及相关费用收款凭证，不作为发票使用。', 72, 76, 9),
+    pdfText('PDF生成时间', 72, 52, 8),
+    pdfText(dateOnly(generatedAt), 145, 52, 8, 'F2')
   ];
   const content = lines.join('\n');
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 8 0 R >> >> /Contents 5 0 R >>',
     '<< /Type /Font /Subtype /Type0 /BaseFont /STSong-Light /Encoding /UniGB-UCS2-H /DescendantFonts [6 0 R] >>',
     `<< /Length ${Buffer.byteLength(content, 'binary')} >>\nstream\n${content}\nendstream`,
     '<< /Type /Font /Subtype /CIDFontType0 /BaseFont /STSong-Light /CIDSystemInfo << /Registry (Adobe) /Ordering (GB1) /Supplement 2 >> /FontDescriptor 7 0 R >>',
-    '<< /Type /FontDescriptor /FontName /STSong-Light /Flags 6 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 >>'
+    '<< /Type /FontDescriptor /FontName /STSong-Light /Flags 6 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
   ];
   let body = '%PDF-1.4\n';
   const offsets = [0];

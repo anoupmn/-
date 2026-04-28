@@ -8,15 +8,13 @@ function buildReceiptShareTitle(receipt) {
     return `${receipt.receiptNo || '收据'} ${receipt.tenantName || '租客'} 收款收据`;
 }
 function buildReceiptSummary(receipt) {
-    const statusLabel = receipt.status === 'voided' ? '已作废' : '有效';
     return [
         '收款收据（非发票）',
         `收据编号：${receipt.receiptNo || ''}`,
         `房源/房间：${receipt.assetName || ''} / ${receipt.roomName || ''}`,
         `租客：${receipt.tenantName || ''}`,
         `合计金额：¥${receipt.totalAmount || 0}`,
-        `收款日期：${receipt.receivedAt || ''}`,
-        `状态：${statusLabel}`
+        `收款日期：${receipt.receivedAt || ''}`
     ].join('\n');
 }
 Page({
@@ -26,9 +24,7 @@ Page({
         receipt: null,
         loading: true,
         exportingPdf: false,
-        voiding: false,
-        voidDialogVisible: false,
-        voidReason: ''
+        deleting: false
     },
     async onLoad(query) {
         this.setData({
@@ -122,95 +118,42 @@ Page({
             });
         }
     },
-    openVoidDialog() {
-        if (!this.data.receipt?.id || this.data.voiding) {
+    async handleDeleteReceipt() {
+        if (!this.data.receipt?.id || this.data.deleting) {
             return;
         }
-        this.setData({
-            voidDialogVisible: true,
-            voidReason: ''
+        const confirmed = await wx.showModal({
+            title: '删除收据',
+            content: '删除后会解除账单上的收据引用，可重新开具该月收据。',
+            confirmText: '删除',
+            confirmColor: '#c0392b'
         });
-    },
-    closeVoidDialog() {
-        if (this.data.voiding) {
+        if (!confirmed.confirm) {
             return;
         }
         this.setData({
-            voidDialogVisible: false,
-            voidReason: ''
-        });
-    },
-    handleVoidReasonInput(event) {
-        this.setData({
-            voidReason: event.detail.value
-        });
-    },
-    async handleVoidReceipt() {
-        if (!this.data.receipt?.id || this.data.voiding) {
-            return;
-        }
-        const voidReason = String(this.data.voidReason || '').trim();
-        if (!voidReason) {
-            wx.showToast({
-                title: '请输入作废原因',
-                icon: 'none'
-            });
-            return;
-        }
-        this.setData({
-            voiding: true
+            deleting: true
         });
         try {
-            const receipt = await (0, receipt_1.voidReceipt)({
-                receiptId: this.data.receipt.id,
-                voidReason
-            });
-            this.setData({
-                receipt: receipt,
-                voidDialogVisible: false,
-                voidReason: ''
+            await (0, receipt_1.deleteReceipt)({
+                receiptId: this.data.receipt.id
             });
             wx.showToast({
-                title: '已作废',
+                title: '已删除',
                 icon: 'none'
             });
+            wx.navigateBack();
         }
         catch (error) {
-            console.error('void receipt failed', error);
+            console.error('delete receipt failed', error);
             wx.showToast({
-                title: '作废失败',
+                title: '删除失败',
                 icon: 'none'
             });
         }
         finally {
             this.setData({
-                voiding: false
-            });
-        }
-    },
-    async handleReissueReceipt() {
-        if (!this.data.receipt?.id) {
-            return;
-        }
-        try {
-            const receipt = await (0, receipt_1.createReceipt)({
-                billIds: this.data.receipt.billIds,
-                reissueFromReceiptId: this.data.receipt.id
-            });
-            this.setData({
-                receipt: receipt,
-                receiptId: String(receipt.id || '')
-            });
-            wx.showToast({
-                title: '已重开',
-                icon: 'success'
-            });
-        }
-        catch (error) {
-            console.error('reissue receipt failed', error);
-            wx.showToast({
-                title: '重开失败',
-                icon: 'none'
+                deleting: false
             });
         }
     }

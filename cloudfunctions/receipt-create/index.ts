@@ -6,9 +6,7 @@ export interface ReceiptCreateEvent extends CloudEventBase {
   month?: string;
   leaseId?: string;
   roomId?: string;
-  collectorName?: string;
   note?: string;
-  reissueFromReceiptId?: string;
 }
 
 export async function main(event: ReceiptCreateEvent) {
@@ -23,9 +21,7 @@ export async function main(event: ReceiptCreateEvent) {
       month: event.month,
       leaseId: event.leaseId,
       roomId: event.roomId,
-      collectorName: event.collectorName,
-      note: event.note,
-      reissueFromReceiptId: event.reissueFromReceiptId
+      note: event.note
     },
     event
   );

@@ -37,12 +37,8 @@ exports.receiptSchema = zod_1.z.object({
     items: zod_1.z.array(exports.receiptItemSchema),
     totalAmount: zod_1.z.number().nonnegative(),
     receivedAt: zod_1.z.string(),
-    collectorName: zod_1.z.string().default(''),
     note: zod_1.z.string().default(''),
     status: zod_1.z.enum(['active', 'voided']).default('active'),
-    voidedAt: zod_1.z.string().nullable().default(null),
-    voidReason: zod_1.z.string().nullable().default(null),
-    reissueFromReceiptId: zod_1.z.string().nullable().default(null),
     createdAt: zod_1.z.string(),
     updatedAt: zod_1.z.string()
 });

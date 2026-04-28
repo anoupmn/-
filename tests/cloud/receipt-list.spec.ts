@@ -31,12 +31,8 @@ function receipt(overrides: Record<string, unknown>) {
     ],
     totalAmount: 2600,
     receivedAt: '2026-05-03T00:00:00.000Z',
-    collectorName: '房东',
     note: '',
     status: 'active',
-    voidedAt: null,
-    voidReason: null,
-    reissueFromReceiptId: null,
     createdAt: '2026-05-04T00:00:00.000Z',
     updatedAt: '2026-05-04T00:00:00.000Z',
     ...overrides
@@ -66,19 +62,16 @@ function seedReceiptListData(store: ReturnType<typeof createMockStore>) {
   store.receipts.push(
     receipt({ id: 'receipt_1' }),
     receipt({
-      id: 'receipt_voided',
+      id: 'receipt_second_room',
       receiptNo: 'R202604280002',
       roomId: 'room_102',
       tenantId: 'tenant_2',
-      billIds: ['bill_voided'],
+      billIds: ['bill_second_room'],
       roomName: '102',
       tenantName: '李四',
-      status: 'voided',
-      voidReason: '金额录错',
-      voidedAt: '2026-05-05T00:00:00.000Z',
       items: [
         {
-          billId: 'bill_voided',
+          billId: 'bill_second_room',
           type: 'rent',
           feeNature: 'recurring',
           itemLabel: '房租',
@@ -214,19 +207,17 @@ describe('receipt-list cloud function', () => {
       'R202603280001'
     ]);
     expect(result.receipts[0]).toMatchObject({
-      id: 'receipt_voided',
+      id: 'receipt_second_room',
       monthKey: '2026-04',
       assetName: '152号楼',
       roomName: '102',
       tenantName: '李四',
-      status: 'voided',
-      voidReason: '金额录错',
       billCount: 1,
-      billIds: ['bill_voided']
+      billIds: ['bill_second_room']
     });
   });
 
-  it('filters receipts by bill month asset room tenant and status', async () => {
+  it('filters receipts by bill month asset room and tenant', async () => {
     const store = createMockStore();
     seedReceiptListData(store);
 
@@ -234,12 +225,11 @@ describe('receipt-list cloud function', () => {
       month: '2026-04',
       assetId: 'asset_1',
       roomId: 'room_102',
-      tenantId: 'tenant_2',
-      status: 'voided'
+      tenantId: 'tenant_2'
     });
 
     expect(result.receipts).toHaveLength(1);
-    expect(result.receipts[0].id).toBe('receipt_voided');
+    expect(result.receipts[0].id).toBe('receipt_second_room');
   });
 
   it('filters receipts by lease id', async () => {

@@ -37,12 +37,8 @@ export const receiptSchema = z.object({
   items: z.array(receiptItemSchema),
   totalAmount: z.number().nonnegative(),
   receivedAt: z.string(),
-  collectorName: z.string().default(''),
   note: z.string().default(''),
   status: z.enum(['active', 'voided']).default('active'),
-  voidedAt: z.string().nullable().default(null),
-  voidReason: z.string().nullable().default(null),
-  reissueFromReceiptId: z.string().nullable().default(null),
   createdAt: z.string(),
   updatedAt: z.string()
 });

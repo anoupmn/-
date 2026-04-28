@@ -11,8 +11,6 @@ async function main(event) {
         month: event.month,
         leaseId: event.leaseId,
         roomId: event.roomId,
-        collectorName: event.collectorName,
-        note: event.note,
-        reissueFromReceiptId: event.reissueFromReceiptId
+        note: event.note
     }, event);
 }

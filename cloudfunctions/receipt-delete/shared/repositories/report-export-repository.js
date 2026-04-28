@@ -3,10 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.REPORT_SHEET_NAMES = void 0;
 exports.buildMonthlyReportData = buildMonthlyReportData;
 exports.summarizeReportWorkbook = summarizeReportWorkbook;
+exports.resolveReportScopeLabel = resolveReportScopeLabel;
+exports.listReportExports = listReportExports;
+exports.deleteReportExport = deleteReportExport;
 exports.saveReportExportMetadata = saveReportExportMetadata;
 const collections_1 = require("../constants/collections");
 const report_export_1 = require("../schemas/report-export");
 const runtime_1 = require("../runtime");
+const runtime_2 = require("../runtime");
 exports.REPORT_SHEET_NAMES = ['月度明细', '账单明细', '房东支出明细', '退租支出明细'];
 const BILL_TYPE_LABELS = {
     rent: '房租',
@@ -200,14 +204,50 @@ function summarizeReportWorkbook(workbook) {
         ownerExpenseTotal: roundMoney(workbook.月度明细.reduce((sum, row) => sum + row.维修费 + row.其他支出 + row.退租支出, 0))
     };
 }
-async function saveReportExportMetadata(db, landlordOpenId, request, fileName, sheetNames, summary, event, fileID) {
+async function resolveReportScopeLabel(db, landlordOpenId, request) {
+    if (request.roomId) {
+        const [rooms, assets] = await Promise.all([
+            (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.rooms),
+            (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.assets)
+        ]);
+        const room = rooms.find((item) => item.id === request.roomId && item.landlordOpenId === landlordOpenId);
+        const asset = room ? assets.find((item) => item.id === room.assetId && item.landlordOpenId === landlordOpenId) : null;
+        return `${asset?.name ?? '未知房源'} / ${room?.name ?? '未知房间'}`;
+    }
+    if (request.assetId) {
+        const assets = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.assets);
+        return assets.find((item) => item.id === request.assetId && item.landlordOpenId === landlordOpenId)?.name ?? '未知房源';
+    }
+    return '全部房源';
+}
+async function listReportExports(db, landlordOpenId) {
+    const records = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.reportExports);
+    return records
+        .filter((record) => record.landlordOpenId === landlordOpenId)
+        .map((record) => report_export_1.reportExportMetadataSchema.parse(record))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+async function deleteReportExport(db, landlordOpenId, exportId) {
+    const record = await (0, runtime_2.findById)(db, collections_1.COLLECTIONS.reportExports, exportId);
+    const parsed = record ? report_export_1.reportExportMetadataSchema.parse(record) : null;
+    if (!parsed || parsed.landlordOpenId !== landlordOpenId) {
+        throw new Error(`Report export ${exportId} not found.`);
+    }
+    await (0, runtime_2.removeRecordsByQuery)(db, collections_1.COLLECTIONS.reportExports, {
+        id: exportId,
+        landlordOpenId
+    });
+    return parsed;
+}
+async function saveReportExportMetadata(db, landlordOpenId, request, fileName, scopeLabel, sheetNames, summary, event, fileID, exportId) {
     const now = (0, runtime_1.resolveNow)(event);
     const metadata = report_export_1.reportExportMetadataSchema.parse({
-        id: (0, runtime_1.createId)('report_export'),
+        id: exportId ?? (0, runtime_1.createId)('report_export'),
         landlordOpenId,
         month: request.month,
         assetId: request.assetId ?? null,
         roomId: request.roomId ?? null,
+        scopeLabel,
         fileID,
         fileName,
         sheetNames,

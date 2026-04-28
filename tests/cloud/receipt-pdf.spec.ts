@@ -32,12 +32,8 @@ describe('receipt-pdf cloud function', () => {
       ],
       totalAmount: 2600,
       receivedAt: '2026-04-05T00:00:00.000Z',
-      collectorName: '房东',
       note: '',
       status: 'active',
-      voidedAt: null,
-      voidReason: null,
-      reissueFromReceiptId: null,
       createdAt: '2026-04-28T10:00:00.000Z',
       updatedAt: '2026-04-28T10:00:00.000Z'
     });
@@ -54,6 +50,8 @@ describe('receipt-pdf cloud function', () => {
     expect(result.fileName).toBe('R202604280001-张三-收款收据.pdf');
     expect(result.contentType).toBe('application/pdf');
     expect(result.size).toBeGreaterThan(100);
-    expect(Buffer.from(result.pdfBase64 || '', 'base64').toString('binary').startsWith('%PDF-1.4')).toBe(true);
+    const pdf = Buffer.from(result.pdfBase64 || '', 'base64').toString('binary');
+    expect(pdf.startsWith('%PDF-1.4')).toBe(true);
+    expect(pdf).toContain('/Helvetica');
   });
 });

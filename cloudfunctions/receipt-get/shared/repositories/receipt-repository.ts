@@ -5,16 +5,14 @@ import type { Lease } from '../schemas/lease';
 import { receiptSchema, type Receipt } from '../schemas/receipt';
 import type { Room } from '../schemas/room';
 import type { Tenant } from '../schemas/tenant';
-import { createId, findById, insertRecord, listAll, resolveNow, type CloudEventBase, type DbLike, updateRecord } from '../runtime';
+import { createId, findById, insertRecord, listAll, removeRecordsByQuery, resolveNow, type CloudEventBase, type DbLike, updateRecord } from '../runtime';
 
 type CreateReceiptInput = {
   billIds?: string[];
   month?: string;
   leaseId?: string;
   roomId?: string;
-  collectorName?: string;
   note?: string;
-  reissueFromReceiptId?: string;
 };
 
 type ReceiptListFilters = {
@@ -62,8 +60,6 @@ export type ReceiptRecord = {
   receivedAt: string;
   totalAmount: number;
   status: Receipt['status'];
-  voidReason: string | null;
-  reissueFromReceiptId: string | null;
   billCount: number;
   billIds: string[];
   createdAt: string;
@@ -164,8 +160,6 @@ function toReceiptRecord(receipt: Receipt): ReceiptRecord {
     receivedAt: receipt.receivedAt,
     totalAmount: receipt.totalAmount,
     status: receipt.status,
-    voidReason: receipt.voidReason,
-    reissueFromReceiptId: receipt.reissueFromReceiptId,
     billCount: receipt.billIds.length,
     billIds: [...receipt.billIds],
     createdAt: receipt.createdAt,
@@ -209,28 +203,10 @@ async function selectReceiptBills(db: DbLike, landlordOpenId: string, input: Cre
   throw new Error('Pass billIds or month + leaseId to create a receipt.');
 }
 
-async function assertReissueAllowed(db: DbLike, landlordOpenId: string, input: CreateReceiptInput) {
-  if (!input.reissueFromReceiptId) {
-    return null;
-  }
-
-  const previous = await findById<Receipt>(db, COLLECTIONS.receipts, input.reissueFromReceiptId);
-  if (!previous || previous.landlordOpenId !== landlordOpenId) {
-    throw new Error(`Receipt ${input.reissueFromReceiptId} not found.`);
-  }
-
-  if (previous.status !== 'voided') {
-    throw new Error('Only voided receipts can be reissued.');
-  }
-
-  return previous;
-}
-
 export async function createReceipt(db: DbLike, landlordOpenId: string, input: CreateReceiptInput, event: CloudEventBase) {
-  const previousReceipt = await assertReissueAllowed(db, landlordOpenId, input);
   const receipts = await listReceipts(db);
   const activeReceipts = receipts.filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active');
-  if (!input.reissueFromReceiptId && input.month && input.leaseId) {
+  if (input.month && input.leaseId) {
     const existingMonthlyReceipt = activeReceipts.find((receipt) => matchesLeaseMonth(receipt, input.leaseId as string, input.month as string));
     if (existingMonthlyReceipt) {
       return existingMonthlyReceipt;
@@ -318,12 +294,8 @@ export async function createReceipt(db: DbLike, landlordOpenId: string, input: C
     })),
     totalAmount: bills.reduce((sum, bill) => sum + Number(bill.receivedAmount ?? 0), 0),
     receivedAt: bills.map((bill) => bill.receivedAt as string).sort().slice(-1)[0],
-    collectorName: input.collectorName ?? '',
     note: input.note ?? '',
     status: 'active',
-    voidedAt: null,
-    voidReason: null,
-    reissueFromReceiptId: previousReceipt?.id ?? null,
     createdAt: now,
     updatedAt: now
   });
@@ -350,32 +322,35 @@ export async function getReceipt(db: DbLike, landlordOpenId: string, receiptId: 
   return receipt;
 }
 
-export async function voidReceipt(
-  db: DbLike,
-  landlordOpenId: string,
-  input: { receiptId: string; voidReason?: string },
-  event: CloudEventBase
-) {
-  const voidReason = String(input.voidReason || '').trim();
-  if (!voidReason) {
-    throw new Error('voidReason is required.');
-  }
-
-  const receipt = await findById<Receipt>(db, COLLECTIONS.receipts, input.receiptId);
+export async function deleteReceipt(db: DbLike, landlordOpenId: string, receiptId: string, event: CloudEventBase) {
+  const receipt = await findById<Receipt>(db, COLLECTIONS.receipts, receiptId);
   if (!receipt || receipt.landlordOpenId !== landlordOpenId) {
-    throw new Error(`Receipt ${input.receiptId} not found.`);
+    throw new Error(`Receipt ${receiptId} not found.`);
   }
 
-  if (receipt.status === 'voided') {
-    return receipt;
+  const now = resolveNow(event);
+  const billIdSet = new Set(receipt.billIds);
+  const bills = await listAll<Bill>(db, COLLECTIONS.bills);
+  const linkedBills = bills.filter((bill) =>
+    bill.landlordOpenId === landlordOpenId &&
+    (bill.receiptId === receipt.id || billIdSet.has(bill.id))
+  );
+
+  for (const bill of linkedBills) {
+    await updateRecord<Bill>(db, COLLECTIONS.bills, bill.id, {
+      receiptId: '',
+      receiptNo: '',
+      updatedAt: now
+    } as Partial<Bill>);
   }
 
-  return updateRecord<Receipt>(db, COLLECTIONS.receipts, receipt.id, {
-    status: 'voided',
-    voidedAt: resolveNow(event),
-    voidReason,
-    updatedAt: resolveNow(event)
-  });
+  await removeRecordsByQuery(db, COLLECTIONS.receipts, { id: receipt.id });
+
+  return {
+    deleted: true,
+    deletedReceiptId: receipt.id,
+    unlinkedBillCount: linkedBills.length
+  };
 }
 
 export async function listReceiptLeaseOptions(db: DbLike, landlordOpenId: string): Promise<ReceiptLeaseOption[]> {

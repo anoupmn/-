@@ -5,16 +5,9 @@
     </view>
 
     <view wx:elif="{{receipt}}" class="card receipt-card">
-      <view class="receipt-watermark" wx:if="{{receipt.status === 'voided'}}">已作废</view>
       <view class="receipt-header">
         <view class="receipt-title">收款收据（非发票）</view>
         <view class="receipt-no">收据编号：{{receipt.receiptNo}}</view>
-      </view>
-      <view class="receipt-status-row">
-        <view class="receipt-status {{receipt.status === 'voided' ? 'voided-status' : ''}}">
-          {{receipt.status === 'voided' ? '已作废' : '有效'}}
-        </view>
-        <view wx:if="{{receipt.reissueFromReceiptId}}" class="receipt-origin">由作废收据重开</view>
       </view>
 
       <view class="receipt-meta-grid">
@@ -29,10 +22,6 @@
         <view class="receipt-meta-item">
           <view class="field-label">收款日期</view>
           <view class="field">{{receipt.receivedAt}}</view>
-        </view>
-        <view class="receipt-meta-item">
-          <view class="field-label">收款人</view>
-          <view class="field">{{receipt.collectorName || '未填写'}}</view>
         </view>
       </view>
 
@@ -57,41 +46,12 @@
       <view class="receipt-total">合计金额：¥{{receipt.totalAmount}}</view>
       <view class="field">生成时间：{{receipt.createdAt}}</view>
       <view wx:if="{{receipt.note}}" class="field">备注：{{receipt.note}}</view>
-      <view wx:if="{{receipt.voidReason}}" class="field">作废原因：{{receipt.voidReason}}</view>
-      <view wx:if="{{receipt.voidedAt}}" class="field">作废时间：{{receipt.voidedAt}}</view>
 
       <view class="action-grid">
         <button class="primary-button" loading="{{exportingPdf}}" disabled="{{exportingPdf}}" bindtap="exportPrintablePdf">导出PDF打印版</button>
         <button class="secondary-button" bindtap="copyReceiptSummary">复制收据摘要</button>
         <button class="secondary-button" open-type="share">分享凭证</button>
-        <button
-          wx:if="{{receipt.status !== 'voided'}}"
-          class="danger-button"
-          loading="{{voiding}}"
-          disabled="{{voiding}}"
-          bindtap="openVoidDialog"
-        >
-          作废收据
-        </button>
-        <button wx:if="{{receipt.status === 'voided'}}" class="primary-button" bindtap="handleReissueReceipt">重开收据</button>
-      </view>
-    </view>
-  </view>
-
-  <view wx:if="{{voidDialogVisible}}" class="dialog-mask">
-    <view class="void-dialog">
-      <view class="dialog-title">填写作废原因</view>
-      <view class="hint">作废后旧收据仍会保留，只能重新开具新收据。</view>
-      <textarea
-        class="void-reason-input"
-        value="{{voidReason}}"
-        placeholder="请输入作废原因"
-        maxlength="120"
-        bindinput="handleVoidReasonInput"
-      />
-      <view class="dialog-actions">
-        <button class="secondary-button dialog-button" disabled="{{voiding}}" bindtap="closeVoidDialog">取消</button>
-        <button class="danger-button dialog-button" loading="{{voiding}}" disabled="{{voiding}}" bindtap="handleVoidReceipt">确认作废</button>
+        <button class="danger-button" loading="{{deleting}}" disabled="{{deleting}}" bindtap="handleDeleteReceipt">删除收据</button>
       </view>
     </view>
   </view>

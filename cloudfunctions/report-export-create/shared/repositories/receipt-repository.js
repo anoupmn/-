@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.listReceiptRecords = listReceiptRecords;
 exports.createReceipt = createReceipt;
 exports.getReceipt = getReceipt;
-exports.voidReceipt = voidReceipt;
+exports.deleteReceipt = deleteReceipt;
 exports.listReceiptLeaseOptions = listReceiptLeaseOptions;
 const collections_1 = require("../constants/collections");
 const receipt_1 = require("../schemas/receipt");
@@ -86,8 +86,6 @@ function toReceiptRecord(receipt) {
         receivedAt: receipt.receivedAt,
         totalAmount: receipt.totalAmount,
         status: receipt.status,
-        voidReason: receipt.voidReason,
-        reissueFromReceiptId: receipt.reissueFromReceiptId,
         billCount: receipt.billIds.length,
         billIds: [...receipt.billIds],
         createdAt: receipt.createdAt,
@@ -123,24 +121,10 @@ async function selectReceiptBills(db, landlordOpenId, input) {
     }
     throw new Error('Pass billIds or month + leaseId to create a receipt.');
 }
-async function assertReissueAllowed(db, landlordOpenId, input) {
-    if (!input.reissueFromReceiptId) {
-        return null;
-    }
-    const previous = await (0, runtime_1.findById)(db, collections_1.COLLECTIONS.receipts, input.reissueFromReceiptId);
-    if (!previous || previous.landlordOpenId !== landlordOpenId) {
-        throw new Error(`Receipt ${input.reissueFromReceiptId} not found.`);
-    }
-    if (previous.status !== 'voided') {
-        throw new Error('Only voided receipts can be reissued.');
-    }
-    return previous;
-}
 async function createReceipt(db, landlordOpenId, input, event) {
-    const previousReceipt = await assertReissueAllowed(db, landlordOpenId, input);
     const receipts = await listReceipts(db);
     const activeReceipts = receipts.filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active');
-    if (!input.reissueFromReceiptId && input.month && input.leaseId) {
+    if (input.month && input.leaseId) {
         const existingMonthlyReceipt = activeReceipts.find((receipt) => matchesLeaseMonth(receipt, input.leaseId, input.month));
         if (existingMonthlyReceipt) {
             return existingMonthlyReceipt;
@@ -217,12 +201,8 @@ async function createReceipt(db, landlordOpenId, input, event) {
         })),
         totalAmount: bills.reduce((sum, bill) => sum + Number(bill.receivedAmount ?? 0), 0),
         receivedAt: bills.map((bill) => bill.receivedAt).sort().slice(-1)[0],
-        collectorName: input.collectorName ?? '',
         note: input.note ?? '',
         status: 'active',
-        voidedAt: null,
-        voidReason: null,
-        reissueFromReceiptId: previousReceipt?.id ?? null,
         createdAt: now,
         updatedAt: now
     });
@@ -243,24 +223,29 @@ async function getReceipt(db, landlordOpenId, receiptId) {
     }
     return receipt;
 }
-async function voidReceipt(db, landlordOpenId, input, event) {
-    const voidReason = String(input.voidReason || '').trim();
-    if (!voidReason) {
-        throw new Error('voidReason is required.');
-    }
-    const receipt = await (0, runtime_1.findById)(db, collections_1.COLLECTIONS.receipts, input.receiptId);
+async function deleteReceipt(db, landlordOpenId, receiptId, event) {
+    const receipt = await (0, runtime_1.findById)(db, collections_1.COLLECTIONS.receipts, receiptId);
     if (!receipt || receipt.landlordOpenId !== landlordOpenId) {
-        throw new Error(`Receipt ${input.receiptId} not found.`);
+        throw new Error(`Receipt ${receiptId} not found.`);
     }
-    if (receipt.status === 'voided') {
-        return receipt;
+    const now = (0, runtime_1.resolveNow)(event);
+    const billIdSet = new Set(receipt.billIds);
+    const bills = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.bills);
+    const linkedBills = bills.filter((bill) => bill.landlordOpenId === landlordOpenId &&
+        (bill.receiptId === receipt.id || billIdSet.has(bill.id)));
+    for (const bill of linkedBills) {
+        await (0, runtime_1.updateRecord)(db, collections_1.COLLECTIONS.bills, bill.id, {
+            receiptId: '',
+            receiptNo: '',
+            updatedAt: now
+        });
     }
-    return (0, runtime_1.updateRecord)(db, collections_1.COLLECTIONS.receipts, receipt.id, {
-        status: 'voided',
-        voidedAt: (0, runtime_1.resolveNow)(event),
-        voidReason,
-        updatedAt: (0, runtime_1.resolveNow)(event)
-    });
+    await (0, runtime_1.removeRecordsByQuery)(db, collections_1.COLLECTIONS.receipts, { id: receipt.id });
+    return {
+        deleted: true,
+        deletedReceiptId: receipt.id,
+        unlinkedBillCount: linkedBills.length
+    };
 }
 async function listReceiptLeaseOptions(db, landlordOpenId) {
     const [leases, rooms, tenants, assets, bills, receipts] = await Promise.all([

@@ -16,7 +16,7 @@ exports.getAllDomainData = getAllDomainData;
 const collections_1 = require("./constants/collections");
 const cloudSdk = (() => {
     try {
-        return require('wx-server-sdk');
+        return require("wx-server-sdk");
     }
     catch {
         return null;
@@ -112,9 +112,8 @@ async function listAll(db, collectionName) {
         const rows = [];
         let offset = 0;
         while (true) {
-            const pagedCollection = collection.skip(offset);
-            const result = await pagedCollection.limit(pageSize).get();
-            const page = (result.data ?? []);
+            const result = await collection.skip(offset).limit(pageSize).get();
+            const page = result.data ?? [];
             rows.push(...page);
             if (page.length < pageSize) {
                 break;

@@ -138,7 +138,7 @@ describe('receipt-create cloud function', () => {
     const store = createMockStore();
     seedReceiptData(store);
 
-    const receipt = await callCreate(store, { billIds: ['bill_paid'], collectorName: '房东' });
+    const receipt = await callCreate(store, { billIds: ['bill_paid'] });
 
     expect(receipt.title).toBe('收款收据（非发票）');
     expect(receipt.tenantName).toBe('张三');

@@ -1,4 +1,4 @@
-import { createReceipt, exportReceiptPdf, getReceipt, voidReceipt } from '../../services/receipt';
+import { createReceipt, deleteReceipt, exportReceiptPdf, getReceipt } from '../../services/receipt';
 
 function buildReceiptShareTitle(receipt: Record<string, any> | null) {
   if (!receipt) {
@@ -9,15 +9,13 @@ function buildReceiptShareTitle(receipt: Record<string, any> | null) {
 }
 
 function buildReceiptSummary(receipt: Record<string, any>) {
-  const statusLabel = receipt.status === 'voided' ? '已作废' : '有效';
   return [
     '收款收据（非发票）',
     `收据编号：${receipt.receiptNo || ''}`,
     `房源/房间：${receipt.assetName || ''} / ${receipt.roomName || ''}`,
     `租客：${receipt.tenantName || ''}`,
     `合计金额：¥${receipt.totalAmount || 0}`,
-    `收款日期：${receipt.receivedAt || ''}`,
-    `状态：${statusLabel}`
+    `收款日期：${receipt.receivedAt || ''}`
   ].join('\n');
 }
 
@@ -28,9 +26,7 @@ Page({
     receipt: null as Record<string, any> | null,
     loading: true,
     exportingPdf: false,
-    voiding: false,
-    voidDialogVisible: false,
-    voidReason: ''
+    deleting: false
   },
   async onLoad(query: Record<string, string | undefined>) {
     this.setData({
@@ -126,98 +122,43 @@ Page({
       });
     }
   },
-  openVoidDialog() {
-    if (!this.data.receipt?.id || this.data.voiding) {
+  async handleDeleteReceipt() {
+    if (!this.data.receipt?.id || this.data.deleting) {
       return;
     }
 
-    this.setData({
-      voidDialogVisible: true,
-      voidReason: ''
+    const confirmed = await wx.showModal({
+      title: '删除收据',
+      content: '删除后会解除账单上的收据引用，可重新开具该月收据。',
+      confirmText: '删除',
+      confirmColor: '#c0392b'
     });
-  },
-  closeVoidDialog() {
-    if (this.data.voiding) {
+    if (!confirmed.confirm) {
       return;
     }
 
     this.setData({
-      voidDialogVisible: false,
-      voidReason: ''
-    });
-  },
-  handleVoidReasonInput(event: WechatMiniprogram.Input) {
-    this.setData({
-      voidReason: event.detail.value
-    });
-  },
-  async handleVoidReceipt() {
-    if (!this.data.receipt?.id || this.data.voiding) {
-      return;
-    }
-
-    const voidReason = String(this.data.voidReason || '').trim();
-    if (!voidReason) {
-      wx.showToast({
-        title: '请输入作废原因',
-        icon: 'none'
-      });
-      return;
-    }
-
-    this.setData({
-      voiding: true
+      deleting: true
     });
 
     try {
-      const receipt = await voidReceipt({
-        receiptId: this.data.receipt.id,
-        voidReason
-      });
-      this.setData({
-        receipt: receipt as Record<string, any>,
-        voidDialogVisible: false,
-        voidReason: ''
+      await deleteReceipt({
+        receiptId: this.data.receipt.id
       });
       wx.showToast({
-        title: '已作废',
+        title: '已删除',
         icon: 'none'
       });
+      wx.navigateBack();
     } catch (error) {
-      console.error('void receipt failed', error);
+      console.error('delete receipt failed', error);
       wx.showToast({
-        title: '作废失败',
+        title: '删除失败',
         icon: 'none'
       });
     } finally {
       this.setData({
-        voiding: false
-      });
-    }
-  },
-  async handleReissueReceipt() {
-    if (!this.data.receipt?.id) {
-      return;
-    }
-
-    try {
-      const receipt = await createReceipt({
-        billIds: this.data.receipt.billIds,
-        reissueFromReceiptId: this.data.receipt.id
-      });
-      this.setData({
-        receipt: receipt as Record<string, any>,
-        receiptId: String((receipt as Record<string, any>).id || '')
-      });
-      wx.showToast({
-        title: '已重开',
-        icon: 'success'
-      });
-    } catch (error) {
-      console.error('reissue receipt failed', error);
-      wx.showToast({
-        title: '重开失败',
-        icon: 'none'
+        deleting: false
       });
     }
   }

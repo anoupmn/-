@@ -21,22 +21,39 @@
   flex: 1;
 }
 
+.receipt-month-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding-top: 18rpx;
+  border-top: 1rpx solid #d9dee8;
+}
+
+.month-group-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  padding: 12rpx 0;
+}
+
 .receipt-card {
   display: flex;
   flex-direction: column;
   gap: 10rpx;
-  padding: 18rpx 0;
-  border-top: 1rpx solid #eef1f5;
+  padding: 18rpx;
+  border: 1rpx solid #eef1f5;
+  border-radius: 12rpx;
+  background: #ffffff;
 }
 
-.receipt-card-head,
-.record-actions {
+.receipt-card-head {
   display: flex;
   flex-direction: column;
   gap: 10rpx;
 }
 
-.voided-pill {
-  color: #8a1f11;
-  background: #fff1f0;
+.record-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10rpx;
 }

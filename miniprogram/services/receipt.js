@@ -5,7 +5,7 @@ exports.getReceipt = getReceipt;
 exports.listReceiptRecords = listReceiptRecords;
 exports.listReceiptLeaseOptions = listReceiptLeaseOptions;
 exports.exportReceiptPdf = exportReceiptPdf;
-exports.voidReceipt = voidReceipt;
+exports.deleteReceipt = deleteReceipt;
 const cloud_1 = require("./cloud");
 function createReceipt(payload) {
     return (0, cloud_1.callCloudFunction)('receipt-create', payload);
@@ -22,6 +22,6 @@ function listReceiptLeaseOptions(payload = {}) {
 function exportReceiptPdf(payload) {
     return (0, cloud_1.callCloudFunction)('receipt-pdf', payload);
 }
-function voidReceipt(payload) {
-    return (0, cloud_1.callCloudFunction)('receipt-void', payload);
+function deleteReceipt(payload) {
+    return (0, cloud_1.callCloudFunction)('receipt-delete', payload);
 }

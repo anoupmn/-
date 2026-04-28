@@ -20,6 +20,6 @@ export function exportReceiptPdf(payload: Record<string, unknown>) {
   return callCloudFunction('receipt-pdf', payload);
 }
 
-export function voidReceipt(payload: Record<string, unknown>) {
-  return callCloudFunction('receipt-void', payload);
+export function deleteReceipt(payload: Record<string, unknown>) {
+  return callCloudFunction('receipt-delete', payload);
 }
