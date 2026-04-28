@@ -2,6 +2,7 @@ import { deleteLease, endLease, saveLease } from '../../services/lease';
 import { deleteBill, receiveBill, saveBill } from '../../services/bill';
 import { saveOwnerExpense } from '../../services/owner-expense';
 import { getRentableUnitDetail } from '../../services/rentable-unit';
+import { createReceipt } from '../../services/receipt';
 
 type MonthlyBillItem = {
   id: string;
@@ -11,6 +12,7 @@ type MonthlyBillItem = {
   amount: number;
   status: string;
   section: string;
+  responsibility?: 'tenant' | string;
   source?: 'system' | 'manual';
   isManual?: boolean;
   receivedAt?: string | null;
@@ -25,6 +27,7 @@ type MonthlyBillItem = {
   isReceivedAmountMismatch?: boolean;
   receiptId?: string;
   receiptNo?: string;
+  canCreateReceipt?: boolean;
 };
 
 type DetailPayload = Record<string, any> & {
@@ -37,6 +40,8 @@ type DetailPayload = Record<string, any> & {
     monthLabel: string;
     expandedByDefault: boolean;
     items: MonthlyBillItem[];
+    receiptCandidateItems?: MonthlyBillItem[];
+    canMergeReceipt?: boolean;
   }>;
   historyCollapsedByDefault?: boolean;
 };
@@ -491,6 +496,16 @@ function formatNumberInput(value: unknown) {
   return Number.isFinite(numeric) && numeric >= 0 ? String(numeric) : '';
 }
 
+function canCreateReceiptFromBill(item: MonthlyBillItem) {
+  return (
+    item.status === 'paid' &&
+    (item.responsibility ?? 'tenant') === 'tenant' &&
+    Boolean(item.receivedAt) &&
+    item.receivedAmount != null &&
+    !item.receiptId
+  );
+}
+
 Page({
   data: {
     roomId: '',
@@ -510,6 +525,7 @@ Page({
     manualBillTypeOptions: MANUAL_BILL_TYPE_LABELS,
     manualBillDialogVisible: false,
     manualBillSubmitting: false,
+    creatingMergedReceiptMonth: '',
     deletingBillId: '',
     repairCategoryOptions: REPAIR_CATEGORY_OPTIONS.map((item) => item.label),
     ownerExpenseTypeOptions: OWNER_EXPENSE_TYPE_OPTIONS.map((item) => item.label),
@@ -551,18 +567,30 @@ Page({
   async loadDetail(roomId?: string) {
     const nextRoomId = roomId ?? this.data.roomId;
     const detail = (await getRentableUnitDetail({ roomId: nextRoomId })) as DetailPayload;
-    const monthlyBillGroups = (detail.monthlyBillGroups ?? []).map((group) => ({
-      ...group,
-      items: group.items.map((item) => ({
+    const monthlyBillGroups = (detail.monthlyBillGroups ?? []).map((group) => {
+      const items = group.items.map((item) => ({
         ...item,
+        responsibility: item.responsibility ?? 'tenant',
         source: (item.source === 'manual' ? 'manual' : 'system') as 'system' | 'manual',
         isManual: item.source === 'manual',
         isReceivedAmountMismatch:
           item.isReceivedAmountMismatch === true
           || (item.receivedAmount != null && Math.abs(Number(item.receivedAmount) - Number(item.amount || 0)) >= 0.01),
-        statusLabel: formatStatusLabel(item.status)
-      }))
-    }));
+        statusLabel: formatStatusLabel(item.status),
+        canCreateReceipt: canCreateReceiptFromBill({
+          ...item,
+          responsibility: item.responsibility ?? 'tenant'
+        })
+      }));
+      const receiptCandidateItems = items.filter(canCreateReceiptFromBill);
+
+      return {
+        ...group,
+        items,
+        receiptCandidateItems,
+        canMergeReceipt: receiptCandidateItems.length >= 2
+      };
+    });
     const leaseHistoryViews = buildLeaseHistoryViews(detail);
     const previousExpandedState = this.data.expandedLeaseHistory ?? {};
     let hasExpandedItem = false;
@@ -707,6 +735,45 @@ Page({
     wx.navigateTo({
       url: `/pages/receipt/index?${query}`
     });
+  },
+  async createMergedMonthReceipt(event: WechatMiniprogram.BaseEvent) {
+    const month = String(event.currentTarget.dataset.monthKey || '');
+    const roomId = this.data.roomId;
+
+    if (!month || !roomId || this.data.creatingMergedReceiptMonth) {
+      return;
+    }
+
+    this.setData({
+      creatingMergedReceiptMonth: month
+    });
+
+    try {
+      const receipt = await createReceipt({ roomId, month });
+      const receiptId = String((receipt as Record<string, any>).id || '');
+      const receiptNo = String((receipt as Record<string, any>).receiptNo || '');
+
+      wx.showToast({
+        title: receiptNo ? `收据已生成 ${receiptNo}` : '收据已生成',
+        icon: 'success'
+      });
+
+      if (receiptId) {
+        wx.navigateTo({
+          url: `/pages/receipt/index?receiptId=${receiptId}`
+        });
+      }
+    } catch (error) {
+      console.error('create merged receipt failed', error);
+      wx.showToast({
+        title: '收据生成失败',
+        icon: 'none'
+      });
+    } finally {
+      this.setData({
+        creatingMergedReceiptMonth: ''
+      });
+    }
   },
   handlePaymentAmountChange(event: WechatMiniprogram.Input) {
     this.setData({

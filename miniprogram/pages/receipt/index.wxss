@@ -22,6 +22,15 @@
   font-size: 24rpx;
 }
 
+.receipt-origin {
+  align-self: flex-start;
+  padding: 8rpx 14rpx;
+  border: 1rpx solid #dbeafe;
+  color: #1d4ed8;
+  background: #eff6ff;
+  font-size: 24rpx;
+}
+
 .receipt-item {
   padding: 16rpx 0;
   border-top: 1rpx solid #eef1f5;
@@ -33,4 +42,52 @@
   font-size: 32rpx;
   font-weight: 700;
   color: #22272f;
+}
+
+.dialog-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.void-dialog {
+  width: 100%;
+  max-width: 640rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  padding: 28rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+}
+
+.dialog-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #22272f;
+}
+
+.void-reason-input {
+  min-height: 180rpx;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 18rpx;
+  border: 1rpx solid #d9dee8;
+  border-radius: 14rpx;
+  background: #f8fafc;
+  font-size: 28rpx;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.dialog-button {
+  flex: 1;
 }

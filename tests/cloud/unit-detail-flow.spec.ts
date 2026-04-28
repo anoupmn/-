@@ -54,7 +54,7 @@ describe('unit detail correction flow wiring', () => {
     expect(reportExportWxml).not.toContain('请输入房间 ID');
     expect(detailSource).toContain('openReceiptPage');
     expect(detailWxml).toContain('生成收据');
-    expect(detailWxml).toContain('查看收据');
+    expect(detailWxml).toContain('已开具收据');
     expect(receiptWxml).toContain('收款收据（非发票）');
     expect(receiptWxml).toContain('作废收据');
     expect(receiptWxml).toContain('重开收据');
@@ -83,5 +83,40 @@ describe('unit detail correction flow wiring', () => {
     expect(receiptRecordsWxml).toContain('暂无符合条件的收据');
     expect(receiptRecordsWxml).not.toContain('receiptId:');
     expect(receiptRecordsWxml).not.toContain('billIds');
+  });
+
+  it('wires merged receipt creation from unit detail without exposing bill ids', () => {
+    const detailSource = fs.readFileSync('miniprogram/pages/unit-detail/index.ts', 'utf8');
+    const detailWxml = fs.readFileSync('miniprogram/pages/unit-detail/index.wxml', 'utf8');
+    const receiptCreateSource = fs.readFileSync('cloudfunctions/receipt-create/index.ts', 'utf8');
+    const receiptRepositorySource = fs.readFileSync('cloudfunctions/shared/repositories/receipt-repository.ts', 'utf8');
+    const combined = `${detailSource}\n${detailWxml}\n${receiptCreateSource}\n${receiptRepositorySource}`;
+
+    expect(detailWxml).toContain('合并开具本月收据');
+    expect(detailWxml).toContain('已开具收据');
+    expect(detailSource).toContain('收据已生成');
+    expect(detailSource).toContain('createReceipt({ roomId, month })');
+    expect(combined).toMatch(/month.*roomId|roomId.*month/);
+    expect(receiptRepositorySource).toContain('already has an active receipt');
+    expect(detailWxml).not.toContain('billId:');
+  });
+
+  it('requires a typed void reason and shows reissue trace copy', () => {
+    const receiptSource = fs.readFileSync('miniprogram/pages/receipt/index.ts', 'utf8');
+    const receiptWxml = fs.readFileSync('miniprogram/pages/receipt/index.wxml', 'utf8');
+    const receiptRepositorySource = fs.readFileSync('cloudfunctions/shared/repositories/receipt-repository.ts', 'utf8');
+    const combined = `${receiptSource}\n${receiptWxml}\n${receiptRepositorySource}`;
+
+    expect(receiptWxml).toContain('填写作废原因');
+    expect(receiptWxml).toContain('textarea');
+    expect(receiptWxml).toContain('请输入作废原因');
+    expect(receiptWxml).toContain('作废原因');
+    expect(receiptWxml).toContain('作废时间');
+    expect(receiptWxml).toContain('由作废收据重开');
+    expect(receiptWxml).toContain('重开收据');
+    expect(receiptSource).toContain('voidReason');
+    expect(receiptSource).toContain('trim()');
+    expect(receiptRepositorySource).toContain('voidReason is required');
+    expect(combined).not.toContain('用户作废重开');
   });
 });

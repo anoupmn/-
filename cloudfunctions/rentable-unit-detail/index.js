@@ -73,6 +73,7 @@ function buildMonthlyBillGroups(bills, now) {
             dueDate: bill.dueDate,
             amount: bill.amount,
             status: (0, bill_status_1.deriveBillStatus)(bill, now),
+            responsibility: bill.responsibility,
             receivedAt: bill.receivedAt,
             receivedAmount: bill.receivedAmount,
             note: bill.note ?? '',

@@ -4,6 +4,7 @@ const lease_1 = require("../../services/lease");
 const bill_1 = require("../../services/bill");
 const owner_expense_1 = require("../../services/owner-expense");
 const rentable_unit_1 = require("../../services/rentable-unit");
+const receipt_1 = require("../../services/receipt");
 function formatStatusLabel(status) {
     const mapping = {
         pending: '待收',
@@ -332,6 +333,13 @@ function formatNumberInput(value) {
     const numeric = Number(value);
     return Number.isFinite(numeric) && numeric >= 0 ? String(numeric) : '';
 }
+function canCreateReceiptFromBill(item) {
+    return (item.status === 'paid' &&
+        (item.responsibility ?? 'tenant') === 'tenant' &&
+        Boolean(item.receivedAt) &&
+        item.receivedAmount != null &&
+        !item.receiptId);
+}
 Page({
     data: {
         roomId: '',
@@ -351,6 +359,7 @@ Page({
         manualBillTypeOptions: MANUAL_BILL_TYPE_LABELS,
         manualBillDialogVisible: false,
         manualBillSubmitting: false,
+        creatingMergedReceiptMonth: '',
         deletingBillId: '',
         repairCategoryOptions: REPAIR_CATEGORY_OPTIONS.map((item) => item.label),
         ownerExpenseTypeOptions: OWNER_EXPENSE_TYPE_OPTIONS.map((item) => item.label),
@@ -392,17 +401,28 @@ Page({
     async loadDetail(roomId) {
         const nextRoomId = roomId ?? this.data.roomId;
         const detail = (await (0, rentable_unit_1.getRentableUnitDetail)({ roomId: nextRoomId }));
-        const monthlyBillGroups = (detail.monthlyBillGroups ?? []).map((group) => ({
-            ...group,
-            items: group.items.map((item) => ({
+        const monthlyBillGroups = (detail.monthlyBillGroups ?? []).map((group) => {
+            const items = group.items.map((item) => ({
                 ...item,
+                responsibility: item.responsibility ?? 'tenant',
                 source: (item.source === 'manual' ? 'manual' : 'system'),
                 isManual: item.source === 'manual',
                 isReceivedAmountMismatch: item.isReceivedAmountMismatch === true
                     || (item.receivedAmount != null && Math.abs(Number(item.receivedAmount) - Number(item.amount || 0)) >= 0.01),
-                statusLabel: formatStatusLabel(item.status)
-            }))
-        }));
+                statusLabel: formatStatusLabel(item.status),
+                canCreateReceipt: canCreateReceiptFromBill({
+                    ...item,
+                    responsibility: item.responsibility ?? 'tenant'
+                })
+            }));
+            const receiptCandidateItems = items.filter(canCreateReceiptFromBill);
+            return {
+                ...group,
+                items,
+                receiptCandidateItems,
+                canMergeReceipt: receiptCandidateItems.length >= 2
+            };
+        });
         const leaseHistoryViews = buildLeaseHistoryViews(detail);
         const previousExpandedState = this.data.expandedLeaseHistory ?? {};
         let hasExpandedItem = false;
@@ -535,6 +555,42 @@ Page({
         wx.navigateTo({
             url: `/pages/receipt/index?${query}`
         });
+    },
+    async createMergedMonthReceipt(event) {
+        const month = String(event.currentTarget.dataset.monthKey || '');
+        const roomId = this.data.roomId;
+        if (!month || !roomId || this.data.creatingMergedReceiptMonth) {
+            return;
+        }
+        this.setData({
+            creatingMergedReceiptMonth: month
+        });
+        try {
+            const receipt = await (0, receipt_1.createReceipt)({ roomId, month });
+            const receiptId = String(receipt.id || '');
+            const receiptNo = String(receipt.receiptNo || '');
+            wx.showToast({
+                title: receiptNo ? `收据已生成 ${receiptNo}` : '收据已生成',
+                icon: 'success'
+            });
+            if (receiptId) {
+                wx.navigateTo({
+                    url: `/pages/receipt/index?receiptId=${receiptId}`
+                });
+            }
+        }
+        catch (error) {
+            console.error('create merged receipt failed', error);
+            wx.showToast({
+                title: '收据生成失败',
+                icon: 'none'
+            });
+        }
+        finally {
+            this.setData({
+                creatingMergedReceiptMonth: ''
+            });
+        }
     },
     handlePaymentAmountChange(event) {
         this.setData({

@@ -12,6 +12,7 @@
       <view class="field">租客姓名：{{receipt.tenantName}}</view>
       <view class="field">收款日期：{{receipt.receivedAt}}</view>
       <view class="field">收款人：{{receipt.collectorName || '未填写'}}</view>
+      <view wx:if="{{receipt.reissueFromReceiptId}}" class="receipt-origin">由作废收据重开</view>
 
       <view class="receipt-items">
         <view wx:for="{{receipt.items}}" wx:key="billId" class="receipt-item">
@@ -33,6 +34,7 @@
       <view class="field">生成时间：{{receipt.createdAt}}</view>
       <view wx:if="{{receipt.note}}" class="field">备注：{{receipt.note}}</view>
       <view wx:if="{{receipt.voidReason}}" class="field">作废原因：{{receipt.voidReason}}</view>
+      <view wx:if="{{receipt.voidedAt}}" class="field">作废时间：{{receipt.voidedAt}}</view>
 
       <view class="action-grid">
         <button
@@ -40,11 +42,29 @@
           class="danger-button"
           loading="{{voiding}}"
           disabled="{{voiding}}"
-          bindtap="handleVoidReceipt"
+          bindtap="openVoidDialog"
         >
           作废收据
         </button>
         <button wx:if="{{receipt.status === 'voided'}}" class="primary-button" bindtap="handleReissueReceipt">重开收据</button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{voidDialogVisible}}" class="dialog-mask">
+    <view class="void-dialog">
+      <view class="dialog-title">填写作废原因</view>
+      <view class="hint">作废后旧收据仍会保留，只能重新开具新收据。</view>
+      <textarea
+        class="void-reason-input"
+        value="{{voidReason}}"
+        placeholder="请输入作废原因"
+        maxlength="120"
+        bindinput="handleVoidReasonInput"
+      />
+      <view class="dialog-actions">
+        <button class="secondary-button dialog-button" disabled="{{voiding}}" bindtap="closeVoidDialog">取消</button>
+        <button class="danger-button dialog-button" loading="{{voiding}}" disabled="{{voiding}}" bindtap="handleVoidReceipt">确认作废</button>
       </view>
     </view>
   </view>

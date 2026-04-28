@@ -63,6 +63,7 @@ function buildMonthlyBillGroups(bills: Bill[], now: string) {
         dueDate: string;
         amount: number;
         status: string;
+        responsibility: Bill['responsibility'];
         receivedAt: string | null;
         receivedAmount: number | null;
         note: string;
@@ -107,6 +108,7 @@ function buildMonthlyBillGroups(bills: Bill[], now: string) {
         dueDate: bill.dueDate,
         amount: bill.amount,
         status: deriveBillStatus(bill, now),
+        responsibility: bill.responsibility,
         receivedAt: bill.receivedAt,
         receivedAmount: bill.receivedAmount,
         note: bill.note ?? '',

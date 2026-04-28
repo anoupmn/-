@@ -7,7 +7,9 @@ Page({
         receiptId: '',
         receipt: null,
         loading: true,
-        voiding: false
+        voiding: false,
+        voidDialogVisible: false,
+        voidReason: ''
     },
     async onLoad(query) {
         this.setData({
@@ -42,17 +44,39 @@ Page({
             });
         }
     },
+    openVoidDialog() {
+        if (!this.data.receipt?.id || this.data.voiding) {
+            return;
+        }
+        this.setData({
+            voidDialogVisible: true,
+            voidReason: ''
+        });
+    },
+    closeVoidDialog() {
+        if (this.data.voiding) {
+            return;
+        }
+        this.setData({
+            voidDialogVisible: false,
+            voidReason: ''
+        });
+    },
+    handleVoidReasonInput(event) {
+        this.setData({
+            voidReason: event.detail.value
+        });
+    },
     async handleVoidReceipt() {
         if (!this.data.receipt?.id || this.data.voiding) {
             return;
         }
-        const confirm = await wx.showModal({
-            title: '作废收据',
-            content: '作废后旧收据仍会保留，只能重新开具新收据。',
-            confirmText: '确认作废',
-            confirmColor: '#c0392b'
-        });
-        if (!confirm.confirm) {
+        const voidReason = String(this.data.voidReason || '').trim();
+        if (!voidReason) {
+            wx.showToast({
+                title: '请输入作废原因',
+                icon: 'none'
+            });
             return;
         }
         this.setData({
@@ -61,10 +85,12 @@ Page({
         try {
             const receipt = await (0, receipt_1.voidReceipt)({
                 receiptId: this.data.receipt.id,
-                voidReason: '用户作废重开'
+                voidReason
             });
             this.setData({
-                receipt: receipt
+                receipt: receipt,
+                voidDialogVisible: false,
+                voidReason: ''
             });
             wx.showToast({
                 title: '已作废',

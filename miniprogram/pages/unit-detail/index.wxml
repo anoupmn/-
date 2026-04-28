@@ -128,7 +128,7 @@
                 data-receipt-id="{{item.receiptId}}"
                 bindtap="openReceiptPage"
               >
-                {{item.receiptId ? '查看收据' : '生成收据'}}
+                {{item.receiptId ? '已开具收据' : '生成收据'}}
               </button>
             </view>
             <view wx:if="{{item.meterReading}}" class="meter-block">
@@ -158,6 +158,32 @@
             </view>
             <view wx:if="{{item.note}}" class="fee-note">备注：{{item.note}}</view>
             <view class="fee-note" wx:if="{{item.isManual}}">补录费用</view>
+          </view>
+          <view wx:if="{{monthGroup.receiptCandidateItems.length}}" class="receipt-candidate-panel">
+            <view class="candidate-head">
+              <view>
+                <view class="field-label">可纳入本月收据</view>
+                <view class="hint">已收且尚未开具收据的租客账单</view>
+              </view>
+              <button
+                wx:if="{{monthGroup.canMergeReceipt}}"
+                class="primary-button compact-button merge-receipt-button"
+                data-month-key="{{monthGroup.monthKey}}"
+                loading="{{creatingMergedReceiptMonth==monthGroup.monthKey}}"
+                disabled="{{creatingMergedReceiptMonth}}"
+                bindtap="createMergedMonthReceipt"
+              >
+                合并开具本月收据
+              </button>
+            </view>
+            <view wx:for="{{monthGroup.receiptCandidateItems}}" wx:key="id" wx:for-item="candidate" class="candidate-item">
+              <view>
+                <view class="fee-name">{{candidate.label}}</view>
+                <view class="field">应收日期：{{candidate.dueDate}}</view>
+                <view class="field">实收日期：{{candidate.receivedAt}}</view>
+              </view>
+              <view class="fee-status">¥{{candidate.receivedAmount}}</view>
+            </view>
           </view>
           <view class="month-tools">
             <button
