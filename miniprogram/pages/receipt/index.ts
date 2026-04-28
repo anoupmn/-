@@ -1,4 +1,4 @@
-import { createReceipt, getReceipt, voidReceipt } from '../../services/receipt';
+import { createReceipt, exportReceiptPdf, getReceipt, voidReceipt } from '../../services/receipt';
 
 function buildReceiptShareTitle(receipt: Record<string, any> | null) {
   if (!receipt) {
@@ -27,6 +27,7 @@ Page({
     receiptId: '',
     receipt: null as Record<string, any> | null,
     loading: true,
+    exportingPdf: false,
     voiding: false,
     voidDialogVisible: false,
     voidReason: ''
@@ -86,6 +87,44 @@ Page({
         });
       }
     });
+  },
+  async exportPrintablePdf() {
+    if (!this.data.receiptId || this.data.exportingPdf) {
+      return;
+    }
+
+    this.setData({
+      exportingPdf: true
+    });
+
+    try {
+      const result = await exportReceiptPdf({ receiptId: this.data.receiptId }) as Record<string, any>;
+      const fileID = String(result.fileID || '');
+      if (!fileID) {
+        wx.showToast({
+          title: 'PDF已生成，请在真机云端下载',
+          icon: 'none'
+        });
+        return;
+      }
+
+      const downloaded = await wx.cloud.downloadFile({ fileID });
+      await wx.openDocument({
+        filePath: downloaded.tempFilePath,
+        fileType: 'pdf',
+        showMenu: true
+      });
+    } catch (error) {
+      console.error('export receipt pdf failed', error);
+      wx.showToast({
+        title: '导出PDF失败',
+        icon: 'none'
+      });
+    } finally {
+      this.setData({
+        exportingPdf: false
+      });
+    }
   },
   openVoidDialog() {
     if (!this.data.receipt?.id || this.data.voiding) {

@@ -5,6 +5,7 @@ export interface ReceiptListEvent extends CloudEventBase {
   filters?: {
     month?: string;
     assetId?: string;
+    leaseId?: string;
     roomId?: string;
     tenantId?: string;
     status?: 'all' | 'active' | 'voided';

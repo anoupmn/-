@@ -56,6 +56,7 @@ function buildMonthlyBillGroups(bills: Bill[], now: string) {
       expandedByDefault: boolean;
       items: Array<{
         id: string;
+        leaseId: string;
         type: Bill['type'];
         section: Bill['section'];
         source: Bill['source'];
@@ -101,6 +102,7 @@ function buildMonthlyBillGroups(bills: Bill[], now: string) {
 
       monthMap.get(monthKey)?.items.push({
         id: bill.id,
+        leaseId: bill.leaseId,
         type: bill.type,
         section: bill.section,
         source: bill.source ?? 'system',

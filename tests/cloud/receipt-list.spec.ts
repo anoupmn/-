@@ -1,4 +1,5 @@
 import { main as receiptListMain } from '../../cloudfunctions/receipt-list/index';
+import { main as receiptLeaseOptionsMain } from '../../cloudfunctions/receipt-lease-options/index';
 import { createMockDb, createMockStore, getWXContext } from '../helpers/mock-cloud';
 
 function receipt(overrides: Record<string, unknown>) {
@@ -43,6 +44,25 @@ function receipt(overrides: Record<string, unknown>) {
 }
 
 function seedReceiptListData(store: ReturnType<typeof createMockStore>) {
+  store.assets.push({ id: 'asset_1', landlordOpenId: 'openid', name: '152号楼', rentalMode: 'split', createdAt: '', updatedAt: '' });
+  store.rooms.push({ id: 'room_101', landlordOpenId: 'openid', assetId: 'asset_1', name: '101', isWholeUnitDefault: false, createdAt: '', updatedAt: '' });
+  store.rooms.push({ id: 'room_102', landlordOpenId: 'openid', assetId: 'asset_1', name: '102', isWholeUnitDefault: false, createdAt: '', updatedAt: '' });
+  store.tenants.push({ id: 'tenant_1', landlordOpenId: 'openid', name: '张三', createdAt: '', updatedAt: '' });
+  store.tenants.push({ id: 'tenant_2', landlordOpenId: 'openid', name: '李四', createdAt: '', updatedAt: '' });
+  store.leases.push({
+    id: 'lease_1',
+    landlordOpenId: 'openid',
+    roomId: 'room_101',
+    tenantId: 'tenant_1',
+    startDate: '2026-04-01',
+    endDate: '2026-12-31',
+    billingCycleDays: 30,
+    rentAmount: 2600,
+    depositAmount: 2600,
+    closedAt: null,
+    createdAt: '',
+    updatedAt: ''
+  });
   store.receipts.push(
     receipt({ id: 'receipt_1' }),
     receipt({
@@ -102,6 +122,52 @@ function seedReceiptListData(store: ReturnType<typeof createMockStore>) {
       totalAmount: 9999
     })
   );
+  store.bills.push(
+    {
+      id: 'bill_new_month',
+      landlordOpenId: 'openid',
+      leaseId: 'lease_1',
+      roomId: 'room_101',
+      type: 'rent',
+      section: 'rent',
+      dueDate: '2026-05-01',
+      amount: 2600,
+      status: 'paid',
+      receivedAt: '2026-05-03T00:00:00.000Z',
+      receivedAmount: 2600,
+      source: 'system',
+      feeNature: 'recurring',
+      responsibility: 'tenant',
+      cadence: 'cycle',
+      isDepositLike: false,
+      isOneTime: false,
+      createdAt: '',
+      updatedAt: ''
+    },
+    {
+      id: 'bill_already_receipted',
+      landlordOpenId: 'openid',
+      leaseId: 'lease_1',
+      roomId: 'room_101',
+      type: 'management',
+      section: 'non_rent',
+      dueDate: '2026-04-01',
+      amount: 100,
+      status: 'paid',
+      receivedAt: '2026-04-03T00:00:00.000Z',
+      receivedAmount: 100,
+      source: 'system',
+      feeNature: 'recurring',
+      responsibility: 'tenant',
+      cadence: 'cycle',
+      isDepositLike: false,
+      isOneTime: false,
+      receiptId: 'receipt_1',
+      receiptNo: 'R202604280001',
+      createdAt: '',
+      updatedAt: ''
+    }
+  );
 }
 
 function callList(store: ReturnType<typeof createMockStore>, filters: Record<string, unknown> = {}) {
@@ -153,6 +219,44 @@ describe('receipt-list cloud function', () => {
 
     expect(result.receipts).toHaveLength(1);
     expect(result.receipts[0].id).toBe('receipt_voided');
+  });
+
+  it('filters receipts by lease id', async () => {
+    const store = createMockStore();
+    seedReceiptListData(store);
+
+    const result = await callList(store, { leaseId: 'lease_1' });
+
+    expect(result.receipts.map((item: any) => item.id)).toContain('receipt_1');
+    expect(result.receipts.map((item: any) => item.leaseId)).toEqual(
+      expect.arrayContaining(['lease_1'])
+    );
+  });
+
+  it('lists lease month options for opening receipts by lease', async () => {
+    const store = createMockStore();
+    seedReceiptListData(store);
+
+    const result = await receiptLeaseOptionsMain({
+      __mockDb: createMockDb(store),
+      __mockContext: {
+        getWXContext: () => getWXContext('openid')
+      }
+    } as any);
+
+    expect(result.leases).toHaveLength(1);
+    expect(result.leases[0]).toMatchObject({
+      leaseId: 'lease_1',
+      label: '152号楼 / 101 / 张三（2026-04-01 至 2026-12-31）'
+    });
+    expect(result.leases[0].months).toEqual([
+      expect.objectContaining({
+        month: '2026-05',
+        monthLabel: '2026年05月',
+        billCount: 1,
+        totalAmount: 2600
+      })
+    ]);
   });
 
   it('keeps other landlord receipts out of results', async () => {

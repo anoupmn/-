@@ -1,6 +1,6 @@
 import { listAssets } from '../../services/asset';
 import { listRoomsByAsset } from '../../services/room';
-import { listReceiptRecords } from '../../services/receipt';
+import { createReceipt, listReceiptLeaseOptions, listReceiptRecords } from '../../services/receipt';
 
 type Option = {
   label: string;
@@ -22,6 +22,19 @@ type ReceiptRecord = Record<string, any> & {
   status: 'active' | 'voided';
   billCount: number;
   reissueFromReceiptId?: string | null;
+};
+
+type LeaseMonthOption = {
+  month: string;
+  monthLabel: string;
+  billCount: number;
+  totalAmount: number;
+};
+
+type ReceiptLeaseOption = {
+  leaseId: string;
+  label: string;
+  months: LeaseMonthOption[];
 };
 
 function currentMonthKey() {
@@ -59,6 +72,13 @@ Page({
     status: 'all',
     receipts: [] as ReceiptRecord[],
     allReceipts: [] as ReceiptRecord[],
+    receiptLeaseOptions: [] as ReceiptLeaseOption[],
+    receiptMonthOptions: [] as LeaseMonthOption[],
+    selectedReceiptLeaseIndex: 0,
+    selectedReceiptMonthIndex: 0,
+    selectedReceiptLeaseId: '',
+    selectedReceiptMonth: '',
+    creatingReceipt: false,
     loading: false,
     error: '',
     assetOptions: [{ label: '全部房源', value: '' }] as Option[],
@@ -75,7 +95,7 @@ Page({
     selectedStatusIndex: 0
   },
   async onLoad() {
-    await Promise.all([this.loadFilterOptions(), this.loadReceipts()]);
+    await Promise.all([this.loadFilterOptions(), this.loadReceipts(), this.loadReceiptLeaseOptions()]);
   },
   async loadFilterOptions() {
     try {
@@ -154,6 +174,90 @@ Page({
         receipts: [],
         loading: false,
         error: '收据记录加载失败，请稍后重试'
+      });
+    }
+  },
+  async loadReceiptLeaseOptions() {
+    try {
+      const result = await listReceiptLeaseOptions({}) as { leases?: ReceiptLeaseOption[] };
+      const receiptLeaseOptions = result.leases || [];
+      const firstLease = receiptLeaseOptions[0];
+      const receiptMonthOptions = firstLease?.months || [];
+      const firstMonth = receiptMonthOptions[0];
+      this.setData({
+        receiptLeaseOptions,
+        receiptMonthOptions,
+        selectedReceiptLeaseIndex: 0,
+        selectedReceiptMonthIndex: 0,
+        selectedReceiptLeaseId: firstLease?.leaseId || '',
+        selectedReceiptMonth: firstMonth?.month || ''
+      });
+    } catch (error) {
+      console.error('load receipt lease options failed', error);
+      this.setData({
+        receiptLeaseOptions: [],
+        receiptMonthOptions: [],
+        selectedReceiptLeaseId: '',
+        selectedReceiptMonth: ''
+      });
+    }
+  },
+  handleReceiptLeaseChange(event: WechatMiniprogram.PickerChange) {
+    const selectedReceiptLeaseIndex = Number(event.detail.value || 0);
+    const lease = this.data.receiptLeaseOptions[selectedReceiptLeaseIndex];
+    const receiptMonthOptions = lease?.months || [];
+    const firstMonth = receiptMonthOptions[0];
+    this.setData({
+      selectedReceiptLeaseIndex,
+      receiptMonthOptions,
+      selectedReceiptMonthIndex: 0,
+      selectedReceiptLeaseId: lease?.leaseId || '',
+      selectedReceiptMonth: firstMonth?.month || ''
+    });
+  },
+  handleReceiptMonthChange(event: WechatMiniprogram.PickerChange) {
+    const selectedReceiptMonthIndex = Number(event.detail.value || 0);
+    const month = this.data.receiptMonthOptions[selectedReceiptMonthIndex];
+    this.setData({
+      selectedReceiptMonthIndex,
+      selectedReceiptMonth: month?.month || ''
+    });
+  },
+  async createReceiptForSelectedLease() {
+    if (!this.data.selectedReceiptLeaseId || !this.data.selectedReceiptMonth || this.data.creatingReceipt) {
+      wx.showToast({
+        title: '请选择租约和月份',
+        icon: 'none'
+      });
+      return;
+    }
+
+    this.setData({
+      creatingReceipt: true
+    });
+
+    try {
+      const receipt = await createReceipt({
+        leaseId: this.data.selectedReceiptLeaseId,
+        month: this.data.selectedReceiptMonth
+      }) as Record<string, any>;
+      wx.showToast({
+        title: '收据已生成',
+        icon: 'success'
+      });
+      await Promise.all([this.loadReceipts(), this.loadReceiptLeaseOptions()]);
+      wx.navigateTo({
+        url: `/pages/receipt/index?receiptId=${receipt.id}`
+      });
+    } catch (error) {
+      console.error('create receipt from lease failed', error);
+      wx.showToast({
+        title: '开具收据失败',
+        icon: 'none'
+      });
+    } finally {
+      this.setData({
+        creatingReceipt: false
       });
     }
   },

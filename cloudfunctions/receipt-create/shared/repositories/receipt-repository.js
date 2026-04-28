@@ -4,6 +4,7 @@ exports.listReceiptRecords = listReceiptRecords;
 exports.createReceipt = createReceipt;
 exports.getReceipt = getReceipt;
 exports.voidReceipt = voidReceipt;
+exports.listReceiptLeaseOptions = listReceiptLeaseOptions;
 const collections_1 = require("../constants/collections");
 const receipt_1 = require("../schemas/receipt");
 const runtime_1 = require("../runtime");
@@ -13,6 +14,10 @@ function monthOf(date) {
 function receiptNo(now) {
     const timestamp = now.replace(/\D/g, '').slice(0, 14);
     return `R${timestamp}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+function monthLabel(month) {
+    const [year, value] = month.split('-');
+    return year && value ? `${year}年${value}月` : month;
 }
 function isReceivedTenantBill(bill) {
     return bill.responsibility === 'tenant' && Boolean(bill.receivedAt) && bill.receivedAmount != null;
@@ -52,6 +57,9 @@ function matchesReceiptFilters(receipt, filters) {
     if (filters.assetId && receipt.assetId !== filters.assetId) {
         return false;
     }
+    if (filters.leaseId && receipt.leaseId !== filters.leaseId) {
+        return false;
+    }
     if (filters.roomId && receipt.roomId !== filters.roomId) {
         return false;
     }
@@ -66,6 +74,7 @@ function toReceiptRecord(receipt) {
         receiptNo: receipt.receiptNo,
         monthKey: receiptMonthKey(receipt),
         assetId: receipt.assetId,
+        leaseId: receipt.leaseId,
         roomId: receipt.roomId,
         tenantId: receipt.tenantId,
         assetName: receipt.assetName,
@@ -103,10 +112,13 @@ async function selectReceiptBills(db, landlordOpenId, input) {
         const billIdSet = new Set(input.billIds);
         return scopedBills.filter((bill) => billIdSet.has(bill.id));
     }
+    if (input.month && input.leaseId) {
+        return scopedBills.filter((bill) => bill.leaseId === input.leaseId && monthOf(bill.dueDate) === input.month && isReceivedTenantBill(bill));
+    }
     if (input.month && input.roomId) {
         return scopedBills.filter((bill) => bill.roomId === input.roomId && monthOf(bill.dueDate) === input.month && isReceivedTenantBill(bill));
     }
-    throw new Error('Pass billIds or month + roomId to create a receipt.');
+    throw new Error('Pass billIds or month + leaseId to create a receipt.');
 }
 async function assertReissueAllowed(db, landlordOpenId, input) {
     if (!input.reissueFromReceiptId) {
@@ -240,4 +252,64 @@ async function voidReceipt(db, landlordOpenId, input, event) {
         voidReason,
         updatedAt: (0, runtime_1.resolveNow)(event)
     });
+}
+async function listReceiptLeaseOptions(db, landlordOpenId) {
+    const [leases, rooms, tenants, assets, bills, receipts] = await Promise.all([
+        (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.leases),
+        (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.rooms),
+        (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.tenants),
+        (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.assets),
+        (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.bills),
+        listReceipts(db)
+    ]);
+    const activeReceiptIds = new Set(receipts
+        .filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active')
+        .map((receipt) => receipt.id));
+    const activeBillIds = new Set(receipts
+        .filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active')
+        .flatMap((receipt) => receipt.billIds));
+    const ownedLeases = leases.filter((lease) => lease.landlordOpenId === landlordOpenId);
+    return ownedLeases
+        .map((lease) => {
+        const room = rooms.find((item) => item.id === lease.roomId && item.landlordOpenId === landlordOpenId);
+        const asset = room ? assets.find((item) => item.id === room.assetId && item.landlordOpenId === landlordOpenId) : undefined;
+        const tenant = tenants.find((item) => item.id === lease.tenantId && item.landlordOpenId === landlordOpenId);
+        const receiptableBills = bills.filter((bill) => bill.landlordOpenId === landlordOpenId &&
+            bill.leaseId === lease.id &&
+            isReceivedTenantBill(bill) &&
+            !activeBillIds.has(bill.id) &&
+            !(bill.receiptId && activeReceiptIds.has(bill.receiptId)));
+        const monthMap = receiptableBills.reduce((acc, bill) => {
+            const month = monthOf(bill.dueDate);
+            if (!month) {
+                return acc;
+            }
+            acc.set(month, [...(acc.get(month) ?? []), bill]);
+            return acc;
+        }, new Map());
+        const months = Array.from(monthMap.entries())
+            .map(([month, monthBills]) => ({
+            month,
+            monthLabel: monthLabel(month),
+            billCount: monthBills.length,
+            totalAmount: monthBills.reduce((sum, bill) => sum + Number(bill.receivedAmount ?? 0), 0),
+            latestReceivedAt: monthBills.map((bill) => String(bill.receivedAt || '')).sort().slice(-1)[0] || ''
+        }))
+            .sort((left, right) => right.month.localeCompare(left.month));
+        return {
+            leaseId: lease.id,
+            assetId: asset?.id ?? '',
+            roomId: room?.id ?? lease.roomId,
+            tenantId: tenant?.id ?? lease.tenantId,
+            assetName: asset?.name ?? '未知房源',
+            roomName: room?.name ?? '未知房间',
+            tenantName: tenant?.name ?? '未知租客',
+            startDate: lease.startDate,
+            endDate: lease.endDate,
+            label: `${asset?.name ?? '未知房源'} / ${room?.name ?? '未知房间'} / ${tenant?.name ?? '未知租客'}（${lease.startDate} 至 ${lease.endDate}）`,
+            months
+        };
+    })
+        .filter((option) => option.months.length > 0)
+        .sort((left, right) => right.startDate.localeCompare(left.startDate) || left.label.localeCompare(right.label));
 }

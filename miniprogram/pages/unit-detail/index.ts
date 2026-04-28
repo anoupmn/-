@@ -6,6 +6,7 @@ import { createReceipt } from '../../services/receipt';
 
 type MonthlyBillItem = {
   id: string;
+  leaseId?: string;
   type?: 'water' | 'electricity' | string;
   label: string;
   dueDate: string;
@@ -42,6 +43,7 @@ type DetailPayload = Record<string, any> & {
     items: MonthlyBillItem[];
     receiptCandidateItems?: MonthlyBillItem[];
     canMergeReceipt?: boolean;
+    receiptLeaseId?: string;
   }>;
   historyCollapsedByDefault?: boolean;
 };
@@ -588,7 +590,8 @@ Page({
         ...group,
         items,
         receiptCandidateItems,
-        canMergeReceipt: receiptCandidateItems.length >= 2
+        canMergeReceipt: receiptCandidateItems.length > 0,
+        receiptLeaseId: receiptCandidateItems[0]?.leaseId || detail.activeLease?.id || ''
       };
     });
     const leaseHistoryViews = buildLeaseHistoryViews(detail);
@@ -738,9 +741,9 @@ Page({
   },
   async createMergedMonthReceipt(event: WechatMiniprogram.BaseEvent) {
     const month = String(event.currentTarget.dataset.monthKey || '');
-    const roomId = this.data.roomId;
+    const leaseId = String(event.currentTarget.dataset.leaseId || '');
 
-    if (!month || !roomId || this.data.creatingMergedReceiptMonth) {
+    if (!month || !leaseId || this.data.creatingMergedReceiptMonth) {
       return;
     }
 
@@ -749,7 +752,7 @@ Page({
     });
 
     try {
-      const receipt = await createReceipt({ roomId, month });
+      const receipt = await createReceipt({ leaseId, month });
       const receiptId = String((receipt as Record<string, any>).id || '');
       const receiptNo = String((receipt as Record<string, any>).receiptNo || '');
 

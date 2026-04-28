@@ -5,6 +5,31 @@
       <view class="text-muted">集中查询已开具和已作废的收款收据。</view>
     </view>
 
+    <view class="card issue-card">
+      <view class="section-title">按租约开收据</view>
+      <view class="text-muted">每个租约每个月开一张收据，系统只纳入该租约下已收且未开具有效收据的账单。</view>
+      <view wx:if="{{!receiptLeaseOptions.length}}" class="text-muted">暂无可开收据的租约月份</view>
+      <block wx:else>
+        <picker range="{{receiptLeaseOptions}}" range-key="label" value="{{selectedReceiptLeaseIndex}}" bindchange="handleReceiptLeaseChange">
+          <view class="field picker-field">租约：{{receiptLeaseOptions[selectedReceiptLeaseIndex].label}}</view>
+        </picker>
+        <picker range="{{receiptMonthOptions}}" range-key="monthLabel" value="{{selectedReceiptMonthIndex}}" bindchange="handleReceiptMonthChange">
+          <view class="field picker-field">开具月份：{{receiptMonthOptions[selectedReceiptMonthIndex].monthLabel}}</view>
+        </picker>
+        <view wx:if="{{receiptMonthOptions[selectedReceiptMonthIndex]}}" class="field">
+          将开具 {{receiptMonthOptions[selectedReceiptMonthIndex].billCount}} 笔账单，合计 ¥{{receiptMonthOptions[selectedReceiptMonthIndex].totalAmount}}
+        </view>
+        <button
+          class="primary-button"
+          loading="{{creatingReceipt}}"
+          disabled="{{creatingReceipt}}"
+          bindtap="createReceiptForSelectedLease"
+        >
+          开具该租约本月收据
+        </button>
+      </block>
+    </view>
+
     <view class="card filter-card">
       <view class="filter-row">
         <picker mode="date" fields="month" value="{{month}}" bindchange="handleMonthChange">

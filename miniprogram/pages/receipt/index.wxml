@@ -61,6 +61,7 @@
       <view wx:if="{{receipt.voidedAt}}" class="field">作废时间：{{receipt.voidedAt}}</view>
 
       <view class="action-grid">
+        <button class="primary-button" loading="{{exportingPdf}}" disabled="{{exportingPdf}}" bindtap="exportPrintablePdf">导出PDF打印版</button>
         <button class="secondary-button" bindtap="copyReceiptSummary">复制收据摘要</button>
         <button class="secondary-button" open-type="share">分享凭证</button>
         <button

@@ -1,4 +1,5 @@
 .receipt-records-shell,
+.issue-card,
 .filter-card,
 .records-card {
   display: flex;

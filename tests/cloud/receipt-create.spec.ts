@@ -151,7 +151,7 @@ describe('receipt-create cloud function', () => {
     seedReceiptData(store);
 
     await expect(callCreate(store, { billIds: ['bill_unpaid'] })).rejects.toThrow('paid tenant bills');
-    await expect(callCreate(store, { billIds: [] })).rejects.toThrow('Pass billIds or month + roomId');
+    await expect(callCreate(store, { billIds: [] })).rejects.toThrow('Pass billIds or month + leaseId');
   });
 
   it('links created receipt back to bills', async () => {
@@ -179,15 +179,25 @@ describe('receipt-create cloud function', () => {
     expect(store.receipts.find((item) => item.id === receipt.id)?.items).toEqual(receipt.items);
   });
 
-  it('creates one monthly receipt from multiple paid bills in the same room', async () => {
+  it('creates one monthly receipt from multiple paid bills in the same lease', async () => {
+    const store = createMockStore();
+    seedReceiptData(store);
+
+    const receipt = await callCreate(store, { month: '2026-04', leaseId: 'lease_1' });
+
+    expect(receipt.billIds).toEqual(['bill_paid', 'bill_management']);
+    expect(receipt.items.map((item: any) => item.billId)).toEqual(['bill_paid', 'bill_management']);
+    expect(receipt.totalAmount).toBe(2700);
+  });
+
+  it('keeps the legacy room month path guarded by lease consistency', async () => {
     const store = createMockStore();
     seedReceiptData(store);
 
     const receipt = await callCreate(store, { month: '2026-04', roomId: 'room_101' });
 
+    expect(receipt.leaseId).toBe('lease_1');
     expect(receipt.billIds).toEqual(['bill_paid', 'bill_management']);
-    expect(receipt.items.map((item: any) => item.billId)).toEqual(['bill_paid', 'bill_management']);
-    expect(receipt.totalAmount).toBe(2700);
   });
 
   it('rejects monthly receipt when paid bills belong to different tenants', async () => {

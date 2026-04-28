@@ -66,6 +66,7 @@ function buildMonthlyBillGroups(bills, now) {
         }
         monthMap.get(monthKey)?.items.push({
             id: bill.id,
+            leaseId: bill.leaseId,
             type: bill.type,
             section: bill.section,
             source: bill.source ?? 'system',

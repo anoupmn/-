@@ -48,6 +48,7 @@ progress:
 - 第 7 阶段已追加为“收据管理与凭证体验补全”，用于把基础收据闭环补齐为可筛选、可管理、可保存/分享的正式凭证体验
 - 第 7 阶段已完成规划，拆分为收据管理后端列表、收据记录管理页、合并开具/作废原因体验、正式凭证预览与阶段回归 4 个计划
 - 第 7 阶段已完成 `07-01`、`07-02`、`07-03`、`07-04`，收据列表、收据记录页、合并开具、作废原因输入、重开追溯、正式凭证分享与阶段回归均已落地
+- Phase 07 口径修正已完成：收据开具主入口改为 `租约 + 月份`，收据记录页可选择租约开收据，收据页支持导出 PDF 打印版
 
 ## 阶段状态
 
@@ -111,7 +112,7 @@ progress:
 
 ## 下一个动作
 
-- 进入整体 UAT 或准备发布前部署：上传 `receipt-list`、`receipt-create`、`receipt-get`、`receipt-void`、`rentable-unit-detail` 云函数
+- 进入整体 UAT 或准备发布前部署：上传 `receipt-list`、`receipt-lease-options`、`receipt-create`、`receipt-get`、`receipt-void`、`receipt-pdf`、`rentable-unit-detail` 云函数
 
 ---
 *状态创建于：2026-04-01*

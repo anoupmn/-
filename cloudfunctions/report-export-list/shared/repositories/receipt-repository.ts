@@ -10,10 +10,64 @@ import { createId, findById, insertRecord, listAll, resolveNow, type CloudEventB
 type CreateReceiptInput = {
   billIds?: string[];
   month?: string;
+  leaseId?: string;
   roomId?: string;
   collectorName?: string;
   note?: string;
   reissueFromReceiptId?: string;
+};
+
+type ReceiptListFilters = {
+  month?: string;
+  assetId?: string;
+  leaseId?: string;
+  roomId?: string;
+  tenantId?: string;
+  status?: 'all' | 'active' | 'voided';
+};
+
+export type ReceiptLeaseMonthOption = {
+  month: string;
+  monthLabel: string;
+  billCount: number;
+  totalAmount: number;
+  latestReceivedAt: string;
+};
+
+export type ReceiptLeaseOption = {
+  leaseId: string;
+  assetId: string;
+  roomId: string;
+  tenantId: string;
+  assetName: string;
+  roomName: string;
+  tenantName: string;
+  startDate: string;
+  endDate: string;
+  label: string;
+  months: ReceiptLeaseMonthOption[];
+};
+
+export type ReceiptRecord = {
+  id: string;
+  receiptNo: string;
+  monthKey: string;
+  assetId: string;
+  leaseId: string;
+  roomId: string;
+  tenantId: string;
+  assetName: string;
+  roomName: string;
+  tenantName: string;
+  receivedAt: string;
+  totalAmount: number;
+  status: Receipt['status'];
+  voidReason: string | null;
+  reissueFromReceiptId: string | null;
+  billCount: number;
+  billIds: string[];
+  createdAt: string;
+  updatedAt: string;
 };
 
 function monthOf(date?: string | null) {
@@ -25,8 +79,13 @@ function receiptNo(now: string) {
   return `R${timestamp}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
+function monthLabel(month: string) {
+  const [year, value] = month.split('-');
+  return year && value ? `${year}年${value}月` : month;
+}
+
 function isReceivedTenantBill(bill: Bill) {
-  return bill.responsibility === 'tenant' && Boolean(bill.receivedAt) && bill.receivedAmount !== null;
+  return bill.responsibility === 'tenant' && Boolean(bill.receivedAt) && bill.receivedAmount != null;
 }
 
 function itemLabel(bill: Bill) {
@@ -53,6 +112,79 @@ async function listReceipts(db: DbLike) {
   return listAll<Receipt>(db, COLLECTIONS.receipts);
 }
 
+function receiptMonthKey(receipt: Receipt) {
+  return String(receipt.items[0]?.dueDate ?? '').slice(0, 7);
+}
+
+function matchesReceiptFilters(receipt: Receipt, filters: ReceiptListFilters) {
+  const status = filters.status ?? 'all';
+  if (status !== 'all' && receipt.status !== status) {
+    return false;
+  }
+
+  if (filters.month && !receipt.items.some((item) => String(item.dueDate).slice(0, 7) === filters.month)) {
+    return false;
+  }
+
+  if (filters.assetId && receipt.assetId !== filters.assetId) {
+    return false;
+  }
+
+  if (filters.leaseId && receipt.leaseId !== filters.leaseId) {
+    return false;
+  }
+
+  if (filters.roomId && receipt.roomId !== filters.roomId) {
+    return false;
+  }
+
+  if (filters.tenantId && receipt.tenantId !== filters.tenantId) {
+    return false;
+  }
+
+  return true;
+}
+
+function toReceiptRecord(receipt: Receipt): ReceiptRecord {
+  return {
+    id: receipt.id,
+    receiptNo: receipt.receiptNo,
+    monthKey: receiptMonthKey(receipt),
+    assetId: receipt.assetId,
+    leaseId: receipt.leaseId,
+    roomId: receipt.roomId,
+    tenantId: receipt.tenantId,
+    assetName: receipt.assetName,
+    roomName: receipt.roomName,
+    tenantName: receipt.tenantName,
+    receivedAt: receipt.receivedAt,
+    totalAmount: receipt.totalAmount,
+    status: receipt.status,
+    voidReason: receipt.voidReason,
+    reissueFromReceiptId: receipt.reissueFromReceiptId,
+    billCount: receipt.billIds.length,
+    billIds: [...receipt.billIds],
+    createdAt: receipt.createdAt,
+    updatedAt: receipt.updatedAt
+  };
+}
+
+export async function listReceiptRecords(db: DbLike, landlordOpenId: string, filters: ReceiptListFilters = {}) {
+  const receipts = await listReceipts(db);
+  return receipts
+    .filter((receipt) => receipt.landlordOpenId === landlordOpenId)
+    .filter((receipt) => matchesReceiptFilters(receipt, filters))
+    .sort((left, right) => {
+      const createdOrder = String(right.createdAt || '').localeCompare(String(left.createdAt || ''));
+      if (createdOrder !== 0) {
+        return createdOrder;
+      }
+
+      return String(right.receiptNo || '').localeCompare(String(left.receiptNo || ''));
+    })
+    .map(toReceiptRecord);
+}
+
 async function selectReceiptBills(db: DbLike, landlordOpenId: string, input: CreateReceiptInput) {
   const bills = await listAll<Bill>(db, COLLECTIONS.bills);
   const scopedBills = bills.filter((bill) => bill.landlordOpenId === landlordOpenId);
@@ -62,11 +194,15 @@ async function selectReceiptBills(db: DbLike, landlordOpenId: string, input: Cre
     return scopedBills.filter((bill) => billIdSet.has(bill.id));
   }
 
+  if (input.month && input.leaseId) {
+    return scopedBills.filter((bill) => bill.leaseId === input.leaseId && monthOf(bill.dueDate) === input.month && isReceivedTenantBill(bill));
+  }
+
   if (input.month && input.roomId) {
     return scopedBills.filter((bill) => bill.roomId === input.roomId && monthOf(bill.dueDate) === input.month && isReceivedTenantBill(bill));
   }
 
-  throw new Error('Pass billIds or month + roomId to create a receipt.');
+  throw new Error('Pass billIds or month + leaseId to create a receipt.');
 }
 
 async function assertReissueAllowed(db: DbLike, landlordOpenId: string, input: CreateReceiptInput) {
@@ -97,14 +233,16 @@ export async function createReceipt(db: DbLike, landlordOpenId: string, input: C
     throw new Error('No paid tenant bills can be used for receipt.');
   }
 
-  const receipts = await listReceipts(db);
-  const effectiveReceiptsById = new Map(receipts.filter((receipt) => receipt.status !== 'voided').map((receipt) => [receipt.id, receipt]));
   const invalidBill = bills.find((bill) => !isReceivedTenantBill(bill));
   if (invalidBill) {
     throw new Error('Receipt can only be created from paid tenant bills.');
   }
 
-  const duplicateBill = bills.find((bill) => bill.receiptId && effectiveReceiptsById.has(bill.receiptId));
+  const receipts = await listReceipts(db);
+  const activeReceipts = receipts.filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active');
+  const activeReceiptIds = new Set(activeReceipts.map((receipt) => receipt.id));
+  const activeBillIds = new Set(activeReceipts.flatMap((receipt) => receipt.billIds));
+  const duplicateBill = bills.find((bill) => activeBillIds.has(bill.id) || (bill.receiptId && activeReceiptIds.has(bill.receiptId)));
   if (duplicateBill) {
     throw new Error(`Bill ${duplicateBill.id} already has an active receipt.`);
   }
@@ -123,6 +261,21 @@ export async function createReceipt(db: DbLike, landlordOpenId: string, input: C
 
   if (!lease || !room || !tenant || !asset) {
     throw new Error('Receipt snapshot source data is incomplete.');
+  }
+
+  const billMonth = monthOf(firstBill.dueDate);
+  const invalidGroupBill = bills.find((bill) => {
+    const billLease = leases.find((item) => item.id === bill.leaseId && item.landlordOpenId === landlordOpenId);
+    return (
+      bill.roomId !== firstBill.roomId ||
+      bill.leaseId !== firstBill.leaseId ||
+      billLease?.tenantId !== tenant.id ||
+      monthOf(bill.dueDate) !== billMonth
+    );
+  });
+
+  if (invalidGroupBill) {
+    throw new Error('Receipt bills must belong to the same room, same tenant, same lease, and same bill month.');
   }
 
   const now = resolveNow(event);
@@ -192,6 +345,11 @@ export async function voidReceipt(
   input: { receiptId: string; voidReason?: string },
   event: CloudEventBase
 ) {
+  const voidReason = String(input.voidReason || '').trim();
+  if (!voidReason) {
+    throw new Error('voidReason is required.');
+  }
+
   const receipt = await findById<Receipt>(db, COLLECTIONS.receipts, input.receiptId);
   if (!receipt || receipt.landlordOpenId !== landlordOpenId) {
     throw new Error(`Receipt ${input.receiptId} not found.`);
@@ -204,7 +362,76 @@ export async function voidReceipt(
   return updateRecord<Receipt>(db, COLLECTIONS.receipts, receipt.id, {
     status: 'voided',
     voidedAt: resolveNow(event),
-    voidReason: input.voidReason ?? '',
+    voidReason,
     updatedAt: resolveNow(event)
   });
+}
+
+export async function listReceiptLeaseOptions(db: DbLike, landlordOpenId: string): Promise<ReceiptLeaseOption[]> {
+  const [leases, rooms, tenants, assets, bills, receipts] = await Promise.all([
+    listAll<Lease>(db, COLLECTIONS.leases),
+    listAll<Room>(db, COLLECTIONS.rooms),
+    listAll<Tenant>(db, COLLECTIONS.tenants),
+    listAll<Asset>(db, COLLECTIONS.assets),
+    listAll<Bill>(db, COLLECTIONS.bills),
+    listReceipts(db)
+  ]);
+  const activeReceiptIds = new Set(
+    receipts
+      .filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active')
+      .map((receipt) => receipt.id)
+  );
+  const activeBillIds = new Set(
+    receipts
+      .filter((receipt) => receipt.landlordOpenId === landlordOpenId && receipt.status === 'active')
+      .flatMap((receipt) => receipt.billIds)
+  );
+  const ownedLeases = leases.filter((lease) => lease.landlordOpenId === landlordOpenId);
+
+  return ownedLeases
+    .map((lease) => {
+      const room = rooms.find((item) => item.id === lease.roomId && item.landlordOpenId === landlordOpenId);
+      const asset = room ? assets.find((item) => item.id === room.assetId && item.landlordOpenId === landlordOpenId) : undefined;
+      const tenant = tenants.find((item) => item.id === lease.tenantId && item.landlordOpenId === landlordOpenId);
+      const receiptableBills = bills.filter((bill) =>
+        bill.landlordOpenId === landlordOpenId &&
+        bill.leaseId === lease.id &&
+        isReceivedTenantBill(bill) &&
+        !activeBillIds.has(bill.id) &&
+        !(bill.receiptId && activeReceiptIds.has(bill.receiptId))
+      );
+      const monthMap = receiptableBills.reduce<Map<string, Bill[]>>((acc, bill) => {
+        const month = monthOf(bill.dueDate);
+        if (!month) {
+          return acc;
+        }
+        acc.set(month, [...(acc.get(month) ?? []), bill]);
+        return acc;
+      }, new Map<string, Bill[]>());
+      const months = Array.from(monthMap.entries())
+        .map(([month, monthBills]) => ({
+          month,
+          monthLabel: monthLabel(month),
+          billCount: monthBills.length,
+          totalAmount: monthBills.reduce((sum, bill) => sum + Number(bill.receivedAmount ?? 0), 0),
+          latestReceivedAt: monthBills.map((bill) => String(bill.receivedAt || '')).sort().slice(-1)[0] || ''
+        }))
+        .sort((left, right) => right.month.localeCompare(left.month));
+
+      return {
+        leaseId: lease.id,
+        assetId: asset?.id ?? '',
+        roomId: room?.id ?? lease.roomId,
+        tenantId: tenant?.id ?? lease.tenantId,
+        assetName: asset?.name ?? '未知房源',
+        roomName: room?.name ?? '未知房间',
+        tenantName: tenant?.name ?? '未知租客',
+        startDate: lease.startDate,
+        endDate: lease.endDate,
+        label: `${asset?.name ?? '未知房源'} / ${room?.name ?? '未知房间'} / ${tenant?.name ?? '未知租客'}（${lease.startDate} 至 ${lease.endDate}）`,
+        months
+      };
+    })
+    .filter((option) => option.months.length > 0)
+    .sort((left, right) => right.startDate.localeCompare(left.startDate) || left.label.localeCompare(right.label));
 }

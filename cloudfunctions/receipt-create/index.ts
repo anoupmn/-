@@ -4,6 +4,7 @@ import { resolveDb, resolveLandlordOpenId, type CloudEventBase } from './shared/
 export interface ReceiptCreateEvent extends CloudEventBase {
   billIds?: string[];
   month?: string;
+  leaseId?: string;
   roomId?: string;
   collectorName?: string;
   note?: string;
@@ -20,6 +21,7 @@ export async function main(event: ReceiptCreateEvent) {
     {
       billIds: event.billIds,
       month: event.month,
+      leaseId: event.leaseId,
       roomId: event.roomId,
       collectorName: event.collectorName,
       note: event.note,

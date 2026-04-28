@@ -73,8 +73,13 @@ describe('unit detail correction flow wiring', () => {
     expect(opsWxml).toContain('收据记录');
     expect(opsWxml).toContain('/pages/receipt-records/index');
     expect(receiptRecordsSource).toContain('listReceiptRecords');
+    expect(receiptRecordsSource).toContain('listReceiptLeaseOptions');
+    expect(receiptRecordsSource).toContain('createReceipt');
     expect(serviceSource).toContain('receipt-list');
+    expect(serviceSource).toContain('receipt-lease-options');
     expect(receiptRecordsWxml).toContain('全部月份');
+    expect(receiptRecordsWxml).toContain('按租约开收据');
+    expect(receiptRecordsWxml).toContain('开具该租约本月收据');
     expect(receiptRecordsWxml).toContain('全部');
     expect(receiptRecordsWxml).toContain('有效');
     expect(receiptRecordsWxml).toContain('已作废');
@@ -92,11 +97,11 @@ describe('unit detail correction flow wiring', () => {
     const receiptRepositorySource = fs.readFileSync('cloudfunctions/shared/repositories/receipt-repository.ts', 'utf8');
     const combined = `${detailSource}\n${detailWxml}\n${receiptCreateSource}\n${receiptRepositorySource}`;
 
-    expect(detailWxml).toContain('合并开具本月收据');
+    expect(detailWxml).toContain('开具本租约本月收据');
     expect(detailWxml).toContain('已开具收据');
     expect(detailSource).toContain('收据已生成');
-    expect(detailSource).toContain('createReceipt({ roomId, month })');
-    expect(combined).toMatch(/month.*roomId|roomId.*month/);
+    expect(detailSource).toContain('createReceipt({ leaseId, month })');
+    expect(combined).toMatch(/month.*leaseId|leaseId.*month/);
     expect(receiptRepositorySource).toContain('already has an active receipt');
     expect(detailWxml).not.toContain('billId:');
   });
@@ -120,9 +125,10 @@ describe('unit detail correction flow wiring', () => {
     expect(combined).not.toContain('用户作废重开');
   });
 
-  it('renders receipt as a formal voucher with share and copy fallbacks', () => {
+  it('renders receipt as a formal voucher with pdf share and copy fallbacks', () => {
     const receiptSource = fs.readFileSync('miniprogram/pages/receipt/index.ts', 'utf8');
     const receiptWxml = fs.readFileSync('miniprogram/pages/receipt/index.wxml', 'utf8');
+    const receiptPdfSource = fs.readFileSync('cloudfunctions/receipt-pdf/index.ts', 'utf8');
     const combined = `${receiptSource}\n${receiptWxml}`;
 
     expect(combined).toContain('收款收据（非发票）');
@@ -133,13 +139,18 @@ describe('unit detail correction flow wiring', () => {
     expect(receiptWxml).toContain('合计金额');
     expect(receiptWxml).toContain('收款人');
     expect(receiptWxml).toContain('生成时间');
+    expect(receiptWxml).toContain('导出PDF打印版');
     expect(receiptWxml).toContain('复制收据摘要');
     expect(receiptWxml).toContain('分享凭证');
+    expect(receiptSource).toContain('exportReceiptPdf');
+    expect(receiptSource).toContain('openDocument');
     expect(receiptSource).toContain('保存凭证');
     expect(receiptSource).toContain('onShareAppMessage');
     expect(receiptSource).toContain('/pages/receipt/index?receiptId=');
     expect(receiptSource).toContain('setClipboardData');
+    expect(receiptPdfSource).toContain('application/pdf');
+    expect(receiptPdfSource).toContain('STSong-Light');
     expect(receiptWxml).not.toContain('receiptId:');
-    expect(combined).not.toMatch(/PDF|pdf|jspdf|pdfmake/);
+    expect(combined).not.toMatch(/jspdf|pdfmake/);
   });
 });

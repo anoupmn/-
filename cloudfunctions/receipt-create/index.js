@@ -9,6 +9,7 @@ async function main(event) {
     return (0, receipt_repository_1.createReceipt)(db, landlordOpenId, {
         billIds: event.billIds,
         month: event.month,
+        leaseId: event.leaseId,
         roomId: event.roomId,
         collectorName: event.collectorName,
         note: event.note,

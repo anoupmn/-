@@ -420,7 +420,8 @@ Page({
                 ...group,
                 items,
                 receiptCandidateItems,
-                canMergeReceipt: receiptCandidateItems.length >= 2
+                canMergeReceipt: receiptCandidateItems.length > 0,
+                receiptLeaseId: receiptCandidateItems[0]?.leaseId || detail.activeLease?.id || ''
             };
         });
         const leaseHistoryViews = buildLeaseHistoryViews(detail);
@@ -558,15 +559,15 @@ Page({
     },
     async createMergedMonthReceipt(event) {
         const month = String(event.currentTarget.dataset.monthKey || '');
-        const roomId = this.data.roomId;
-        if (!month || !roomId || this.data.creatingMergedReceiptMonth) {
+        const leaseId = String(event.currentTarget.dataset.leaseId || '');
+        if (!month || !leaseId || this.data.creatingMergedReceiptMonth) {
             return;
         }
         this.setData({
             creatingMergedReceiptMonth: month
         });
         try {
-            const receipt = await (0, receipt_1.createReceipt)({ roomId, month });
+            const receipt = await (0, receipt_1.createReceipt)({ leaseId, month });
             const receiptId = String(receipt.id || '');
             const receiptNo = String(receipt.receiptNo || '');
             wx.showToast({
