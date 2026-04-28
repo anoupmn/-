@@ -419,6 +419,12 @@
   gap: 18rpx;
 }
 
+.labeled-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
 .renew-fee-head {
   display: flex;
   align-items: center;

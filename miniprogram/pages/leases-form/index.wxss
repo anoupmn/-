@@ -94,6 +94,12 @@
   padding: 14rpx;
 }
 
+.labeled-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
 .custom-fee-header {
   display: flex;
   align-items: center;

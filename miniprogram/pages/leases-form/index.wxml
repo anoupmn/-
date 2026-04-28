@@ -73,17 +73,32 @@
 
     <view class="card fee-card">
       <view class="section-title">固定费用</view>
-      <input class="search-input" placeholder="租金（元）" data-field="rentAmount" bindinput="handleInputChange" value="{{rentAmount}}" />
-      <input class="search-input" placeholder="押金（一次性，元）" data-field="depositAmount" bindinput="handleInputChange" value="{{depositAmount}}" />
-      <input class="search-input" placeholder="管理费（元）" data-field="managementAmount" bindinput="handleInputChange" value="{{managementAmount}}" />
+      <view class="labeled-input">
+        <view class="field-label">租金</view>
+        <input class="search-input" placeholder="请输入金额（元）" data-field="rentAmount" bindinput="handleInputChange" value="{{rentAmount}}" />
+      </view>
+      <view class="labeled-input">
+        <view class="field-label">押金</view>
+        <input class="search-input" placeholder="一次性押金金额（元）" data-field="depositAmount" bindinput="handleInputChange" value="{{depositAmount}}" />
+      </view>
+      <view class="labeled-input">
+        <view class="field-label">管理费</view>
+        <input class="search-input" placeholder="请输入金额（元）" data-field="managementAmount" bindinput="handleInputChange" value="{{managementAmount}}" />
+      </view>
       <picker range="{{managementCadenceOptions}}" bindchange="handleManagementCadenceChange">
         <view class="picker-field">
           <view class="field-label">管理费性质</view>
           <view class="picker-value">{{managementCadence === 'once' ? '一次性费用' : '周期性费用'}}</view>
         </view>
       </picker>
-      <input class="search-input" placeholder="消防押金（一次性押金类，元）" data-field="fireDepositAmount" bindinput="handleInputChange" value="{{fireDepositAmount}}" />
-      <input class="search-input" placeholder="锁卡押金（一次性押金类，元）" data-field="lockCardDepositAmount" bindinput="handleInputChange" value="{{lockCardDepositAmount}}" />
+      <view class="labeled-input">
+        <view class="field-label">消防押金</view>
+        <input class="search-input" placeholder="一次性押金类金额（元）" data-field="fireDepositAmount" bindinput="handleInputChange" value="{{fireDepositAmount}}" />
+      </view>
+      <view class="labeled-input">
+        <view class="field-label">锁卡押金</view>
+        <input class="search-input" placeholder="一次性押金类金额（元）" data-field="lockCardDepositAmount" bindinput="handleInputChange" value="{{lockCardDepositAmount}}" />
+      </view>
 
       <view class="custom-fee-header">
         <view class="sub-title">自定义费用</view>
@@ -94,8 +109,14 @@
           <view class="text-muted">自定义费用 {{index + 1}}</view>
           <button class="secondary-button compact-button delete-fee-button" data-index="{{index}}" bindtap="removeCustomFeeItem">删除</button>
         </view>
-        <input class="search-input" placeholder="费用名称" data-index="{{index}}" data-field="label" bindinput="handleCustomFeeInput" value="{{item.label}}" />
-        <input class="search-input" placeholder="金额（元）" data-index="{{index}}" data-field="amount" bindinput="handleCustomFeeInput" value="{{item.amount}}" />
+        <view class="labeled-input">
+          <view class="field-label">费用名称</view>
+          <input class="search-input" placeholder="请输入费用名称" data-index="{{index}}" data-field="label" bindinput="handleCustomFeeInput" value="{{item.label}}" />
+        </view>
+        <view class="labeled-input">
+          <view class="field-label">费用金额</view>
+          <input class="search-input" placeholder="请输入金额（元）" data-index="{{index}}" data-field="amount" bindinput="handleCustomFeeInput" value="{{item.amount}}" />
+        </view>
         <picker range="{{customFeeNatureOptions}}" data-index="{{index}}" bindchange="handleCustomFeeNatureChange">
           <view class="picker-field">
             <view class="field-label">费用性质</view>
