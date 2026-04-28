@@ -34,13 +34,24 @@ describe('unit detail correction flow wiring', () => {
     const appJson = fs.readFileSync('miniprogram/app.json', 'utf8');
     const opsSource = fs.readFileSync('miniprogram/pages/ops/index.ts', 'utf8');
     const opsWxml = fs.readFileSync('miniprogram/pages/ops/index.wxml', 'utf8');
+    const reportExportSource = fs.readFileSync('miniprogram/pages/report-export/index.ts', 'utf8');
+    const reportExportWxml = fs.readFileSync('miniprogram/pages/report-export/index.wxml', 'utf8');
     const detailSource = fs.readFileSync('miniprogram/pages/unit-detail/index.ts', 'utf8');
     const detailWxml = fs.readFileSync('miniprogram/pages/unit-detail/index.wxml', 'utf8');
     const receiptWxml = fs.readFileSync('miniprogram/pages/receipt/index.wxml', 'utf8');
-    const combined = `${appJson}\n${opsSource}\n${opsWxml}\n${detailSource}\n${detailWxml}\n${receiptWxml}`;
+    const combined = `${appJson}\n${opsSource}\n${opsWxml}\n${reportExportSource}\n${reportExportWxml}\n${detailSource}\n${detailWxml}\n${receiptWxml}`;
 
     expect(combined).toContain('pages/report-export/index');
     expect(opsWxml).toContain('月度经营导出');
+    expect(reportExportSource).toContain('listAssets');
+    expect(reportExportSource).toContain('listRoomsByAsset');
+    expect(reportExportSource).toContain('listReportExports');
+    expect(reportExportSource).toContain('deleteReportExport');
+    expect(reportExportWxml).toContain('选择房源');
+    expect(reportExportWxml).toContain('选择房间');
+    expect(reportExportWxml).toContain('导出记录');
+    expect(reportExportWxml).not.toContain('请输入房源 ID');
+    expect(reportExportWxml).not.toContain('请输入房间 ID');
     expect(detailSource).toContain('openReceiptPage');
     expect(detailWxml).toContain('生成收据');
     expect(detailWxml).toContain('查看收据');

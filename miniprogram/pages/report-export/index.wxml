@@ -22,22 +22,12 @@
         </label>
       </radio-group>
 
-      <input
-        wx:if="{{rangeType === 'asset'}}"
-        class="input"
-        data-field="assetId"
-        value="{{assetId}}"
-        bindinput="handleInput"
-        placeholder="请输入房源 ID"
-      />
-      <input
-        wx:if="{{rangeType === 'room'}}"
-        class="input"
-        data-field="roomId"
-        value="{{roomId}}"
-        bindinput="handleInput"
-        placeholder="请输入房间 ID"
-      />
+      <picker wx:if="{{rangeType === 'asset' || rangeType === 'room'}}" range="{{assetOptions}}" value="{{selectedAssetIndex}}" bindchange="handleAssetChange">
+        <view class="field picker-field">选择房源：{{assetOptions[selectedAssetIndex] || '暂无房源'}}</view>
+      </picker>
+      <picker wx:if="{{rangeType === 'room'}}" range="{{roomOptions}}" value="{{selectedRoomIndex}}" bindchange="handleRoomChange">
+        <view class="field picker-field">选择房间：{{roomOptions[selectedRoomIndex] || '暂无房间'}}</view>
+      </picker>
 
       <button class="primary-button" loading="{{exporting}}" disabled="{{exporting}}" bindtap="createExport">生成导出</button>
     </view>
@@ -50,6 +40,32 @@
       <view class="field">租客收入合计：¥{{result.summary.tenantIncomeTotal}}</view>
       <view class="field">房东支出合计：¥{{result.summary.ownerExpenseTotal}}</view>
       <button class="secondary-button" bindtap="openExportFile">打开 Excel</button>
+    </view>
+
+    <view class="card records-card">
+      <view class="section-title">导出记录</view>
+      <view wx:if="{{loadingExports}}" class="text-muted">正在加载导出记录...</view>
+      <view wx:elif="{{!exports.length}}" class="text-muted">暂无导出记录</view>
+      <view wx:for="{{exports}}" wx:key="id" class="export-record">
+        <view class="record-main">
+          <view class="fee-name">{{item.month}} / {{item.scopeLabel}}</view>
+          <view class="field">{{item.fileName}}</view>
+          <view class="field">生成时间：{{item.createdAt}}</view>
+          <view class="field">租客收入 ¥{{item.summary.tenantIncomeTotal}} / 房东支出 ¥{{item.summary.ownerExpenseTotal}}</view>
+        </view>
+        <view class="record-actions">
+          <button class="secondary-button compact-button" data-file-id="{{item.fileID}}" bindtap="openExportRecord">打开</button>
+          <button
+            class="danger-button compact-button"
+            data-export-id="{{item.id}}"
+            loading="{{deletingExportId === item.id}}"
+            disabled="{{deletingExportId}}"
+            bindtap="deleteExportRecord"
+          >
+            删除
+          </button>
+        </view>
+      </view>
     </view>
   </view>
 </view>

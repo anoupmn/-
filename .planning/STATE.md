@@ -43,6 +43,7 @@ progress:
 - 新第 6 阶段已确定为“月度导出与收据”，覆盖月度经营明细导出和可预览/可打印/可作废重开的收据
 - 第 6 阶段已完成规划，拆分为导出/收据合同、月度 Excel 导出云函数、收据快照/作废重开、小程序入口与阶段回归 4 个计划
 - 第 6 阶段已完成，月度导出入口放入业务维护 Tab，测试数据重置功能已移除，收据支持生成、查看、作废和重开
+- Phase 06 追加修正：月度导出单房源/单房间改为 picker 选择，并支持导出记录列表、打开和删除管理
 
 ## 阶段状态
 
@@ -98,7 +99,7 @@ progress:
 
 ## 下一个动作
 
-- 进行 Phase 06 手工联调：上传 `report-export-create`、`receipt-create`、`receipt-get`、`receipt-void`，并在开发者工具验证导出文件打开和收据作废重开
+- 进行 Phase 06 手工联调：上传 `report-export-create`、`report-export-list`、`report-export-delete`、`receipt-create`、`receipt-get`、`receipt-void`，并在开发者工具验证导出选择、记录管理、文件打开和收据作废重开
 
 ---
 *状态创建于：2026-04-01*

@@ -1,4 +1,6 @@
 import { main as reportExportCreateMain } from '../../cloudfunctions/report-export-create/index';
+import { main as reportExportDeleteMain } from '../../cloudfunctions/report-export-delete/index';
+import { main as reportExportListMain } from '../../cloudfunctions/report-export-list/index';
 import { createMockDb, createMockStore, getWXContext } from '../helpers/mock-cloud';
 
 function seedReportData(store: ReturnType<typeof createMockStore>) {
@@ -203,6 +205,16 @@ function callReport(store: ReturnType<typeof createMockStore>, data: Record<stri
   } as any);
 }
 
+function eventContext(store: ReturnType<typeof createMockStore>) {
+  return {
+    __mockDb: createMockDb(store),
+    __mockContext: {
+      getWXContext: () => getWXContext('openid')
+    },
+    now: '2026-04-28T10:00:00.000Z'
+  };
+}
+
 describe('report-export-create cloud function', () => {
   it('builds required workbook sheets for selected month', async () => {
     const store = createMockStore();
@@ -253,5 +265,43 @@ describe('report-export-create cloud function', () => {
     expect(row['电（上月）']).toBe(200);
     expect(row['电（本月）']).toBe(240);
     expect(row['实用（度）']).toBe(40);
+  });
+
+  it('lists and deletes report export records for current landlord', async () => {
+    const store = createMockStore();
+    seedReportData(store);
+    const created = await callReport(store, { assetId: 'asset_1' });
+    store.reportExports.push({
+      id: 'export_other',
+      landlordOpenId: 'other',
+      month: '2026-04',
+      assetId: null,
+      roomId: null,
+      scopeLabel: '其他房东',
+      fileName: 'other.xlsx',
+      sheetNames: [],
+      summary: {
+        roomCount: 0,
+        billCount: 0,
+        ownerExpenseCount: 0,
+        tenantIncomeTotal: 0,
+        receivedTotal: 0,
+        unpaidTotal: 0,
+        ownerExpenseTotal: 0
+      },
+      createdAt: '2026-04-28T10:00:00.000Z',
+      updatedAt: '2026-04-28T10:00:00.000Z'
+    });
+
+    const listResult = await reportExportListMain(eventContext(store));
+    expect(listResult.exports).toHaveLength(1);
+    expect(listResult.exports[0].scopeLabel).toBe('152号楼');
+
+    await reportExportDeleteMain({
+      ...eventContext(store),
+      exportId: store.reportExports.find((item) => item.fileName === created.fileName)?.id
+    } as any);
+
+    expect(store.reportExports.map((item) => item.id)).toEqual(['export_other']);
   });
 });

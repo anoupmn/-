@@ -1,6 +1,7 @@
 .report-export-shell,
 .form-card,
-.result-card {
+.result-card,
+.records-card {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
@@ -22,4 +23,19 @@
   gap: 8rpx;
   color: #22272f;
   font-size: 28rpx;
+}
+
+.export-record {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding: 16rpx 0;
+  border-top: 1rpx solid #eef1f5;
+}
+
+.record-main,
+.record-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
 }

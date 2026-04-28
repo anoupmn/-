@@ -185,6 +185,8 @@ Plans:
 
 **Post-debug polish captured after phase execution:**
 - 月度导出入口固定放在 `业务维护` Tab
+- 单房源/单房间导出通过 picker 选择房源和房间，不暴露内部 ID 输入
+- 导出记录支持列表管理、打开和删除
 - 原测试数据重置入口和 `data-reset` 云函数已移除
 - 收据预览优先用小程序页面展示快照，支持作废和重开
 - 导出云函数返回 `fileID` 后，小程序通过 `downloadFile + openDocument` 打开 Excel

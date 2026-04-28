@@ -15,6 +15,7 @@ export const reportExportMetadataSchema = z.object({
   month: monthSchema,
   assetId: z.string().nullable(),
   roomId: z.string().nullable(),
+  scopeLabel: z.string().default('全部房源'),
   fileID: z.string().optional(),
   fileName: z.string(),
   sheetNames: z.array(z.string()),

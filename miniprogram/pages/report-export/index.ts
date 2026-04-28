@@ -1,4 +1,6 @@
-import { createMonthlyReportExport } from '../../services/report-export';
+import { listAssets } from '../../services/asset';
+import { listRoomsByAsset } from '../../services/room';
+import { createMonthlyReportExport, deleteReportExport, listReportExports } from '../../services/report-export';
 
 function currentMonthKey() {
   const now = new Date();
@@ -11,10 +13,86 @@ Page({
   data: {
     month: currentMonthKey(),
     rangeType: 'all',
-    assetId: '',
-    roomId: '',
+    assets: [] as Array<Record<string, any>>,
+    assetOptions: [] as string[],
+    selectedAssetIndex: 0,
+    rooms: [] as Array<Record<string, any>>,
+    roomOptions: [] as string[],
+    selectedRoomIndex: 0,
+    exports: [] as Array<Record<string, any>>,
     exporting: false,
+    loadingOptions: true,
+    loadingExports: true,
+    deletingExportId: '',
     result: null as Record<string, any> | null
+  },
+  async onShow() {
+    await Promise.all([this.loadOptions(), this.loadExportRecords()]);
+  },
+  async loadOptions() {
+    this.setData({
+      loadingOptions: true
+    });
+
+    try {
+      const assets = await listAssets() as Array<Record<string, any>>;
+      this.setData({
+        assets,
+        assetOptions: assets.map((asset) => String(asset.name || '未命名房源')),
+        selectedAssetIndex: 0,
+        loadingOptions: false
+      });
+      await this.loadRoomsForSelectedAsset();
+    } catch (error) {
+      console.error('load report export options failed', error);
+      this.setData({
+        loadingOptions: false
+      });
+      wx.showToast({
+        title: '加载房源失败',
+        icon: 'none'
+      });
+    }
+  },
+  async loadRoomsForSelectedAsset() {
+    const asset = this.data.assets[this.data.selectedAssetIndex];
+    if (!asset?.id) {
+      this.setData({
+        rooms: [],
+        roomOptions: [],
+        selectedRoomIndex: 0
+      });
+      return;
+    }
+
+    const rooms = await listRoomsByAsset(String(asset.id)) as Array<Record<string, any>>;
+    this.setData({
+      rooms,
+      roomOptions: rooms.map((room) => String(room.name || '未命名房间')),
+      selectedRoomIndex: 0
+    });
+  },
+  async loadExportRecords() {
+    this.setData({
+      loadingExports: true
+    });
+
+    try {
+      const response = await listReportExports() as { exports?: Array<Record<string, any>> };
+      this.setData({
+        exports: response.exports || [],
+        loadingExports: false
+      });
+    } catch (error) {
+      console.error('load report export records failed', error);
+      this.setData({
+        loadingExports: false
+      });
+      wx.showToast({
+        title: '加载导出记录失败',
+        icon: 'none'
+      });
+    }
   },
   handleMonthChange(event: WechatMiniprogram.PickerChange) {
     this.setData({
@@ -26,14 +104,15 @@ Page({
       rangeType: String(event.detail.value || 'all')
     });
   },
-  handleInput(event: WechatMiniprogram.Input) {
-    const field = String(event.currentTarget.dataset.field || '');
-    if (!field) {
-      return;
-    }
-
+  async handleAssetChange(event: WechatMiniprogram.PickerChange) {
     this.setData({
-      [field]: event.detail.value
+      selectedAssetIndex: Number(event.detail.value || 0)
+    });
+    await this.loadRoomsForSelectedAsset();
+  },
+  handleRoomChange(event: WechatMiniprogram.PickerChange) {
+    this.setData({
+      selectedRoomIndex: Number(event.detail.value || 0)
     });
   },
   async createExport() {
@@ -45,12 +124,28 @@ Page({
       month: this.data.month
     };
 
-    if (this.data.rangeType === 'asset' && this.data.assetId.trim()) {
-      payload.assetId = this.data.assetId.trim();
+    if (this.data.rangeType === 'asset') {
+      const asset = this.data.assets[this.data.selectedAssetIndex];
+      if (!asset?.id) {
+        wx.showToast({
+          title: '请选择房源',
+          icon: 'none'
+        });
+        return;
+      }
+      payload.assetId = String(asset.id);
     }
 
-    if (this.data.rangeType === 'room' && this.data.roomId.trim()) {
-      payload.roomId = this.data.roomId.trim();
+    if (this.data.rangeType === 'room') {
+      const room = this.data.rooms[this.data.selectedRoomIndex];
+      if (!room?.id) {
+        wx.showToast({
+          title: '请选择房间',
+          icon: 'none'
+        });
+        return;
+      }
+      payload.roomId = String(room.id);
     }
 
     this.setData({
@@ -62,6 +157,7 @@ Page({
       this.setData({
         result
       });
+      await this.loadExportRecords();
       wx.showToast({
         title: '导出已生成',
         icon: 'success'
@@ -80,6 +176,13 @@ Page({
   },
   async openExportFile() {
     const fileID = String(this.data.result?.fileID || '');
+    await this.openFileByFileId(fileID);
+  },
+  async openExportRecord(event: WechatMiniprogram.BaseEvent) {
+    const fileID = String(event.currentTarget.dataset.fileId || '');
+    await this.openFileByFileId(fileID);
+  },
+  async openFileByFileId(fileID: string) {
     if (!fileID) {
       wx.showToast({
         title: '暂无可打开文件',
@@ -100,6 +203,46 @@ Page({
       wx.showToast({
         title: '打开文件失败',
         icon: 'none'
+      });
+    }
+  },
+  async deleteExportRecord(event: WechatMiniprogram.BaseEvent) {
+    const exportId = String(event.currentTarget.dataset.exportId || '');
+    if (!exportId || this.data.deletingExportId) {
+      return;
+    }
+
+    const confirm = await wx.showModal({
+      title: '删除导出记录',
+      content: '会删除这条导出记录；如文件已上传，也会尝试删除对应云文件。',
+      confirmText: '删除',
+      confirmColor: '#c0392b'
+    });
+
+    if (!confirm.confirm) {
+      return;
+    }
+
+    this.setData({
+      deletingExportId: exportId
+    });
+
+    try {
+      await deleteReportExport({ exportId });
+      await this.loadExportRecords();
+      wx.showToast({
+        title: '已删除',
+        icon: 'none'
+      });
+    } catch (error) {
+      console.error('delete export record failed', error);
+      wx.showToast({
+        title: '删除失败',
+        icon: 'none'
+      });
+    } finally {
+      this.setData({
+        deletingExportId: ''
       });
     }
   }

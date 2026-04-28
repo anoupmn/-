@@ -51,13 +51,15 @@ async function main(event) {
     });
     const workbook = await (0, report_export_repository_1.buildMonthlyReportData)(db, landlordOpenId, request);
     const summary = (0, report_export_repository_1.summarizeReportWorkbook)(workbook);
+    const scopeLabel = await (0, report_export_repository_1.resolveReportScopeLabel)(db, landlordOpenId, request);
     const fileName = `收租吧-${request.month}-月度经营明细.xlsx`;
     const buffer = buildWorkbookBuffer(workbook);
     const fileID = await uploadWorkbook(fileName, buffer, Boolean(event.__mockDb));
-    await (0, report_export_repository_1.saveReportExportMetadata)(db, landlordOpenId, request, fileName, [...report_export_repository_1.REPORT_SHEET_NAMES], summary, event, fileID);
+    await (0, report_export_repository_1.saveReportExportMetadata)(db, landlordOpenId, request, fileName, scopeLabel, [...report_export_repository_1.REPORT_SHEET_NAMES], summary, event, fileID);
     return {
         fileID,
         fileName,
+        scopeLabel,
         sheetNames: [...report_export_repository_1.REPORT_SHEET_NAMES],
         summary,
         workbook,

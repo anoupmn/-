@@ -15,6 +15,7 @@ import {
 import type { Room } from '../schemas/room';
 import type { Tenant } from '../schemas/tenant';
 import { createId, insertRecord, listAll, resolveNow, type CloudEventBase, type DbLike } from '../runtime';
+import { findById, removeRecordsByQuery } from '../runtime';
 
 export const REPORT_SHEET_NAMES = ['月度明细', '账单明细', '房东支出明细', '退租支出明细'] as const;
 
@@ -258,11 +259,55 @@ export function summarizeReportWorkbook(workbook: ReportWorkbookData) {
   };
 }
 
+export async function resolveReportScopeLabel(db: DbLike, landlordOpenId: string, request: ReportExportRequest) {
+  if (request.roomId) {
+    const [rooms, assets] = await Promise.all([
+      listAll<Room>(db, COLLECTIONS.rooms),
+      listAll<Asset>(db, COLLECTIONS.assets)
+    ]);
+    const room = rooms.find((item) => item.id === request.roomId && item.landlordOpenId === landlordOpenId);
+    const asset = room ? assets.find((item) => item.id === room.assetId && item.landlordOpenId === landlordOpenId) : null;
+    return `${asset?.name ?? '未知房源'} / ${room?.name ?? '未知房间'}`;
+  }
+
+  if (request.assetId) {
+    const assets = await listAll<Asset>(db, COLLECTIONS.assets);
+    return assets.find((item) => item.id === request.assetId && item.landlordOpenId === landlordOpenId)?.name ?? '未知房源';
+  }
+
+  return '全部房源';
+}
+
+export async function listReportExports(db: DbLike, landlordOpenId: string) {
+  const records = await listAll(db, COLLECTIONS.reportExports);
+  return records
+    .filter((record) => record.landlordOpenId === landlordOpenId)
+    .map((record) => reportExportMetadataSchema.parse(record))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function deleteReportExport(db: DbLike, landlordOpenId: string, exportId: string) {
+  const record = await findById(db, COLLECTIONS.reportExports, exportId);
+  const parsed = record ? reportExportMetadataSchema.parse(record) : null;
+
+  if (!parsed || parsed.landlordOpenId !== landlordOpenId) {
+    throw new Error(`Report export ${exportId} not found.`);
+  }
+
+  await removeRecordsByQuery(db, COLLECTIONS.reportExports, {
+    id: exportId,
+    landlordOpenId
+  });
+
+  return parsed;
+}
+
 export async function saveReportExportMetadata(
   db: DbLike,
   landlordOpenId: string,
   request: ReportExportRequest,
   fileName: string,
+  scopeLabel: string,
   sheetNames: string[],
   summary: ReturnType<typeof summarizeReportWorkbook>,
   event: CloudEventBase,
@@ -275,6 +320,7 @@ export async function saveReportExportMetadata(
     month: request.month,
     assetId: request.assetId ?? null,
     roomId: request.roomId ?? null,
+    scopeLabel,
     fileID,
     fileName,
     sheetNames,

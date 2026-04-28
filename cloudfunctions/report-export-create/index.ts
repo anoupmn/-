@@ -1,6 +1,7 @@
 import {
   buildMonthlyReportData,
   REPORT_SHEET_NAMES,
+  resolveReportScopeLabel,
   saveReportExportMetadata,
   summarizeReportWorkbook
 } from './shared/repositories/report-export-repository';
@@ -66,6 +67,7 @@ export async function main(event: ReportExportCreateEvent) {
   });
   const workbook = await buildMonthlyReportData(db, landlordOpenId, request);
   const summary = summarizeReportWorkbook(workbook);
+  const scopeLabel = await resolveReportScopeLabel(db, landlordOpenId, request);
   const fileName = `收租吧-${request.month}-月度经营明细.xlsx`;
   const buffer = buildWorkbookBuffer(workbook);
   const fileID = await uploadWorkbook(fileName, buffer, Boolean(event.__mockDb));
@@ -75,6 +77,7 @@ export async function main(event: ReportExportCreateEvent) {
     landlordOpenId,
     request,
     fileName,
+    scopeLabel,
     [...REPORT_SHEET_NAMES],
     summary,
     event,
@@ -84,6 +87,7 @@ export async function main(event: ReportExportCreateEvent) {
   return {
     fileID,
     fileName,
+    scopeLabel,
     sheetNames: [...REPORT_SHEET_NAMES],
     summary,
     workbook,
