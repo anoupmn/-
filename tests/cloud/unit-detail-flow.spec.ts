@@ -119,4 +119,27 @@ describe('unit detail correction flow wiring', () => {
     expect(receiptRepositorySource).toContain('voidReason is required');
     expect(combined).not.toContain('用户作废重开');
   });
+
+  it('renders receipt as a formal voucher with share and copy fallbacks', () => {
+    const receiptSource = fs.readFileSync('miniprogram/pages/receipt/index.ts', 'utf8');
+    const receiptWxml = fs.readFileSync('miniprogram/pages/receipt/index.wxml', 'utf8');
+    const combined = `${receiptSource}\n${receiptWxml}`;
+
+    expect(combined).toContain('收款收据（非发票）');
+    expect(receiptWxml).toContain('收据编号');
+    expect(receiptWxml).toContain('收款日期');
+    expect(receiptWxml).toContain('收款项目明细');
+    expect(receiptWxml).toContain('实收日期');
+    expect(receiptWxml).toContain('合计金额');
+    expect(receiptWxml).toContain('收款人');
+    expect(receiptWxml).toContain('生成时间');
+    expect(receiptWxml).toContain('复制收据摘要');
+    expect(receiptWxml).toContain('分享凭证');
+    expect(receiptSource).toContain('保存凭证');
+    expect(receiptSource).toContain('onShareAppMessage');
+    expect(receiptSource).toContain('/pages/receipt/index?receiptId=');
+    expect(receiptSource).toContain('setClipboardData');
+    expect(receiptWxml).not.toContain('receiptId:');
+    expect(combined).not.toMatch(/PDF|pdf|jspdf|pdfmake/);
+  });
 });

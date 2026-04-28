@@ -5,21 +5,45 @@
     </view>
 
     <view wx:elif="{{receipt}}" class="card receipt-card">
-      <view class="receipt-status" wx:if="{{receipt.status === 'voided'}}">已作废</view>
-      <view class="receipt-title">收款收据（非发票）</view>
-      <view class="field">收据编号：{{receipt.receiptNo}}</view>
-      <view class="field">房源/房间：{{receipt.assetName}} / {{receipt.roomName}}</view>
-      <view class="field">租客姓名：{{receipt.tenantName}}</view>
-      <view class="field">收款日期：{{receipt.receivedAt}}</view>
-      <view class="field">收款人：{{receipt.collectorName || '未填写'}}</view>
-      <view wx:if="{{receipt.reissueFromReceiptId}}" class="receipt-origin">由作废收据重开</view>
+      <view class="receipt-watermark" wx:if="{{receipt.status === 'voided'}}">已作废</view>
+      <view class="receipt-header">
+        <view class="receipt-title">收款收据（非发票）</view>
+        <view class="receipt-no">收据编号：{{receipt.receiptNo}}</view>
+      </view>
+      <view class="receipt-status-row">
+        <view class="receipt-status {{receipt.status === 'voided' ? 'voided-status' : ''}}">
+          {{receipt.status === 'voided' ? '已作废' : '有效'}}
+        </view>
+        <view wx:if="{{receipt.reissueFromReceiptId}}" class="receipt-origin">由作废收据重开</view>
+      </view>
+
+      <view class="receipt-meta-grid">
+        <view class="receipt-meta-item">
+          <view class="field-label">房源/房间</view>
+          <view class="field">{{receipt.assetName}} / {{receipt.roomName}}</view>
+        </view>
+        <view class="receipt-meta-item">
+          <view class="field-label">租客</view>
+          <view class="field">{{receipt.tenantName}}</view>
+        </view>
+        <view class="receipt-meta-item">
+          <view class="field-label">收款日期</view>
+          <view class="field">{{receipt.receivedAt}}</view>
+        </view>
+        <view class="receipt-meta-item">
+          <view class="field-label">收款人</view>
+          <view class="field">{{receipt.collectorName || '未填写'}}</view>
+        </view>
+      </view>
 
       <view class="receipt-items">
+        <view class="receipt-items-title">收款项目明细</view>
         <view wx:for="{{receipt.items}}" wx:key="billId" class="receipt-item">
           <view class="fee-row">
             <view>
               <view class="fee-name">{{item.itemLabel}}</view>
               <view class="field">应收日期：{{item.dueDate}}</view>
+              <view class="field">实收日期：{{item.receivedAt}}</view>
             </view>
             <view class="fee-status">¥{{item.receivedAmount}}</view>
           </view>
@@ -37,6 +61,8 @@
       <view wx:if="{{receipt.voidedAt}}" class="field">作废时间：{{receipt.voidedAt}}</view>
 
       <view class="action-grid">
+        <button class="secondary-button" bindtap="copyReceiptSummary">复制收据摘要</button>
+        <button class="secondary-button" open-type="share">分享凭证</button>
         <button
           wx:if="{{receipt.status !== 'voided'}}"
           class="danger-button"

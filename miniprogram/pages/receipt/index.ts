@@ -1,5 +1,26 @@
 import { createReceipt, getReceipt, voidReceipt } from '../../services/receipt';
 
+function buildReceiptShareTitle(receipt: Record<string, any> | null) {
+  if (!receipt) {
+    return '收款收据（非发票）';
+  }
+
+  return `${receipt.receiptNo || '收据'} ${receipt.tenantName || '租客'} 收款收据`;
+}
+
+function buildReceiptSummary(receipt: Record<string, any>) {
+  const statusLabel = receipt.status === 'voided' ? '已作废' : '有效';
+  return [
+    '收款收据（非发票）',
+    `收据编号：${receipt.receiptNo || ''}`,
+    `房源/房间：${receipt.assetName || ''} / ${receipt.roomName || ''}`,
+    `租客：${receipt.tenantName || ''}`,
+    `合计金额：¥${receipt.totalAmount || 0}`,
+    `收款日期：${receipt.receivedAt || ''}`,
+    `状态：${statusLabel}`
+  ].join('\n');
+}
+
 Page({
   data: {
     billId: '',
@@ -41,6 +62,30 @@ Page({
         loading: false
       });
     }
+  },
+  onShareAppMessage() {
+    const receipt = this.data.receipt;
+    const receiptId = String(this.data.receiptId || receipt?.id || '');
+
+    return {
+      title: buildReceiptShareTitle(receipt),
+      path: receiptId ? `/pages/receipt/index?receiptId=${receiptId}` : '/pages/receipt/index'
+    };
+  },
+  copyReceiptSummary() {
+    if (!this.data.receipt) {
+      return;
+    }
+
+    wx.setClipboardData({
+      data: buildReceiptSummary(this.data.receipt),
+      success: () => {
+        wx.showToast({
+          title: '摘要已复制，可保存凭证',
+          icon: 'none'
+        });
+      }
+    });
   },
   openVoidDialog() {
     if (!this.data.receipt?.id || this.data.voiding) {
