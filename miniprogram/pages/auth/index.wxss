@@ -9,14 +9,35 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 28rpx;
+  gap: 18rpx;
   width: 100%;
+  padding: 64rpx 42rpx;
+  border-radius: 18rpx;
+  background: #ffffff;
+  border: 1rpx solid #e6ebf1;
+  box-shadow: 0 10rpx 24rpx rgba(23, 36, 58, 0.07);
+  box-sizing: border-box;
 }
 
 .brand-logo {
-  width: 420rpx;
+  width: 156rpx;
   max-width: 100%;
-  height: 420rpx;
+  height: 156rpx;
+  border-radius: 28rpx;
+  overflow: hidden;
+}
+
+.brand-title {
+  margin-top: 10rpx;
+  color: #17243a;
+  font-size: 44rpx;
+  font-weight: 700;
+}
+
+.brand-sub {
+  margin-bottom: 18rpx;
+  color: #4f5d6d;
+  font-size: 28rpx;
 }
 
 .auth-error {

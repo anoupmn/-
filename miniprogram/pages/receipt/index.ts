@@ -8,6 +8,34 @@ function buildReceiptShareTitle(receipt: Record<string, any> | null) {
   return `${receipt.receiptNo || '收据'} ${receipt.tenantName || '租客'} 收款收据`;
 }
 
+function formatDateTime(value: unknown) {
+  const source = String(value || '').trim();
+  if (!source) {
+    return '';
+  }
+
+  const matched = source.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+  if (matched) {
+    return `${matched[1]} ${matched[2]}`;
+  }
+
+  return source.replace('T', ' ').replace(/\.\d{3}Z?$/, '').replace(/Z$/, '');
+}
+
+function normalizeReceipt(receipt: Record<string, any>) {
+  return {
+    ...receipt,
+    displayReceivedAt: formatDateTime(receipt.receivedAt),
+    displayCreatedAt: formatDateTime(receipt.createdAt),
+    items: Array.isArray(receipt.items)
+      ? receipt.items.map((item: Record<string, any>) => ({
+        ...item,
+        displayReceivedAt: formatDateTime(item.receivedAt)
+      }))
+      : []
+  };
+}
+
 function buildReceiptSummary(receipt: Record<string, any>) {
   return [
     '收款收据（非发票）',
@@ -15,7 +43,7 @@ function buildReceiptSummary(receipt: Record<string, any>) {
     `房源/房间：${receipt.assetName || ''} / ${receipt.roomName || ''}`,
     `租客：${receipt.tenantName || ''}`,
     `合计金额：¥${receipt.totalAmount || 0}`,
-    `收款日期：${receipt.receivedAt || ''}`
+    `收款日期：${receipt.displayReceivedAt || receipt.receivedAt || ''}`
   ].join('\n');
 }
 
@@ -44,8 +72,9 @@ Page({
       const receipt = this.data.receiptId
         ? await getReceipt({ receiptId: this.data.receiptId })
         : await createReceipt({ billIds: [this.data.billId] });
+      const normalizedReceipt = normalizeReceipt(receipt as Record<string, any>);
       this.setData({
-        receipt: receipt as Record<string, any>,
+        receipt: normalizedReceipt,
         receiptId: String((receipt as Record<string, any>).id || '')
       });
     } catch (error) {

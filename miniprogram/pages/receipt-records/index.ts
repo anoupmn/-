@@ -18,6 +18,8 @@ type ReceiptRecord = Record<string, any> & {
   roomName: string;
   tenantName: string;
   receivedAt: string;
+  displayReceivedAt?: string;
+  displayCreatedAt?: string;
   totalAmount: number;
   billCount: number;
 };
@@ -39,6 +41,14 @@ type LeaseMonthOption = {
 
 type ReceiptLeaseOption = {
   leaseId: string;
+  assetId: string;
+  roomId: string;
+  tenantId?: string;
+  assetName?: string;
+  roomName?: string;
+  tenantName?: string;
+  startDate?: string;
+  endDate?: string;
   label: string;
   months: LeaseMonthOption[];
 };
@@ -57,6 +67,91 @@ function asOptions(records: Array<Record<string, any>>, labelKey = 'name'): Opti
       label: String(record[labelKey] || '未命名'),
       value: String(record.id)
     }));
+}
+
+function formatDateTime(value: unknown) {
+  const source = String(value || '').trim();
+  if (!source) {
+    return '';
+  }
+
+  const matched = source.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+  if (matched) {
+    return `${matched[1]} ${matched[2]}`;
+  }
+
+  return source.replace('T', ' ').replace(/\.\d{3}Z?$/, '').replace(/Z$/, '');
+}
+
+function normalizeReceiptRecords(receipts: ReceiptRecord[]) {
+  return receipts.map((receipt) => ({
+    ...receipt,
+    displayReceivedAt: formatDateTime(receipt.receivedAt),
+    displayCreatedAt: formatDateTime(receipt.createdAt)
+  }));
+}
+
+function buildIssueLeaseLabel(lease: ReceiptLeaseOption) {
+  const tenant = lease.tenantName || '未知租客';
+  const period = lease.startDate && lease.endDate ? `${lease.startDate} 至 ${lease.endDate}` : '租约';
+  return `${tenant} · ${period}`;
+}
+
+function uniqueIssueOptions(
+  leases: ReceiptLeaseOption[],
+  valueKey: 'assetId' | 'roomId',
+  labelKey: 'assetName' | 'roomName'
+): Option[] {
+  const map = new Map<string, string>();
+  leases.forEach((lease) => {
+    const value = String(lease[valueKey] || '');
+    if (value && !map.has(value)) {
+      map.set(value, String(lease[labelKey] || '未命名'));
+    }
+  });
+  return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+}
+
+function buildIssueSelectionState(input: {
+  leases: ReceiptLeaseOption[];
+  assetId?: string;
+  roomId?: string;
+  leaseId?: string;
+  month?: string;
+}) {
+  const issueAssetOptions = uniqueIssueOptions(input.leases, 'assetId', 'assetName');
+  const selectedIssueAssetId = issueAssetOptions.some((option) => option.value === input.assetId)
+    ? String(input.assetId)
+    : String(issueAssetOptions[0]?.value || '');
+  const assetLeases = input.leases.filter((lease) => String(lease.assetId || '') === selectedIssueAssetId);
+  const issueRoomOptions = uniqueIssueOptions(assetLeases, 'roomId', 'roomName');
+  const selectedIssueRoomId = issueRoomOptions.some((option) => option.value === input.roomId)
+    ? String(input.roomId)
+    : String(issueRoomOptions[0]?.value || '');
+  const roomLeases = assetLeases.filter((lease) => String(lease.roomId || '') === selectedIssueRoomId);
+  const selectedLease = roomLeases.find((lease) => lease.leaseId === input.leaseId) || roomLeases[0];
+  const receiptMonthOptions = selectedLease?.months || [];
+  const selectedMonth = receiptMonthOptions.some((month) => month.month === input.month)
+    ? String(input.month)
+    : String(receiptMonthOptions[0]?.month || '');
+
+  return {
+    issueAssetOptions,
+    issueRoomOptions,
+    issueLeaseOptions: roomLeases.map((lease) => ({
+      label: buildIssueLeaseLabel(lease),
+      value: lease.leaseId
+    })),
+    receiptMonthOptions,
+    selectedIssueAssetIndex: Math.max(0, issueAssetOptions.findIndex((option) => option.value === selectedIssueAssetId)),
+    selectedIssueRoomIndex: Math.max(0, issueRoomOptions.findIndex((option) => option.value === selectedIssueRoomId)),
+    selectedReceiptLeaseIndex: Math.max(0, roomLeases.findIndex((lease) => lease.leaseId === selectedLease?.leaseId)),
+    selectedReceiptMonthIndex: Math.max(0, receiptMonthOptions.findIndex((month) => month.month === selectedMonth)),
+    selectedIssueAssetId,
+    selectedIssueRoomId,
+    selectedReceiptLeaseId: selectedLease?.leaseId || '',
+    selectedReceiptMonth: selectedMonth
+  };
 }
 
 function uniqueTenantOptions(receipts: ReceiptRecord[]): Option[] {
@@ -128,9 +223,16 @@ Page({
     receiptGroups: [] as ReceiptGroup[],
     allReceipts: [] as ReceiptRecord[],
     receiptLeaseOptions: [] as ReceiptLeaseOption[],
+    issueAssetOptions: [] as Option[],
+    issueRoomOptions: [] as Option[],
+    issueLeaseOptions: [] as Option[],
     receiptMonthOptions: [] as LeaseMonthOption[],
+    selectedIssueAssetIndex: 0,
+    selectedIssueRoomIndex: 0,
     selectedReceiptLeaseIndex: 0,
     selectedReceiptMonthIndex: 0,
+    selectedIssueAssetId: '',
+    selectedIssueRoomId: '',
     selectedReceiptLeaseId: '',
     selectedReceiptMonth: '',
     creatingReceipt: false,
@@ -209,7 +311,7 @@ Page({
 
     try {
       const result = await listReceiptRecords({ filters: this.buildFilters() }) as { receipts?: ReceiptRecord[] };
-      const receipts = result.receipts || [];
+      const receipts = normalizeReceiptRecords(result.receipts || []);
       this.setData({
         receipts,
         receiptGroups: groupReceipts(receipts),
@@ -223,7 +325,7 @@ Page({
         receipts: [],
         receiptGroups: [],
         loading: false,
-        error: resolveReceiptCloudError(error, '收据记录加载失败，请稍后重试')
+        error: resolveReceiptCloudError(error, '收据管理加载失败，请稍后重试')
       });
     }
   },
@@ -231,40 +333,58 @@ Page({
     try {
       const result = await listReceiptLeaseOptions({}) as { leases?: ReceiptLeaseOption[] };
       const receiptLeaseOptions = result.leases || [];
-      const firstLease = receiptLeaseOptions[0];
-      const receiptMonthOptions = firstLease?.months || [];
-      const firstMonth = receiptMonthOptions[0];
       this.setData({
         receiptLeaseOptions,
-        receiptMonthOptions,
-        selectedReceiptLeaseIndex: 0,
-        selectedReceiptMonthIndex: 0,
-        selectedReceiptLeaseId: firstLease?.leaseId || '',
-        selectedReceiptMonth: firstMonth?.month || '',
+        ...buildIssueSelectionState({ leases: receiptLeaseOptions }),
         issueError: ''
       });
     } catch (error) {
       console.error('load receipt lease options failed', error);
       this.setData({
         receiptLeaseOptions: [],
+        issueAssetOptions: [],
+        issueRoomOptions: [],
+        issueLeaseOptions: [],
         receiptMonthOptions: [],
+        selectedIssueAssetId: '',
+        selectedIssueRoomId: '',
         selectedReceiptLeaseId: '',
         selectedReceiptMonth: '',
         issueError: resolveReceiptCloudError(error, '可开收据月份加载失败，请稍后重试')
       });
     }
   },
+  handleIssueAssetChange(event: WechatMiniprogram.PickerChange) {
+    const selectedIssueAssetIndex = Number(event.detail.value || 0);
+    const asset = this.data.issueAssetOptions[selectedIssueAssetIndex];
+    this.setData({
+      ...buildIssueSelectionState({
+        leases: this.data.receiptLeaseOptions,
+        assetId: asset?.value || ''
+      })
+    });
+  },
+  handleIssueRoomChange(event: WechatMiniprogram.PickerChange) {
+    const selectedIssueRoomIndex = Number(event.detail.value || 0);
+    const room = this.data.issueRoomOptions[selectedIssueRoomIndex];
+    this.setData({
+      ...buildIssueSelectionState({
+        leases: this.data.receiptLeaseOptions,
+        assetId: this.data.selectedIssueAssetId,
+        roomId: room?.value || ''
+      })
+    });
+  },
   handleReceiptLeaseChange(event: WechatMiniprogram.PickerChange) {
     const selectedReceiptLeaseIndex = Number(event.detail.value || 0);
-    const lease = this.data.receiptLeaseOptions[selectedReceiptLeaseIndex];
-    const receiptMonthOptions = lease?.months || [];
-    const firstMonth = receiptMonthOptions[0];
+    const lease = this.data.issueLeaseOptions[selectedReceiptLeaseIndex];
     this.setData({
-      selectedReceiptLeaseIndex,
-      receiptMonthOptions,
-      selectedReceiptMonthIndex: 0,
-      selectedReceiptLeaseId: lease?.leaseId || '',
-      selectedReceiptMonth: firstMonth?.month || ''
+      ...buildIssueSelectionState({
+        leases: this.data.receiptLeaseOptions,
+        assetId: this.data.selectedIssueAssetId,
+        roomId: this.data.selectedIssueRoomId,
+        leaseId: lease?.value || ''
+      })
     });
   },
   handleReceiptMonthChange(event: WechatMiniprogram.PickerChange) {

@@ -181,9 +181,12 @@ describe('dashboard-home cloud function', () => {
       now: '2026-04-10T00:00:00.000Z'
     });
 
-    expect(result.overviewCards).toHaveLength(3);
-    expect(result.overviewCards.find((item: { key: string }) => item.key === 'abnormal')?.count).toBe(3);
+    expect(result.overviewCards).toHaveLength(4);
+    expect(result.overviewCards.find((item: { key: string }) => item.key === 'overdue')?.count).toBe(1);
+    expect(result.overviewCards.find((item: { key: string }) => item.key === 'vacancy_long')?.count).toBe(1);
+    expect(result.overviewCards.find((item: { key: string }) => item.key === 'manual_abnormal')?.count).toBe(2);
     expect(result.abnormalRows[0]?.primaryReason).toContain('逾期');
+    expect(result.abnormalRows[0]?.reasonLabel).toBe('已逾期');
     expect(result.abnormalRows.some((item: { supportingText: string }) => item.supportingText.includes('近 30 天维修 3 次'))).toBe(true);
     expect(result.recommendation).not.toBeNull();
     expect(result.recommendation!.title).toContain('优先处理');

@@ -9,6 +9,23 @@ function currentMonthKey() {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     return `${year}-${month}`;
 }
+function formatDateTime(value) {
+    const source = String(value || '').trim();
+    if (!source) {
+        return '';
+    }
+    const matched = source.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+    if (matched) {
+        return `${matched[1]} ${matched[2]}`;
+    }
+    return source.replace('T', ' ').replace(/\.\d{3}Z?$/, '').replace(/Z$/, '');
+}
+function normalizeExportRecords(records) {
+    return records.map((record) => ({
+        ...record,
+        displayCreatedAt: formatDateTime(record.createdAt)
+    }));
+}
 Page({
     data: {
         month: currentMonthKey(),
@@ -56,7 +73,7 @@ Page({
     },
     async loadRoomsForSelectedAsset() {
         const asset = this.data.assets[this.data.selectedAssetIndex];
-        if (!asset?.id) {
+        if (!(asset === null || asset === void 0 ? void 0 : asset.id)) {
             this.setData({
                 rooms: [],
                 roomOptions: [],
@@ -78,7 +95,7 @@ Page({
         try {
             const response = await (0, report_export_1.listReportExports)();
             this.setData({
-                exports: response.exports || [],
+                exports: normalizeExportRecords(response.exports || []),
                 loadingExports: false
             });
         }
@@ -123,7 +140,7 @@ Page({
         };
         if (this.data.rangeType === 'asset') {
             const asset = this.data.assets[this.data.selectedAssetIndex];
-            if (!asset?.id) {
+            if (!(asset === null || asset === void 0 ? void 0 : asset.id)) {
                 wx.showToast({
                     title: '请选择房源',
                     icon: 'none'
@@ -134,7 +151,7 @@ Page({
         }
         if (this.data.rangeType === 'room') {
             const room = this.data.rooms[this.data.selectedRoomIndex];
-            if (!room?.id) {
+            if (!(room === null || room === void 0 ? void 0 : room.id)) {
                 wx.showToast({
                     title: '请选择房间',
                     icon: 'none'
@@ -171,7 +188,8 @@ Page({
         }
     },
     async openExportFile() {
-        const fileID = String(this.data.result?.fileID || '');
+        var _a;
+        const fileID = String(((_a = this.data.result) === null || _a === void 0 ? void 0 : _a.fileID) || '');
         await this.openFileByFileId(fileID);
     },
     async openExportRecord(event) {

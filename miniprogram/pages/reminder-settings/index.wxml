@@ -1,11 +1,5 @@
 <view class="page-shell">
   <view class="settings-shell page-stack">
-    <view class="card intro-card">
-      <view class="page-title">提醒设置</view>
-      <view class="text-body">这里只管理提醒类型开关，不处理阈值、收件人和发送日志。</view>
-      <view class="text-muted">{{statusCopy}}</view>
-    </view>
-
     <view wx:if="{{isLoading}}" class="card state-card">
       <view class="text-muted">正在加载提醒规则...</view>
     </view>
@@ -13,7 +7,7 @@
     <view wx:else class="card rules-card">
       <view class="section-head-main">
         <view class="section-title">启用提醒类型</view>
-        <view class="text-muted">开关与首页、提醒中心、房源列表使用同一异常口径。</view>
+        <view class="text-muted">{{statusCopy}}</view>
       </view>
 
       <view class="rules-list">
@@ -23,11 +17,10 @@
               <view class="rule-label">{{item.label}}</view>
               <view class="badge {{item.key === 'overdue' ? 'status-overdue' : item.key === 'expiring' ? 'status-expiring' : item.key === 'vacancy_long' ? 'status-vacancy' : 'status-manual'}}">{{item.enabled ? '已开启' : '未开启'}}</view>
             </view>
-            <view class="text-muted">按规则类型控制提醒是否参与推送。</view>
           </view>
           <switch
             class="rule-switch"
-            color="#1f6feb"
+            color="#17243a"
             checked="{{item.enabled}}"
             data-key="{{item.key}}"
             bindchange="handleRuleToggle"

@@ -1,46 +1,28 @@
 <view class="page-shell">
   <view class="profile-shell page-stack">
-    <view class="card account-card">
-      <view class="page-title">我的</view>
-      <view class="sub-title account-name">{{displayName || '用户'}}</view>
-      <view class="text-muted">账号标识：{{openidMasked || '未获取'}}</view>
-      <view class="text-weak">账号信息用于识别当前用户工作空间。</view>
+    <view class="user-card">
+      <view class="user-avatar">我</view>
+      <view class="user-main">
+        <view class="user-name">{{displayName || '房东'}}</view>
+        <view class="user-id">微信号：{{openidMasked || '未获取'}}</view>
+      </view>
     </view>
 
-    <view class="card subscription-card">
-      <view class="section-head-main">
-        <view class="section-title">订阅状态</view>
-        <view class="text-muted">状态口径统一：即将到期 / 已逾期 / 空置过久 / 人工异常（含维修高频异常）。</view>
-      </view>
-      <view wx:if="{{isLoading}}" class="empty-state">
-        <view class="text-muted">正在加载订阅状态...</view>
-      </view>
-      <block wx:else>
-        <view class="status-panel">
-          <view class="text-body">{{statusCopy}}</view>
-          <view class="text-muted">当前启用规则：{{enabledRuleCopy}}</view>
+    <view class="about-card">
+      <view class="brand-row">
+        <image class="brand-logo" src="/assets/brand/logo.jpg" mode="aspectFill" />
+        <view class="brand-copy">
+          <view class="about-title">收租吧</view>
+          <view class="about-sub">房东经营管理小程序</view>
         </view>
-      </block>
-      <view class="action-grid">
-        <button class="primary-button" bindtap="requestSubscription">发起/重新授权</button>
-        <button class="secondary-button" bindtap="openAlertCenter">打开提醒中心</button>
+      </view>
+      <view class="about-copy">用于维护房源、租约、账单、收据、提醒和月度经营导出，帮房东把日常收租流程集中管理清楚。</view>
+      <view class="version-row">
+        <view class="field-label">版本号</view>
+        <view class="version-value">v1.0.0</view>
       </view>
     </view>
 
-    <view class="card action-card">
-      <view class="section-head-main">
-        <view class="section-title">提醒设置</view>
-        <view class="text-muted">进入提醒设置页管理各规则开关与订阅偏好。</view>
-      </view>
-      <button class="secondary-button" bindtap="openReminderSettings">前往提醒设置</button>
-    </view>
-
-    <view class="card logout-card">
-      <view class="section-head-main">
-        <view class="section-title">账号操作</view>
-        <view class="text-muted">退出后将返回登录/注册页，需重新登录才能访问四个 Tab。</view>
-      </view>
-      <button class="danger-button" bindtap="handleLogout">退出登录</button>
-    </view>
+    <button class="logout-button" bindtap="handleLogout">退出登录</button>
   </view>
 </view>

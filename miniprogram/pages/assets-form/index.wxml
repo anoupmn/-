@@ -1,11 +1,5 @@
 <view class="page-shell">
   <view class="asset-shell page-stack">
-    <view class="card intro-card">
-      <view class="page-title">房源维护</view>
-      <view class="text-body">在这里新增和管理房源基础信息，保证后续房间、租约与提醒链路可用。</view>
-      <view class="text-muted">房源信息建议包含清晰名称、地区与详细门牌。</view>
-    </view>
-
     <view class="card form-card">
       <view class="section-title">新增房源</view>
 

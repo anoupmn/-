@@ -1,80 +1,115 @@
-<view class="page-shell">
-  <view class="dashboard-shell page-stack">
-    <view class="card intro-card">
-      <view class="section-head-main">
-        <view class="page-title">首页</view>
-        <view class="text-body">你好，{{displayName || '用户'}}。先看经营概览，再按异常摘要和今日建议安排处理顺序。</view>
-        <view class="text-muted">状态口径统一：即将到期 / 已逾期 / 空置过久 / 人工异常（含维修高频异常）。</view>
-      </view>
-      <view class="status-line text-muted">{{status}}</view>
-    </view>
-
-    <view class="grid-3 overview-grid">
-      <view
-        wx:for="{{overviewCards}}"
-        wx:key="key"
-        class="card overview-card {{item.key === 'overdue' ? 'metric-overdue' : item.key === 'expiring' ? 'metric-expiring' : item.key === 'vacancy_long' ? 'metric-vacancy' : item.key === 'manual_abnormal' ? 'metric-manual' : 'metric-neutral'}}"
-        data-url="{{item.url}}"
-        bindtap="openOverviewCard"
-      >
-        <view class="overview-label">{{item.label}}</view>
-        <view class="stat-number overview-count">{{item.count}}</view>
-        <view class="overview-foot text-weak">进入处理列表</view>
-      </view>
-    </view>
-
-    <view class="card abnormal-card">
-      <view class="section-head">
-        <view class="section-head-main">
-          <view class="section-title">异常摘要</view>
-          <view class="text-muted">默认展示最优先处理条目，避免首页变成长列表。</view>
+<view class="page-shell workbench-page">
+  <view class="dashboard-shell">
+    <view class="card overview-panel">
+      <view class="module-title">今日概览</view>
+      <view class="overview-grid">
+        <view
+          wx:for="{{overviewCards}}"
+          wx:key="key"
+          class="overview-card metric-{{item.tone}}"
+          data-url="{{item.url}}"
+          bindtap="openOverviewCard"
+        >
+          <view class="metric-icon metric-icon-{{item.tone}}">
+            <view wx:if="{{item.tone === 'overdue'}}" class="warn-icon">
+              <view class="warn-triangle"></view>
+              <view class="warn-bang">!</view>
+            </view>
+            <view wx:elif="{{item.tone === 'expiring'}}" class="clock-icon">
+              <view class="clock-hand clock-hour"></view>
+              <view class="clock-hand clock-minute"></view>
+            </view>
+            <view wx:elif="{{item.tone === 'vacancy'}}" class="house-icon">
+              <view class="house-roof"></view>
+              <view class="house-body">
+                <view class="house-window"></view>
+                <view class="house-window"></view>
+              </view>
+            </view>
+            <view wx:else class="clipboard-icon">
+              <view class="clip-top"></view>
+              <view class="clip-line"></view>
+              <view class="clip-line clip-line-short"></view>
+              <view class="clip-line"></view>
+            </view>
+          </view>
+          <view class="metric-copy">
+            <view class="overview-label">{{item.label}}</view>
+            <view class="overview-count-line">
+              <text class="overview-count">{{item.count}}</text>
+              <text class="overview-unit">{{item.unit}}</text>
+            </view>
+            <view class="overview-desc">{{item.desc}}</view>
+          </view>
         </view>
-        <button class="text-button" data-url="/pages/alerts/index" bindtap="navigateTo">查看全部</button>
       </view>
+    </view>
+
+    <view class="card reminder-card">
+      <view class="section-head">
+        <view class="section-title">15天内到期 / 待处理</view>
+        <button class="plain-link" data-url="/pages/alerts/index" bindtap="navigateTo">
+          <text>查看</text>
+          <text class="chevron">›</text>
+        </button>
+      </view>
+      <view class="section-subtitle">前往提醒中心，查看更多到期与待处理事项</view>
 
       <view wx:if="{{isLoading}}" class="empty-state">
-        <view class="text-muted">正在加载首页盘面...</view>
+        <view class="text-muted">正在加载...</view>
       </view>
       <view wx:elif="{{loadFailed}}" class="empty-state">
-        <view class="text-muted">加载首页失败，请下拉重试或稍后再试。</view>
+        <view class="text-muted">加载失败，请下拉重试</view>
       </view>
 
-      <view wx:elif="{{abnormalRows.length}}" class="abnormal-list">
+      <view wx:elif="{{abnormalRows.length}}" class="reminder-list">
         <view
           wx:for="{{abnormalRows}}"
           wx:key="roomId"
-          class="abnormal-row"
+          class="reminder-row"
           data-url="{{item.url}}"
           bindtap="openAbnormalRow"
         >
-          <view class="abnormal-main">
-            <view class="abnormal-name">{{item.displayName}}</view>
-            <view class="badge abnormal-reason {{item.primaryReason.indexOf('已逾期') !== -1 ? 'status-overdue' : item.primaryReason.indexOf('即将到期') !== -1 ? 'status-expiring' : item.primaryReason.indexOf('空置过久') !== -1 ? 'status-vacancy' : 'status-manual'}}">{{item.primaryReason}}</view>
+          <view class="reminder-chip chip-{{item.tone}}">{{item.reasonLabel}}</view>
+          <view class="reminder-name">{{item.displayName}}</view>
+          <view class="reminder-meta">
+            <text class="meta-text">{{item.supportingText}}</text>
+            <text class="row-chevron">›</text>
           </view>
-          <view class="abnormal-support text-muted">{{item.supportingText}}</view>
         </view>
       </view>
 
       <view wx:else class="empty-state">
-        <view class="empty-heading">当前暂无异常</view>
-        <view class="text-muted">今日无到期、逾期、空置过久或人工异常房间，可继续查看提醒中心。</view>
+        <view wx:if="{{recommendation}}" class="reminder-row fallback-row" bindtap="openRecommendation">
+          <view class="reminder-chip chip-blue">{{recommendation.label}}</view>
+          <view class="reminder-name">{{recommendation.title}}</view>
+          <view class="reminder-meta">
+            <text class="meta-text">去处理</text>
+            <text class="row-chevron">›</text>
+          </view>
+        </view>
+        <view wx:else class="empty-heading">当前暂无待处理事项</view>
       </view>
     </view>
 
-    <view class="card recommendation-card">
-      <view class="section-head-main">
-        <view class="section-title">今日建议</view>
-        <view class="text-muted">基于当前盘面给出优先动作，建议先处理高风险项。</view>
-      </view>
+    <view class="card todo-card">
       <view wx:if="{{recommendation}}" class="recommendation-body">
-        <view class="badge {{recommendation.type === 'overdue' ? 'status-overdue' : recommendation.type === 'expiring' ? 'status-expiring' : recommendation.type === 'vacancy_long' ? 'status-vacancy' : 'status-manual'}}">{{recommendation.label}}</view>
-        <view class="sub-title recommendation-title">{{recommendation.title}}</view>
-        <button class="primary-button" bindtap="openRecommendation">{{recommendation.actionLabel}}</button>
+        <view class="bell-orb">
+          <view class="bell-icon">
+            <view class="bell-dome"></view>
+            <view class="bell-base"></view>
+            <view class="bell-clapper"></view>
+          </view>
+        </view>
+        <view class="todo-text">
+          <view class="todo-title">待处理提醒</view>
+          <view class="todo-label">优先处理已逾期与3天内到期租约，避免漏收。</view>
+        </view>
+        <button class="primary-button todo-action" bindtap="openRecommendation">去处理</button>
       </view>
       <view wx:else class="empty-state">
-        <view class="text-muted">今天暂无系统优先动作，建议先扫一遍房源列表。</view>
+        <view class="text-muted">暂无优先动作</view>
       </view>
     </view>
-
   </view>
 </view>

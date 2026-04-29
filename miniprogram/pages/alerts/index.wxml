@@ -1,15 +1,8 @@
 <view class="page-shell">
   <view class="alerts-shell page-stack">
-    <view class="card hero-card">
-      <view class="hero-title-row">
-        <view class="page-title">提醒中心</view>
-        <view class="badge status-normal">共 {{totalAlerts}} 条</view>
-      </view>
-      <view class="text-body">先处理“已逾期”，再处理“即将到期”和“空置过久”，最后清理人工异常。</view>
-      <view class="hero-stats">
-        <view wx:for="{{groups}}" wx:key="type" class="stat-chip {{item.badgeClass}}">
-          {{item.label}} {{item.items.length}}
-        </view>
+    <view class="alert-tabs">
+      <view wx:for="{{groups}}" wx:key="type" class="alert-tab {{item.badgeClass}}">
+        {{item.label}} {{item.items.length}}
       </view>
     </view>
 
@@ -30,22 +23,16 @@
     <view
       wx:for="{{groups}}"
       wx:key="type"
-      class="card group-card {{item.toneClass}}"
+      class="group-card {{item.toneClass}}"
     >
       <view class="group-head">
-        <view class="section-head-main">
-          <view class="group-title-row">
-            <view class="sub-title group-title">{{item.label}}</view>
-            <view class="badge {{item.badgeClass}}">{{item.items.length}} 条</view>
-          </view>
-          <view class="text-muted">{{item.helperText}}</view>
+        <view>
+          <view class="group-title">{{item.label}}</view>
+          <view class="group-helper">{{item.helperText}}</view>
         </view>
-        <view class="group-actions">
-          <button class="text-button" data-url="{{item.listUrl}}" bindtap="navigateTo">批量处理</button>
-          <button class="fold-button" data-type="{{item.type}}" bindtap="toggleGroup">
-            {{item.collapsed ? '展开' : '收起'}}
-          </button>
-        </view>
+        <button class="fold-button" data-type="{{item.type}}" bindtap="toggleGroup">
+          {{item.collapsed ? '展开' : '收起'}}
+        </button>
       </view>
 
       <view wx:if="{{!item.collapsed}}" class="group-list">
@@ -57,15 +44,10 @@
           bindtap="navigateTo"
         >
           <view class="alert-main">
-            <view class="alert-head">
-              <view class="alert-title">{{item.title}}</view>
-              <view class="badge {{item.reasonClass}}">{{item.reason}}</view>
-            </view>
-            <view class="alert-summary text-muted">{{item.summary}}</view>
+            <view class="alert-title">{{item.title}}</view>
+            <view class="alert-summary">{{item.summary}}</view>
           </view>
-          <view class="alert-arrow">
-            <view class="text-weak">查看</view>
-          </view>
+          <view class="badge {{item.reasonClass}}">{{item.reason}}</view>
         </view>
       </view>
     </view>

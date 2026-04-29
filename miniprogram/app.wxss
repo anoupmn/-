@@ -1,6 +1,6 @@
 /*
   UI Tokens
-  - Color: #edf1f5 #ffffff #1b2430 #5c6773 #8b95a1 #1f6feb #0f4fbf #dc5a3f #c0392b #d48a00 #a26f00 #64748b #4b5563
+  - Color: #f3f6f9 #ffffff #17243a #4f5d6d #8a95a3 #17243a #223756 #e5484d #c0392b #f59f00 #9a6700 #64748b #4b5563
   - Font: 44 / 34 / 30 / 28 / 24 rpx
   - Space: 8 / 12 / 16 / 20 / 24 / 32 rpx
   - Radius: 16 / 20 / 24 / 999 rpx
@@ -8,8 +8,8 @@
 */
 
 page {
-  background: #edf1f5;
-  color: #1b2430;
+  background: #f3f6f9;
+  color: #17243a;
   font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-size: 28rpx;
 }
@@ -17,27 +17,27 @@ page {
 .page-shell {
   min-height: 100vh;
   box-sizing: border-box;
-  padding: 24rpx 24rpx calc(36rpx + env(safe-area-inset-bottom));
+  padding: 20rpx 20rpx calc(32rpx + env(safe-area-inset-bottom));
 }
 
 .page-stack {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 16rpx;
 }
 
 .card,
 .panel-card {
   background: #ffffff;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: 0 12rpx 28rpx rgba(15, 23, 42, 0.08);
-  border: 1rpx solid rgba(15, 23, 42, 0.04);
+  border-radius: 16rpx;
+  padding: 20rpx;
+  box-shadow: 0 10rpx 24rpx rgba(23, 36, 58, 0.07);
+  border: 1rpx solid #e6ebf1;
   box-sizing: border-box;
 }
 
 .card-quiet {
-  background: #f7f9fc;
+  background: #f8fafc;
   box-shadow: none;
   border-color: #e4e9f0;
 }
@@ -58,24 +58,24 @@ page {
 
 .section-title,
 .headline {
-  font-size: 34rpx;
+  font-size: 32rpx;
   font-weight: 700;
-  color: #1b2430;
+  color: #17243a;
   line-height: 1.35;
 }
 
 .page-title {
-  font-size: 44rpx;
+  font-size: 40rpx;
   font-weight: 700;
   line-height: 1.25;
-  color: #1b2430;
+  color: #17243a;
 }
 
 .sub-title {
   font-size: 30rpx;
   font-weight: 600;
   line-height: 1.35;
-  color: #1b2430;
+  color: #17243a;
 }
 
 .text-body,
@@ -89,20 +89,20 @@ page {
 .hint {
   font-size: 24rpx;
   line-height: 1.55;
-  color: #5c6773;
+  color: #4f5d6d;
 }
 
 .text-weak {
   font-size: 24rpx;
   line-height: 1.55;
-  color: #8b95a1;
+  color: #8a95a3;
 }
 
 .stat-number {
   font-size: 52rpx;
   font-weight: 700;
   line-height: 1.1;
-  color: #1b2430;
+  color: #17243a;
 }
 
 .badge,
@@ -121,26 +121,26 @@ page {
 }
 
 .status-expiring {
-  background: #fff6de;
-  color: #a26f00;
-  border-color: #f0d98f;
+  background: #fff6df;
+  color: #9a6700;
+  border-color: #f3d38b;
 }
 
 .status-overdue {
-  background: #fee7e4;
+  background: #ffe8e6;
   color: #c0392b;
-  border-color: #f3b3aa;
+  border-color: #f0b8b2;
 }
 
 .status-vacancy {
   background: #ffedd4;
-  color: #b86911;
+  color: #a15c07;
   border-color: #f0c797;
 }
 
 .status-manual {
-  background: #eaf0ff;
-  color: #415a8b;
+  background: #eaf0f8;
+  color: #314b72;
   border-color: #c8d7f3;
 }
 
@@ -152,19 +152,19 @@ page {
 
 .input,
 .search-input {
-  min-height: 84rpx;
+  min-height: 72rpx;
   box-sizing: border-box;
-  background: #f7f9fc;
+  background: #f8fafc;
   border: 1rpx solid #d8e0ea;
-  border-radius: 18rpx;
+  border-radius: 14rpx;
   padding: 0 22rpx;
   font-size: 28rpx;
-  color: #1b2430;
+  color: #17243a;
 }
 
 .field-label {
   font-size: 24rpx;
-  color: #5c6773;
+  color: #4f5d6d;
   font-weight: 500;
 }
 
@@ -180,8 +180,8 @@ button {
 .fold-button,
 .auth-button,
 .logout-button {
-  min-height: 82rpx;
-  border-radius: 16rpx;
+  min-height: 76rpx;
+  border-radius: 10rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -193,7 +193,7 @@ button {
 .primary-button,
 .auth-button,
 .nav-button {
-  background: #1f6feb;
+  background: #17243a;
   color: #ffffff;
 }
 
@@ -213,9 +213,9 @@ button {
 .text-button {
   min-height: 64rpx;
   padding: 0 18rpx;
-  background: #e9f2ff;
-  color: #1657b8;
-  border-radius: 14rpx;
+  background: #eef3f8;
+  color: #17243a;
+  border-radius: 10rpx;
   font-size: 24rpx;
 }
 
@@ -231,9 +231,9 @@ button {
 }
 
 .empty-state {
-  border-radius: 20rpx;
+  border-radius: 14rpx;
   padding: 22rpx;
-  background: #f7f9fc;
+  background: #f8fafc;
   border: 1rpx dashed #d8e0ea;
   display: flex;
   flex-direction: column;
@@ -243,7 +243,7 @@ button {
 .empty-heading {
   font-size: 30rpx;
   font-weight: 600;
-  color: #1b2430;
+  color: #17243a;
 }
 
 .grid-2 {

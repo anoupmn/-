@@ -12,6 +12,8 @@ export type DashboardAbnormalRow = {
   displayName: string;
   primaryReason: string;
   supportingText: string;
+  type?: string;
+  reasonLabel?: string;
   query: Record<string, string>;
 };
 

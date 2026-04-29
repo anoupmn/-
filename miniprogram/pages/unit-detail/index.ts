@@ -17,6 +17,7 @@ type MonthlyBillItem = {
   source?: 'system' | 'manual';
   isManual?: boolean;
   receivedAt?: string | null;
+  displayReceivedAt?: string;
   receivedAmount?: number | null;
   note?: string;
   meterReading?: {
@@ -114,6 +115,20 @@ function formatDateLabel(date: string) {
   }
 
   return `${matched[1]}年${matched[2]}月${matched[3]}日`;
+}
+
+function formatDateTime(value: unknown) {
+  const source = String(value || '').trim();
+  if (!source) {
+    return '';
+  }
+
+  const matched = source.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+  if (matched) {
+    return `${matched[1]} ${matched[2]}`;
+  }
+
+  return source.replace('T', ' ').replace(/\.\d{3}Z?$/, '').replace(/Z$/, '');
 }
 
 function formatPeriodLabel(startDate: string, endDate: string) {
@@ -578,6 +593,7 @@ Page({
         responsibility: item.responsibility ?? 'tenant',
         source: (item.source === 'manual' ? 'manual' : 'system') as 'system' | 'manual',
         isManual: item.source === 'manual',
+        displayReceivedAt: formatDateTime(item.receivedAt),
         isReceivedAmountMismatch:
           item.isReceivedAmountMismatch === true
           || (item.receivedAmount != null && Math.abs(Number(item.receivedAmount) - Number(item.amount || 0)) >= 0.01),

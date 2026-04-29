@@ -3,17 +3,18 @@
 .detail-shell {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 16rpx;
 }
 
 .summary-card,
+.lease-card,
 .action-card,
 .history-card,
 .year-card,
 .month-card {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 16rpx;
 }
 
 .summary-top,
@@ -37,15 +38,18 @@
 }
 
 .year-card {
-  padding: 24rpx;
-  border-radius: 20rpx;
-  border: 1rpx solid #e5e7eb;
+  padding: 0;
+  border-radius: 14rpx;
+  border: 1rpx solid #e6ebf1;
   background: #ffffff;
-  margin-top: 20rpx;
+  margin-top: 14rpx;
+  overflow: hidden;
 }
 
 .year-head {
   align-items: center;
+  padding: 18rpx;
+  background: #f8fafc;
 }
 
 .year-months {
@@ -55,17 +59,18 @@
 }
 
 .summary-block {
-  padding: 24rpx;
-  border-radius: 20rpx;
-  background: #eff6ff;
+  padding: 18rpx;
+  border-radius: 12rpx;
+  background: #f4f8fd;
+  border: 1rpx solid #e1e9f4;
 }
 
 .status-pill {
-  padding: 10rpx 20rpx;
+  padding: 6rpx 14rpx;
   border-radius: 999rpx;
-  background: #dbeafe;
-  color: #1d4ed8;
-  font-size: 24rpx;
+  background: #e8f7ee;
+  color: #178a47;
+  font-size: 22rpx;
   font-weight: 600;
 }
 
@@ -76,33 +81,33 @@
 }
 
 .tag {
-  padding: 8rpx 18rpx;
+  padding: 6rpx 14rpx;
   border-radius: 999rpx;
-  background: #f3f4f6;
-  color: #374151;
-  font-size: 24rpx;
+  background: #f1f4f8;
+  color: #4f5d6d;
+  font-size: 22rpx;
 }
 
 .field-label {
   font-size: 24rpx;
   font-weight: 600;
-  color: #6b7280;
+  color: #4f5d6d;
 }
 
 .summary-date {
   font-size: 28rpx;
-  color: #111827;
+  color: #17243a;
 }
 
 .summary-amount {
   font-size: 44rpx;
   font-weight: 700;
-  color: #111827;
+  color: #17243a;
 }
 
 .summary-hint {
   font-size: 24rpx;
-  color: #4b5563;
+  color: #5f6672;
 }
 
 .danger-text {
@@ -121,41 +126,62 @@
 }
 
 .action-button {
-  background: #2563eb;
+  background: #17243a;
 }
 
 .single-action {
   width: 100%;
 }
 
+.lease-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10rpx;
+}
+
+.lease-cell {
+  min-height: 86rpx;
+  padding: 14rpx;
+  border-radius: 12rpx;
+  background: #f8fafc;
+  border: 1rpx solid #e6ebf1;
+  box-sizing: border-box;
+}
+
+.lease-cell:first-child {
+  grid-column: 1 / -1;
+}
+
 .month-card {
-  padding: 20rpx;
-  border-radius: 16rpx;
-  background: #f9fafb;
+  padding: 0 18rpx 18rpx;
+  border-radius: 0;
+  background: #ffffff;
+  border-top: 1rpx solid #eef2f6;
 }
 
 .fee-title {
   font-size: 28rpx;
   font-weight: 600;
-  color: #111827;
+  color: #17243a;
 }
 
 .month-title {
   font-size: 26rpx;
   font-weight: 600;
-  color: #111827;
+  color: #17243a;
 }
 
 .fee-item {
-  padding: 24rpx;
-  border-radius: 20rpx;
-  background: #f9fafb;
+  padding: 18rpx 0;
+  border-radius: 0;
+  background: #ffffff;
+  border-top: 1rpx solid #eef2f6;
 }
 
 .history-item {
   padding: 20rpx;
   border-radius: 16rpx;
-  background: #f9fafb;
+  background: #f8fafc;
   margin-top: 12rpx;
   display: flex;
   flex-direction: column;
@@ -187,7 +213,7 @@
 .lease-tenant {
   font-size: 30rpx;
   font-weight: 600;
-  color: #111827;
+  color: #17243a;
 }
 
 .lease-remark {
@@ -215,13 +241,13 @@
   line-height: 1.3;
   border-radius: 999rpx;
   padding: 8rpx 16rpx;
-  background: #eaf0ff;
-  color: #1d4ed8;
+  background: #eef3f8;
+  color: #17243a;
 }
 
 .lease-toggle {
   font-size: 24rpx;
-  color: #2563eb;
+  color: #17243a;
 }
 
 .renew-lease-button {
@@ -271,18 +297,18 @@
 .fee-name {
   font-size: 28rpx;
   font-weight: 600;
-  color: #111827;
+  color: #17243a;
 }
 
 .fee-status {
   font-size: 24rpx;
-  color: #2563eb;
+  color: #17243a;
 }
 
 .mini-pay-button {
   padding: 10rpx 24rpx;
-  border-radius: 999rpx;
-  background: #2563eb;
+  border-radius: 8rpx;
+  background: #17243a;
   color: #ffffff;
   font-size: 24rpx;
   width: auto;
@@ -296,7 +322,7 @@
 .mini-delete-button {
   min-width: 0;
   padding: 8rpx 20rpx;
-  border-radius: 999rpx;
+  border-radius: 8rpx;
   border: 1rpx solid #fecaca;
   background: #ffffff;
   color: #dc2626;
@@ -331,7 +357,7 @@
 
 .fee-note {
   font-size: 22rpx;
-  color: #6b7280;
+  color: #5f6672;
 }
 
 .meter-block {
@@ -358,7 +384,7 @@
 .meter-value {
   margin-top: 4rpx;
   font-size: 26rpx;
-  color: #111827;
+  color: #17243a;
 }
 
 .month-add-button {
@@ -367,18 +393,20 @@
   line-height: 60rpx;
   padding: 0 24rpx;
   font-size: 24rpx;
-  border-radius: 999rpx;
+  border-radius: 8rpx;
 }
 
 .section-subtitle {
   font-size: 28rpx;
   font-weight: 600;
+  color: #17243a;
 }
 
 .text-button {
-  padding: 0;
+  min-height: 44rpx;
+  padding: 0 12rpx;
   background: transparent;
-  color: #2563eb;
+  color: #17243a;
   line-height: 1.4;
 }
 
@@ -414,8 +442,8 @@
   width: 100%;
   max-height: 88vh;
   background: #ffffff;
-  border-radius: 24rpx;
-  padding: 32rpx;
+  border-radius: 16rpx;
+  padding: 28rpx;
   display: flex;
   flex-direction: column;
   gap: 20rpx;
@@ -423,9 +451,10 @@
 }
 
 .picker-field {
-  padding: 20rpx 24rpx;
-  border-radius: 16rpx;
-  background: #f9fafb;
+  padding: 18rpx 20rpx;
+  border-radius: 12rpx;
+  background: #f8fafc;
+  border: 1rpx solid #e6ebf1;
 }
 
 .renew-dialog-card {
@@ -449,7 +478,7 @@
   padding: 18rpx;
   border-radius: 16rpx;
   border: 1rpx solid #e5e7eb;
-  background: #f9fafb;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   gap: 14rpx;

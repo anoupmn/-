@@ -11,11 +11,79 @@ function currentMonthKey() {
 }
 function asOptions(records, labelKey = 'name') {
     return records
-        .filter((record) => record?.id)
+        .filter((record) => record === null || record === void 0 ? void 0 : record.id)
         .map((record) => ({
         label: String(record[labelKey] || '未命名'),
         value: String(record.id)
     }));
+}
+function formatDateTime(value) {
+    const source = String(value || '').trim();
+    if (!source) {
+        return '';
+    }
+    const matched = source.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+    if (matched) {
+        return `${matched[1]} ${matched[2]}`;
+    }
+    return source.replace('T', ' ').replace(/\.\d{3}Z?$/, '').replace(/Z$/, '');
+}
+function normalizeReceiptRecords(receipts) {
+    return receipts.map((receipt) => ({
+        ...receipt,
+        displayReceivedAt: formatDateTime(receipt.receivedAt),
+        displayCreatedAt: formatDateTime(receipt.createdAt)
+    }));
+}
+function buildIssueLeaseLabel(lease) {
+    const tenant = lease.tenantName || '未知租客';
+    const period = lease.startDate && lease.endDate ? `${lease.startDate} 至 ${lease.endDate}` : '租约';
+    return `${tenant} · ${period}`;
+}
+function uniqueIssueOptions(leases, valueKey, labelKey) {
+    const map = new Map();
+    leases.forEach((lease) => {
+        const value = String(lease[valueKey] || '');
+        if (value && !map.has(value)) {
+            map.set(value, String(lease[labelKey] || '未命名'));
+        }
+    });
+    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+}
+function buildIssueSelectionState(input) {
+    var _a, _b, _c;
+    const issueAssetOptions = uniqueIssueOptions(input.leases, 'assetId', 'assetName');
+    const selectedIssueAssetId = issueAssetOptions.some((option) => option.value === input.assetId)
+        ? String(input.assetId)
+        : String(((_a = issueAssetOptions[0]) === null || _a === void 0 ? void 0 : _a.value) || '');
+    const assetLeases = input.leases.filter((lease) => String(lease.assetId || '') === selectedIssueAssetId);
+    const issueRoomOptions = uniqueIssueOptions(assetLeases, 'roomId', 'roomName');
+    const selectedIssueRoomId = issueRoomOptions.some((option) => option.value === input.roomId)
+        ? String(input.roomId)
+        : String(((_b = issueRoomOptions[0]) === null || _b === void 0 ? void 0 : _b.value) || '');
+    const roomLeases = assetLeases.filter((lease) => String(lease.roomId || '') === selectedIssueRoomId);
+    const selectedLease = roomLeases.find((lease) => lease.leaseId === input.leaseId) || roomLeases[0];
+    const receiptMonthOptions = (selectedLease === null || selectedLease === void 0 ? void 0 : selectedLease.months) || [];
+    const selectedMonth = receiptMonthOptions.some((month) => month.month === input.month)
+        ? String(input.month)
+        : String(((_c = receiptMonthOptions[0]) === null || _c === void 0 ? void 0 : _c.month) || '');
+    return {
+        issueAssetOptions,
+        issueRoomOptions,
+        issueLeaseOptions: roomLeases.map((lease) => ({
+            label: buildIssueLeaseLabel(lease),
+            value: lease.leaseId
+        })),
+        receiptMonthOptions,
+        selectedIssueAssetIndex: Math.max(0, issueAssetOptions.findIndex((option) => option.value === selectedIssueAssetId)),
+        selectedIssueRoomIndex: Math.max(0, issueRoomOptions.findIndex((option) => option.value === selectedIssueRoomId)),
+        selectedReceiptLeaseIndex: Math.max(0, roomLeases.findIndex((lease) => lease.leaseId === (selectedLease === null || selectedLease === void 0 ? void 0 : selectedLease.leaseId))),
+        selectedReceiptMonthIndex: Math.max(0, receiptMonthOptions.findIndex((month) => month.month === selectedMonth)),
+        selectedIssueAssetId,
+        selectedIssueRoomId,
+        selectedReceiptLeaseId: (selectedLease === null || selectedLease === void 0 ? void 0 : selectedLease.leaseId) || '',
+        selectedReceiptMonth: selectedMonth
+    };
 }
 function uniqueTenantOptions(receipts) {
     const map = new Map();
@@ -32,8 +100,9 @@ function monthLabel(month) {
 }
 function groupReceipts(receipts) {
     const groups = receipts.reduce((acc, receipt) => {
+        var _a;
         const month = receipt.monthKey || 'unknown';
-        acc.set(month, [...(acc.get(month) ?? []), receipt]);
+        acc.set(month, [...((_a = acc.get(month)) !== null && _a !== void 0 ? _a : []), receipt]);
         return acc;
     }, new Map());
     return Array.from(groups.entries())
@@ -51,8 +120,9 @@ function groupReceipts(receipts) {
         .sort((left, right) => right.month.localeCompare(left.month));
 }
 function resolveReceiptCloudError(error, fallback) {
+    var _a, _b;
     const record = error;
-    const raw = `${record?.message ?? ''} ${record?.errMsg ?? ''}`.toLowerCase();
+    const raw = `${(_a = record === null || record === void 0 ? void 0 : record.message) !== null && _a !== void 0 ? _a : ''} ${(_b = record === null || record === void 0 ? void 0 : record.errMsg) !== null && _b !== void 0 ? _b : ''}`.toLowerCase();
     if (raw.includes('functionname parameter could not be found') ||
         raw.includes('function_not_found') ||
         raw.includes('function not found')) {
@@ -73,9 +143,16 @@ Page({
         receiptGroups: [],
         allReceipts: [],
         receiptLeaseOptions: [],
+        issueAssetOptions: [],
+        issueRoomOptions: [],
+        issueLeaseOptions: [],
         receiptMonthOptions: [],
+        selectedIssueAssetIndex: 0,
+        selectedIssueRoomIndex: 0,
         selectedReceiptLeaseIndex: 0,
         selectedReceiptMonthIndex: 0,
+        selectedIssueAssetId: '',
+        selectedIssueRoomId: '',
         selectedReceiptLeaseId: '',
         selectedReceiptMonth: '',
         creatingReceipt: false,
@@ -154,7 +231,7 @@ Page({
         });
         try {
             const result = await (0, receipt_1.listReceiptRecords)({ filters: this.buildFilters() });
-            const receipts = result.receipts || [];
+            const receipts = normalizeReceiptRecords(result.receipts || []);
             this.setData({
                 receipts,
                 receiptGroups: groupReceipts(receipts),
@@ -169,7 +246,7 @@ Page({
                 receipts: [],
                 receiptGroups: [],
                 loading: false,
-                error: resolveReceiptCloudError(error, '收据记录加载失败，请稍后重试')
+                error: resolveReceiptCloudError(error, '收据管理加载失败，请稍后重试')
             });
         }
     },
@@ -177,16 +254,9 @@ Page({
         try {
             const result = await (0, receipt_1.listReceiptLeaseOptions)({});
             const receiptLeaseOptions = result.leases || [];
-            const firstLease = receiptLeaseOptions[0];
-            const receiptMonthOptions = firstLease?.months || [];
-            const firstMonth = receiptMonthOptions[0];
             this.setData({
                 receiptLeaseOptions,
-                receiptMonthOptions,
-                selectedReceiptLeaseIndex: 0,
-                selectedReceiptMonthIndex: 0,
-                selectedReceiptLeaseId: firstLease?.leaseId || '',
-                selectedReceiptMonth: firstMonth?.month || '',
+                ...buildIssueSelectionState({ leases: receiptLeaseOptions }),
                 issueError: ''
             });
         }
@@ -194,24 +264,49 @@ Page({
             console.error('load receipt lease options failed', error);
             this.setData({
                 receiptLeaseOptions: [],
+                issueAssetOptions: [],
+                issueRoomOptions: [],
+                issueLeaseOptions: [],
                 receiptMonthOptions: [],
+                selectedIssueAssetId: '',
+                selectedIssueRoomId: '',
                 selectedReceiptLeaseId: '',
                 selectedReceiptMonth: '',
                 issueError: resolveReceiptCloudError(error, '可开收据月份加载失败，请稍后重试')
             });
         }
     },
+    handleIssueAssetChange(event) {
+        const selectedIssueAssetIndex = Number(event.detail.value || 0);
+        const asset = this.data.issueAssetOptions[selectedIssueAssetIndex];
+        this.setData({
+            ...buildIssueSelectionState({
+                leases: this.data.receiptLeaseOptions,
+                assetId: (asset === null || asset === void 0 ? void 0 : asset.value) || ''
+            })
+        });
+    },
+    handleIssueRoomChange(event) {
+        const selectedIssueRoomIndex = Number(event.detail.value || 0);
+        const room = this.data.issueRoomOptions[selectedIssueRoomIndex];
+        this.setData({
+            ...buildIssueSelectionState({
+                leases: this.data.receiptLeaseOptions,
+                assetId: this.data.selectedIssueAssetId,
+                roomId: (room === null || room === void 0 ? void 0 : room.value) || ''
+            })
+        });
+    },
     handleReceiptLeaseChange(event) {
         const selectedReceiptLeaseIndex = Number(event.detail.value || 0);
-        const lease = this.data.receiptLeaseOptions[selectedReceiptLeaseIndex];
-        const receiptMonthOptions = lease?.months || [];
-        const firstMonth = receiptMonthOptions[0];
+        const lease = this.data.issueLeaseOptions[selectedReceiptLeaseIndex];
         this.setData({
-            selectedReceiptLeaseIndex,
-            receiptMonthOptions,
-            selectedReceiptMonthIndex: 0,
-            selectedReceiptLeaseId: lease?.leaseId || '',
-            selectedReceiptMonth: firstMonth?.month || ''
+            ...buildIssueSelectionState({
+                leases: this.data.receiptLeaseOptions,
+                assetId: this.data.selectedIssueAssetId,
+                roomId: this.data.selectedIssueRoomId,
+                leaseId: (lease === null || lease === void 0 ? void 0 : lease.value) || ''
+            })
         });
     },
     handleReceiptMonthChange(event) {
@@ -219,7 +314,7 @@ Page({
         const month = this.data.receiptMonthOptions[selectedReceiptMonthIndex];
         this.setData({
             selectedReceiptMonthIndex,
-            selectedReceiptMonth: month?.month || ''
+            selectedReceiptMonth: (month === null || month === void 0 ? void 0 : month.month) || ''
         });
     },
     async createReceiptForSelectedLease() {
@@ -285,7 +380,7 @@ Page({
         const asset = this.data.assetOptions[selectedAssetIndex];
         this.setData({
             selectedAssetIndex,
-            assetId: asset?.value || '',
+            assetId: (asset === null || asset === void 0 ? void 0 : asset.value) || '',
             selectedTenantIndex: 0,
             tenantId: ''
         });
@@ -297,7 +392,7 @@ Page({
         const room = this.data.roomOptions[selectedRoomIndex];
         this.setData({
             selectedRoomIndex,
-            roomId: room?.value || '',
+            roomId: (room === null || room === void 0 ? void 0 : room.value) || '',
             selectedTenantIndex: 0,
             tenantId: ''
         });
@@ -308,7 +403,7 @@ Page({
         const tenant = this.data.tenantOptions[selectedTenantIndex];
         this.setData({
             selectedTenantIndex,
-            tenantId: tenant?.value || ''
+            tenantId: (tenant === null || tenant === void 0 ? void 0 : tenant.value) || ''
         });
         await this.loadReceipts();
     },

@@ -17,43 +17,52 @@ function recommend(alerts) {
     };
 }
 function buildDashboardPayload(input) {
-    const abnormalAlerts = input.alerts.filter((item) => item.type !== statuses_1.ALERT_TYPES.expiring);
-    const abnormalRoomIds = Array.from(new Set(abnormalAlerts.map((item) => item.roomId)));
-    const topAlertByRoom = abnormalRoomIds
-        .map((roomId) => abnormalAlerts.find((item) => item.roomId === roomId) ?? null)
+    const alertRoomIds = Array.from(new Set(input.alerts.map((item) => item.roomId)));
+    const topAlertByRoom = alertRoomIds
+        .map((roomId) => input.alerts.find((item) => item.roomId === roomId) ?? null)
         .filter((item) => Boolean(item));
     const recommendation = recommend(input.alerts);
     return {
         overviewCards: [
             {
+                key: statuses_1.ALERT_TYPES.overdue,
+                label: statuses_1.ALERT_TYPE_LABELS[statuses_1.ALERT_TYPES.overdue],
+                count: input.alerts.filter((item) => item.type === statuses_1.ALERT_TYPES.overdue).length,
+                query: {
+                    alertType: statuses_1.ALERT_TYPES.overdue
+                }
+            },
+            {
                 key: statuses_1.ALERT_TYPES.expiring,
-                label: '15 天内到期',
+                label: statuses_1.ALERT_TYPE_LABELS[statuses_1.ALERT_TYPES.expiring],
                 count: input.alerts.filter((item) => item.type === statuses_1.ALERT_TYPES.expiring).length,
                 query: {
                     alertType: statuses_1.ALERT_TYPES.expiring
                 }
             },
             {
-                key: 'vacant',
-                label: '当前空置',
-                count: input.units.filter((item) => item.mainStatus === 'vacant').length,
+                key: statuses_1.ALERT_TYPES.vacancyLong,
+                label: statuses_1.ALERT_TYPE_LABELS[statuses_1.ALERT_TYPES.vacancyLong],
+                count: input.alerts.filter((item) => item.type === statuses_1.ALERT_TYPES.vacancyLong).length,
                 query: {
-                    mainStatus: 'vacant'
+                    alertType: statuses_1.ALERT_TYPES.vacancyLong
                 }
             },
             {
-                key: 'abnormal',
-                label: '异常',
-                count: abnormalRoomIds.length,
+                key: statuses_1.ALERT_TYPES.manualAbnormal,
+                label: statuses_1.ALERT_TYPE_LABELS[statuses_1.ALERT_TYPES.manualAbnormal],
+                count: input.alerts.filter((item) => item.type === statuses_1.ALERT_TYPES.manualAbnormal).length,
                 query: {
-                    bucket: 'abnormal'
+                    alertType: statuses_1.ALERT_TYPES.manualAbnormal
                 }
             }
         ],
-        abnormalRows: topAlertByRoom.slice(0, 5).map((item) => {
+        abnormalRows: topAlertByRoom.slice(0, 8).map((item) => {
             const unit = input.units.find((unitItem) => unitItem.roomId === item.roomId);
             return {
                 roomId: item.roomId,
+                type: item.type,
+                reasonLabel: statuses_1.ALERT_TYPE_LABELS[item.type],
                 displayName: unit?.displayName ?? item.title,
                 primaryReason: item.summary.includes('逾期') ? item.summary : item.title,
                 supportingText: item.summary,

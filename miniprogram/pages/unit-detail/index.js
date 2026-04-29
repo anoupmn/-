@@ -6,13 +6,14 @@ const owner_expense_1 = require("../../services/owner-expense");
 const rentable_unit_1 = require("../../services/rentable-unit");
 const receipt_1 = require("../../services/receipt");
 function formatStatusLabel(status) {
+    var _a;
     const mapping = {
         pending: '待收',
         due_today: '今日到期',
         paid: '已收',
         overdue: '逾期'
     };
-    return mapping[status] ?? status;
+    return (_a = mapping[status]) !== null && _a !== void 0 ? _a : status;
 }
 function formatDateLabel(date) {
     const matched = String(date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -20,6 +21,17 @@ function formatDateLabel(date) {
         return date || '';
     }
     return `${matched[1]}年${matched[2]}月${matched[3]}日`;
+}
+function formatDateTime(value) {
+    const source = String(value || '').trim();
+    if (!source) {
+        return '';
+    }
+    const matched = source.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+    if (matched) {
+        return `${matched[1]} ${matched[2]}`;
+    }
+    return source.replace('T', ' ').replace(/\.\d{3}Z?$/, '').replace(/Z$/, '');
 }
 function formatPeriodLabel(startDate, endDate) {
     return `${formatDateLabel(startDate)} - ${formatDateLabel(endDate)}`;
@@ -36,7 +48,7 @@ function normalizeClosedDate(raw) {
     return `${matched[1]}-${matched[2]}-${matched[3]}`;
 }
 function hasOutstandingActiveBills(detail) {
-    const monthlyBillGroups = Array.isArray(detail?.monthlyBillGroups) ? detail.monthlyBillGroups : [];
+    const monthlyBillGroups = Array.isArray(detail === null || detail === void 0 ? void 0 : detail.monthlyBillGroups) ? detail.monthlyBillGroups : [];
     return monthlyBillGroups.some((group) => Array.isArray(group.items) &&
         group.items.some((item) => String(item.status || '').toLowerCase() !== 'paid'));
 }
@@ -48,8 +60,8 @@ function getLocalDateKey() {
     return `${year}-${month}-${day}`;
 }
 function shouldPromptExpiryEndLease(detail) {
-    const activeLease = detail?.activeLease;
-    if (!activeLease?.id) {
+    const activeLease = detail === null || detail === void 0 ? void 0 : detail.activeLease;
+    if (!(activeLease === null || activeLease === void 0 ? void 0 : activeLease.id)) {
         return false;
     }
     const contractEndDate = String(activeLease.endDate || '').slice(0, 10);
@@ -63,8 +75,9 @@ function shouldPromptExpiryEndLease(detail) {
     return !hasOutstandingActiveBills(detail);
 }
 function resolveBillActionErrorMessage(error) {
+    var _a, _b;
     const payload = error;
-    const rawMessage = `${payload?.message ?? ''} ${payload?.errMsg ?? ''}`.toLowerCase();
+    const rawMessage = `${(_a = payload === null || payload === void 0 ? void 0 : payload.message) !== null && _a !== void 0 ? _a : ''} ${(_b = payload === null || payload === void 0 ? void 0 : payload.errMsg) !== null && _b !== void 0 ? _b : ''}`.toLowerCase();
     if (rawMessage.includes('functionname parameter could not be found') || rawMessage.includes('function not found')) {
         return '云函数未部署，请先上传账单相关函数';
     }
@@ -80,8 +93,9 @@ function resolveBillActionErrorMessage(error) {
     return '保存失败，请稍后再试';
 }
 function resolveRepairSaveErrorMessage(error) {
+    var _a, _b;
     const payload = error;
-    const rawMessage = `${payload?.message ?? ''} ${payload?.errMsg ?? ''}`.toLowerCase();
+    const rawMessage = `${(_a = payload === null || payload === void 0 ? void 0 : payload.message) !== null && _a !== void 0 ? _a : ''} ${(_b = payload === null || payload === void 0 ? void 0 : payload.errMsg) !== null && _b !== void 0 ? _b : ''}`.toLowerCase();
     if (rawMessage.includes('missing openid')) {
         return '登录状态已失效，请重新登录';
     }
@@ -103,8 +117,9 @@ function resolveRepairSaveErrorMessage(error) {
     return '维修记录保存失败，请稍后重试';
 }
 function resolveLeaseSaveErrorMessage(error) {
+    var _a, _b, _c;
     const payload = error;
-    const rawMessage = `${payload?.message ?? ''} ${payload?.errMsg ?? ''}`.trim();
+    const rawMessage = `${(_a = payload === null || payload === void 0 ? void 0 : payload.message) !== null && _a !== void 0 ? _a : ''} ${(_b = payload === null || payload === void 0 ? void 0 : payload.errMsg) !== null && _b !== void 0 ? _b : ''}`.trim();
     if (!rawMessage) {
         return '续租失败，请稍后重试';
     }
@@ -113,7 +128,7 @@ function resolveLeaseSaveErrorMessage(error) {
     }
     if (rawMessage.includes('租约时间冲突')) {
         const matched = rawMessage.match(/租约时间冲突[^。]*。?/);
-        return matched?.[0] ?? '续租失败：新租期与现有租约冲突';
+        return (_c = matched === null || matched === void 0 ? void 0 : matched[0]) !== null && _c !== void 0 ? _c : '续租失败：新租期与现有租约冲突';
     }
     if (rawMessage.includes('租约日期不完整')) {
         return '续租失败：租约日期不完整';
@@ -124,10 +139,11 @@ function resolveLeaseSaveErrorMessage(error) {
     return '续租失败，请稍后重试';
 }
 function resolveRenewBaseLease(detail) {
+    var _a;
     if (!detail) {
         return null;
     }
-    if (detail.activeLease?.id) {
+    if ((_a = detail.activeLease) === null || _a === void 0 ? void 0 : _a.id) {
         return detail.activeLease;
     }
     const leaseHistory = Array.isArray(detail.leaseHistory) ? detail.leaseHistory : [];
@@ -137,14 +153,15 @@ function resolveRenewBaseLease(detail) {
     return leaseHistory[0];
 }
 function resolveRenewBaseLeaseById(detail, leaseId) {
+    var _a, _b;
     if (!detail || !leaseId) {
         return null;
     }
-    if (String(detail.activeLease?.id || '') === leaseId) {
+    if (String(((_a = detail.activeLease) === null || _a === void 0 ? void 0 : _a.id) || '') === leaseId) {
         return detail.activeLease;
     }
     const leaseHistory = Array.isArray(detail.leaseHistory) ? detail.leaseHistory : [];
-    return leaseHistory.find((lease) => String(lease.id || '') === leaseId) ?? null;
+    return (_b = leaseHistory.find((lease) => String(lease.id || '') === leaseId)) !== null && _b !== void 0 ? _b : null;
 }
 function formatDateKey(date) {
     const year = date.getFullYear();
@@ -164,11 +181,12 @@ function addMonthsInclusive(startDate, months) {
     return formatDateKey(date);
 }
 function buildRenewCustomFeeDrafts(baseLease) {
-    const feeRules = baseLease.feeRules ?? {};
+    var _a;
+    const feeRules = (_a = baseLease.feeRules) !== null && _a !== void 0 ? _a : {};
     return Array.isArray(feeRules.customFeeItems)
         ? feeRules.customFeeItems
-            .filter((item) => item?.feeNature === 'recurring' &&
-            item?.cadence !== 'once' &&
+            .filter((item) => (item === null || item === void 0 ? void 0 : item.feeNature) === 'recurring' &&
+            (item === null || item === void 0 ? void 0 : item.cadence) !== 'once' &&
             Number(item.amount || 0) > 0)
             .map((item, index) => ({
             key: String(item.key || `renew_custom_${index + 1}`),
@@ -208,11 +226,12 @@ function resolveRenewFeeRules(input) {
     };
 }
 function buildLeaseHistoryViews(detail) {
+    var _a;
     const leaseHistory = Array.isArray(detail.leaseHistory) ? detail.leaseHistory : [];
     const tenantHistory = Array.isArray(detail.tenantHistory) ? detail.tenantHistory : [];
     const repairHistory = Array.isArray(detail.repairHistory) ? detail.repairHistory : [];
     const tenantPeriodRepairs = Array.isArray(detail.tenantPeriodRepairs) ? detail.tenantPeriodRepairs : [];
-    const activeLeaseId = String(detail.activeLease?.id || '');
+    const activeLeaseId = String(((_a = detail.activeLease) === null || _a === void 0 ? void 0 : _a.id) || '');
     const tenantPhoneMap = tenantHistory.reduce((acc, tenant) => {
         const phone = String(tenant.phone || '');
         const businessId = String(tenant.id || '').trim();
@@ -229,6 +248,7 @@ function buildLeaseHistoryViews(detail) {
     return leaseHistory
         .filter((lease) => String(lease.id || '') !== activeLeaseId)
         .map((lease) => {
+        var _a;
         const leaseId = String(lease.id || '');
         const startDate = String(lease.startDate || '');
         const originalEndDate = String(lease.originalEndDate || lease.endDate || '');
@@ -254,7 +274,7 @@ function buildLeaseHistoryViews(detail) {
             originalPeriodLabel: String(lease.originalPeriodLabel || formatPeriodLabel(startDate, originalEndDate)),
             actualPeriodLabel: String(lease.actualPeriodLabel || formatPeriodLabel(startDate, actualEndDate)),
             terminationRemark,
-            repairCount: perLeaseCountMap.get(leaseId) ?? repairs.length,
+            repairCount: (_a = perLeaseCountMap.get(leaseId)) !== null && _a !== void 0 ? _a : repairs.length,
             repairs
         };
     })
@@ -263,6 +283,7 @@ function buildLeaseHistoryViews(detail) {
 function buildYearlyBillGroups(monthlyBillGroups) {
     const currentYear = String(new Date().getFullYear());
     const yearMap = monthlyBillGroups.reduce((acc, group) => {
+        var _a;
         const yearKey = String(group.monthKey || '').slice(0, 4);
         if (!yearKey) {
             return acc;
@@ -275,7 +296,7 @@ function buildYearlyBillGroups(monthlyBillGroups) {
                 months: []
             });
         }
-        acc.get(yearKey)?.months.push(group);
+        (_a = acc.get(yearKey)) === null || _a === void 0 ? void 0 : _a.months.push(group);
         return acc;
     }, new Map());
     const yearGroups = Array.from(yearMap.values())
@@ -334,8 +355,9 @@ function formatNumberInput(value) {
     return Number.isFinite(numeric) && numeric >= 0 ? String(numeric) : '';
 }
 function canCreateReceiptFromBill(item) {
+    var _a;
     return (item.status === 'paid' &&
-        (item.responsibility ?? 'tenant') === 'tenant' &&
+        ((_a = item.responsibility) !== null && _a !== void 0 ? _a : 'tenant') === 'tenant' &&
         Boolean(item.receivedAt) &&
         item.receivedAmount != null &&
         !item.receiptId);
@@ -399,37 +421,43 @@ Page({
         canRenewLease: false
     },
     async loadDetail(roomId) {
-        const nextRoomId = roomId ?? this.data.roomId;
+        var _a, _b, _c;
+        const nextRoomId = roomId !== null && roomId !== void 0 ? roomId : this.data.roomId;
         const detail = (await (0, rentable_unit_1.getRentableUnitDetail)({ roomId: nextRoomId }));
-        const monthlyBillGroups = (detail.monthlyBillGroups ?? []).map((group) => {
-            const items = group.items.map((item) => ({
-                ...item,
-                responsibility: item.responsibility ?? 'tenant',
-                source: (item.source === 'manual' ? 'manual' : 'system'),
-                isManual: item.source === 'manual',
-                isReceivedAmountMismatch: item.isReceivedAmountMismatch === true
-                    || (item.receivedAmount != null && Math.abs(Number(item.receivedAmount) - Number(item.amount || 0)) >= 0.01),
-                statusLabel: formatStatusLabel(item.status),
-                canCreateReceipt: canCreateReceiptFromBill({
+        const monthlyBillGroups = ((_a = detail.monthlyBillGroups) !== null && _a !== void 0 ? _a : []).map((group) => {
+            var _a, _b;
+            const items = group.items.map((item) => {
+                var _a, _b;
+                return ({
                     ...item,
-                    responsibility: item.responsibility ?? 'tenant'
-                })
-            }));
+                    responsibility: (_a = item.responsibility) !== null && _a !== void 0 ? _a : 'tenant',
+                    source: (item.source === 'manual' ? 'manual' : 'system'),
+                    isManual: item.source === 'manual',
+                    displayReceivedAt: formatDateTime(item.receivedAt),
+                    isReceivedAmountMismatch: item.isReceivedAmountMismatch === true
+                        || (item.receivedAmount != null && Math.abs(Number(item.receivedAmount) - Number(item.amount || 0)) >= 0.01),
+                    statusLabel: formatStatusLabel(item.status),
+                    canCreateReceipt: canCreateReceiptFromBill({
+                        ...item,
+                        responsibility: (_b = item.responsibility) !== null && _b !== void 0 ? _b : 'tenant'
+                    })
+                });
+            });
             const receiptCandidateItems = items.filter(canCreateReceiptFromBill);
             const monthReceiptItem = items.find((item) => item.receiptId);
             return {
                 ...group,
                 items,
-                monthReceiptId: monthReceiptItem?.receiptId || '',
-                monthReceiptNo: monthReceiptItem?.receiptNo || '',
-                canIssueMonthReceipt: !monthReceiptItem?.receiptId && receiptCandidateItems.length > 0,
-                receiptLeaseId: receiptCandidateItems[0]?.leaseId || monthReceiptItem?.leaseId || detail.activeLease?.id || '',
+                monthReceiptId: (monthReceiptItem === null || monthReceiptItem === void 0 ? void 0 : monthReceiptItem.receiptId) || '',
+                monthReceiptNo: (monthReceiptItem === null || monthReceiptItem === void 0 ? void 0 : monthReceiptItem.receiptNo) || '',
+                canIssueMonthReceipt: !(monthReceiptItem === null || monthReceiptItem === void 0 ? void 0 : monthReceiptItem.receiptId) && receiptCandidateItems.length > 0,
+                receiptLeaseId: ((_a = receiptCandidateItems[0]) === null || _a === void 0 ? void 0 : _a.leaseId) || (monthReceiptItem === null || monthReceiptItem === void 0 ? void 0 : monthReceiptItem.leaseId) || ((_b = detail.activeLease) === null || _b === void 0 ? void 0 : _b.id) || '',
                 receiptableBillCount: receiptCandidateItems.length,
-                receiptableTotalAmount: receiptCandidateItems.reduce((sum, item) => sum + Number(item.receivedAmount ?? 0), 0)
+                receiptableTotalAmount: receiptCandidateItems.reduce((sum, item) => { var _a; return sum + Number((_a = item.receivedAmount) !== null && _a !== void 0 ? _a : 0); }, 0)
             };
         });
         const leaseHistoryViews = buildLeaseHistoryViews(detail);
-        const previousExpandedState = this.data.expandedLeaseHistory ?? {};
+        const previousExpandedState = (_b = this.data.expandedLeaseHistory) !== null && _b !== void 0 ? _b : {};
         let hasExpandedItem = false;
         const expandedLeaseHistory = leaseHistoryViews.reduce((acc, item) => {
             const expanded = Boolean(previousExpandedState[item.leaseId]);
@@ -458,14 +486,14 @@ Page({
                 ...detail,
                 monthlyBillGroups,
                 yearBillGroups,
-                ownerExpenseSummary: detail.ownerExpenseSummary ?? { count: 0, totalAmount: 0, amountByType: {} },
+                ownerExpenseSummary: (_c = detail.ownerExpenseSummary) !== null && _c !== void 0 ? _c : { count: 0, totalAmount: 0, amountByType: {} },
                 ownerExpenses: Array.isArray(detail.ownerExpenses) ? detail.ownerExpenses : []
             },
             leaseHistoryViews,
             expandedLeaseHistory,
             expandedYears,
             expandedMonths,
-            canRenewLease: Boolean(renewBaseLease?.id)
+            canRenewLease: Boolean(renewBaseLease === null || renewBaseLease === void 0 ? void 0 : renewBaseLease.id)
         });
     },
     async onLoad(query) {
@@ -528,8 +556,9 @@ Page({
         });
     },
     openPaymentDialog(event) {
+        var _a;
         const billId = event.currentTarget.dataset.billId;
-        const amount = String(event.currentTarget.dataset.amount ?? '');
+        const amount = String((_a = event.currentTarget.dataset.amount) !== null && _a !== void 0 ? _a : '');
         const title = event.currentTarget.dataset.title;
         const dueDate = event.currentTarget.dataset.dueDate;
         if (!billId) {
@@ -602,6 +631,7 @@ Page({
         });
     },
     async confirmPayment() {
+        var _a, _b;
         if (this.data.paymentSubmitting) {
             return;
         }
@@ -634,7 +664,7 @@ Page({
             if (!shouldPromptExpiryEndLease(this.data.detail)) {
                 return;
             }
-            const latestLeaseId = String(this.data.detail?.activeLease?.id || '');
+            const latestLeaseId = String(((_b = (_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.activeLease) === null || _b === void 0 ? void 0 : _b.id) || '');
             if (!latestLeaseId) {
                 return;
             }
@@ -672,13 +702,14 @@ Page({
         }
     },
     openManualBillDialog(event) {
+        var _a, _b, _c;
         const monthKey = event.currentTarget.dataset.monthKey;
         const monthLabel = event.currentTarget.dataset.monthLabel;
         if (!monthKey) {
             return;
         }
         const meta = buildManualBillMeta(0);
-        const meterDefault = this.data.detail?.meterDefaults?.water ?? null;
+        const meterDefault = (_c = (_b = (_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.meterDefaults) === null || _b === void 0 ? void 0 : _b.water) !== null && _c !== void 0 ? _c : null;
         this.setData({
             manualBillDialogVisible: true,
             manualBillMeta: {
@@ -691,9 +722,9 @@ Page({
                 typeIndex: 0,
                 itemLabel: meta.itemLabel,
                 amount: '',
-                previousReading: formatNumberInput(meterDefault?.previousReading),
+                previousReading: formatNumberInput(meterDefault === null || meterDefault === void 0 ? void 0 : meterDefault.previousReading),
                 currentReading: '',
-                unitPrice: formatNumberInput(meterDefault?.unitPrice),
+                unitPrice: formatNumberInput(meterDefault === null || meterDefault === void 0 ? void 0 : meterDefault.unitPrice),
                 note: ''
             }
         });
@@ -704,11 +735,12 @@ Page({
         });
     },
     handleManualBillTypeChange(event) {
+        var _a, _b, _c, _d;
         const typeIndex = Number(event.detail.value || 0);
         const meta = buildManualBillMeta(typeIndex);
-        const selectedType = MANUAL_BILL_TYPE_KEYS[typeIndex] ?? 'water';
+        const selectedType = (_a = MANUAL_BILL_TYPE_KEYS[typeIndex]) !== null && _a !== void 0 ? _a : 'water';
         const meterDefault = isUtilityBillType(selectedType)
-            ? this.data.detail?.meterDefaults?.[selectedType] ?? null
+            ? (_d = (_c = (_b = this.data.detail) === null || _b === void 0 ? void 0 : _b.meterDefaults) === null || _c === void 0 ? void 0 : _c[selectedType]) !== null && _d !== void 0 ? _d : null
             : null;
         this.setData({
             manualBillMeta: {
@@ -720,9 +752,9 @@ Page({
                 typeIndex,
                 itemLabel: meta.itemLabel,
                 amount: isUtilityBillType(selectedType) ? '' : this.data.manualBillForm.amount,
-                previousReading: formatNumberInput(meterDefault?.previousReading),
+                previousReading: formatNumberInput(meterDefault === null || meterDefault === void 0 ? void 0 : meterDefault.previousReading),
                 currentReading: '',
-                unitPrice: formatNumberInput(meterDefault?.unitPrice)
+                unitPrice: formatNumberInput(meterDefault === null || meterDefault === void 0 ? void 0 : meterDefault.unitPrice)
             }
         });
     },
@@ -736,13 +768,14 @@ Page({
         });
     },
     async confirmManualBill() {
+        var _a, _b, _c;
         if (this.data.manualBillSubmitting) {
             return;
         }
-        const leaseId = this.data.detail?.activeLease?.id;
+        const leaseId = (_b = (_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.activeLease) === null || _b === void 0 ? void 0 : _b.id;
         const { monthKey, typeIndex, itemLabel, amount, previousReading, currentReading, unitPrice, note } = this.data.manualBillForm;
         const numericAmount = Number(amount || 0);
-        const selectedType = MANUAL_BILL_TYPE_KEYS[typeIndex] ?? 'water';
+        const selectedType = (_c = MANUAL_BILL_TYPE_KEYS[typeIndex]) !== null && _c !== void 0 ? _c : 'water';
         if (!leaseId || !monthKey) {
             wx.showToast({
                 title: '当前租约不存在',
@@ -928,8 +961,9 @@ Page({
         });
     },
     async confirmRepairRecord() {
-        const selectedExpenseType = OWNER_EXPENSE_TYPE_OPTIONS[this.data.repairForm.expenseTypeIndex]?.key ?? 'repair';
-        const selectedCategory = REPAIR_CATEGORY_OPTIONS[this.data.repairForm.categoryIndex]?.key ?? 'other';
+        var _a, _b, _c, _d;
+        const selectedExpenseType = (_b = (_a = OWNER_EXPENSE_TYPE_OPTIONS[this.data.repairForm.expenseTypeIndex]) === null || _a === void 0 ? void 0 : _a.key) !== null && _b !== void 0 ? _b : 'repair';
+        const selectedCategory = (_d = (_c = REPAIR_CATEGORY_OPTIONS[this.data.repairForm.categoryIndex]) === null || _c === void 0 ? void 0 : _c.key) !== null && _d !== void 0 ? _d : 'other';
         const note = String(this.data.repairForm.note || '').trim();
         const occurredAt = String(this.data.repairForm.occurredAt || '').trim();
         const amountText = String(this.data.repairForm.amount || '').trim();
@@ -990,7 +1024,8 @@ Page({
         }
     },
     async handleEndLease() {
-        const leaseId = this.data.detail?.activeLease?.id;
+        var _a, _b;
+        const leaseId = (_b = (_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.activeLease) === null || _b === void 0 ? void 0 : _b.id;
         if (!leaseId) {
             return;
         }
@@ -1015,7 +1050,8 @@ Page({
         });
     },
     async handleDeleteLease() {
-        const leaseId = this.data.detail?.activeLease?.id;
+        var _a, _b, _c;
+        const leaseId = (_b = (_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.activeLease) === null || _b === void 0 ? void 0 : _b.id;
         if (!leaseId) {
             return;
         }
@@ -1025,13 +1061,16 @@ Page({
                 mode: 'check'
             });
             if (!checkResult.canDelete) {
-                const blockerText = (checkResult.blockers ?? [])
-                    .map((item) => ({
-                    paid_bill: '已有已收账单',
-                    receipt: '已有收据引用',
-                    repair_record: '已有维修记录',
-                    owner_expense: '已有房东支出'
-                }[item.code] ?? item.code))
+                const blockerText = ((_c = checkResult.blockers) !== null && _c !== void 0 ? _c : [])
+                    .map((item) => {
+                    var _a;
+                    return ((_a = {
+                        paid_bill: '已有已收账单',
+                        receipt: '已有收据引用',
+                        repair_record: '已有维修记录',
+                        owner_expense: '已有房东支出'
+                    }[item.code]) !== null && _a !== void 0 ? _a : item.code);
+                })
                     .join('、');
                 await wx.showModal({
                     title: '不能安全删除租约',
@@ -1068,12 +1107,13 @@ Page({
         }
     },
     openRenewLeaseForm(event) {
-        const eventLeaseId = String(event?.currentTarget?.dataset?.leaseId || '');
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
+        const eventLeaseId = String(((_b = (_a = event === null || event === void 0 ? void 0 : event.currentTarget) === null || _a === void 0 ? void 0 : _a.dataset) === null || _b === void 0 ? void 0 : _b.leaseId) || '');
         const baseLease = eventLeaseId
             ? resolveRenewBaseLeaseById(this.data.detail, eventLeaseId)
             : resolveRenewBaseLease(this.data.detail);
-        const roomId = String(this.data.roomId || this.data.detail?.room?.id || '');
-        if (!baseLease?.id || !roomId || !baseLease.tenantId) {
+        const roomId = String(this.data.roomId || ((_d = (_c = this.data.detail) === null || _c === void 0 ? void 0 : _c.room) === null || _d === void 0 ? void 0 : _d.id) || '');
+        if (!(baseLease === null || baseLease === void 0 ? void 0 : baseLease.id) || !roomId || !baseLease.tenantId) {
             wx.showToast({
                 title: '当前无可续租的到期租约',
                 icon: 'none'
@@ -1083,9 +1123,9 @@ Page({
         const baseEndDate = String(baseLease.actualEndDate || baseLease.endDate || '').slice(0, 10);
         const startDate = addDays(baseEndDate, 1);
         const endDate = addMonthsInclusive(startDate, 12);
-        const feeRules = baseLease.feeRules ?? {};
-        const rentAmount = Number(feeRules.rent?.amount ?? baseLease.rentAmount ?? 0);
-        const managementAmount = feeRules.management?.cadence === 'once' ? 0 : Number(feeRules.management?.amount ?? 0);
+        const feeRules = (_e = baseLease.feeRules) !== null && _e !== void 0 ? _e : {};
+        const rentAmount = Number((_h = (_g = (_f = feeRules.rent) === null || _f === void 0 ? void 0 : _f.amount) !== null && _g !== void 0 ? _g : baseLease.rentAmount) !== null && _h !== void 0 ? _h : 0);
+        const managementAmount = ((_j = feeRules.management) === null || _j === void 0 ? void 0 : _j.cadence) === 'once' ? 0 : Number((_l = (_k = feeRules.management) === null || _k === void 0 ? void 0 : _k.amount) !== null && _l !== void 0 ? _l : 0);
         this.setData({
             renewDialogVisible: true,
             renewForm: {
@@ -1164,13 +1204,14 @@ Page({
         });
     },
     async confirmRenewLease() {
+        var _a, _b;
         if (this.data.renewingLease) {
             return;
         }
         const baseLease = resolveRenewBaseLeaseById(this.data.detail, this.data.renewForm.sourceLeaseId);
-        const roomId = String(this.data.roomId || this.data.detail?.room?.id || '');
+        const roomId = String(this.data.roomId || ((_b = (_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.room) === null || _b === void 0 ? void 0 : _b.id) || '');
         const { startDate, endDate } = this.data.renewForm;
-        if (!baseLease?.id || !roomId || !baseLease.tenantId) {
+        if (!(baseLease === null || baseLease === void 0 ? void 0 : baseLease.id) || !roomId || !baseLease.tenantId) {
             wx.showToast({
                 title: '当前无可续租的租约',
                 icon: 'none'
@@ -1233,11 +1274,13 @@ Page({
         }
     },
     async endLeaseWithRetry(leaseId) {
+        var _a, _b, _c, _d;
         const confirmLeaseClosed = async () => {
+            var _a, _b;
             for (let attempt = 0; attempt < 3; attempt += 1) {
                 try {
                     await this.loadDetail();
-                    if (!this.data.detail?.activeLease?.id) {
+                    if (!((_b = (_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.activeLease) === null || _b === void 0 ? void 0 : _b.id)) {
                         return true;
                     }
                 }
@@ -1254,7 +1297,7 @@ Page({
         let isTimeout = false;
         try {
             const result = await (0, lease_1.endLease)({ leaseId });
-            if ((result.unpaidBillSummary?.count ?? 0) > 0) {
+            if (((_b = (_a = result.unpaidBillSummary) === null || _a === void 0 ? void 0 : _a.count) !== null && _b !== void 0 ? _b : 0) > 0) {
                 await wx.showModal({
                     title: '未收账单处理',
                     content: '当前仍有未收账单。可保留欠款、作废未收系统账单，或修改截止日期后重算。',
@@ -1266,7 +1309,7 @@ Page({
         catch (error) {
             console.error('end lease failed', error);
             const payload = error;
-            const message = `${payload?.errMsg ?? ''} ${payload?.message ?? ''} ${error instanceof Error ? error.message : ''}`.toLowerCase();
+            const message = `${(_c = payload === null || payload === void 0 ? void 0 : payload.errMsg) !== null && _c !== void 0 ? _c : ''} ${(_d = payload === null || payload === void 0 ? void 0 : payload.message) !== null && _d !== void 0 ? _d : ''} ${error instanceof Error ? error.message : ''}`.toLowerCase();
             isTimeout = message.includes('timeout');
             leaseClosed = await confirmLeaseClosed();
             if (!leaseClosed) {
@@ -1278,7 +1321,7 @@ Page({
         }
         const pages = getCurrentPages();
         const previousPage = pages[pages.length - 2];
-        if (previousPage?.loadUnits) {
+        if (previousPage === null || previousPage === void 0 ? void 0 : previousPage.loadUnits) {
             try {
                 await previousPage.loadUnits();
             }

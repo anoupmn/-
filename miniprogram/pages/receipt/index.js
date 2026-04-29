@@ -7,6 +7,30 @@ function buildReceiptShareTitle(receipt) {
     }
     return `${receipt.receiptNo || '收据'} ${receipt.tenantName || '租客'} 收款收据`;
 }
+function formatDateTime(value) {
+    const source = String(value || '').trim();
+    if (!source) {
+        return '';
+    }
+    const matched = source.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+    if (matched) {
+        return `${matched[1]} ${matched[2]}`;
+    }
+    return source.replace('T', ' ').replace(/\.\d{3}Z?$/, '').replace(/Z$/, '');
+}
+function normalizeReceipt(receipt) {
+    return {
+        ...receipt,
+        displayReceivedAt: formatDateTime(receipt.receivedAt),
+        displayCreatedAt: formatDateTime(receipt.createdAt),
+        items: Array.isArray(receipt.items)
+            ? receipt.items.map((item) => ({
+                ...item,
+                displayReceivedAt: formatDateTime(item.receivedAt)
+            }))
+            : []
+    };
+}
 function buildReceiptSummary(receipt) {
     return [
         '收款收据（非发票）',
@@ -14,7 +38,7 @@ function buildReceiptSummary(receipt) {
         `房源/房间：${receipt.assetName || ''} / ${receipt.roomName || ''}`,
         `租客：${receipt.tenantName || ''}`,
         `合计金额：¥${receipt.totalAmount || 0}`,
-        `收款日期：${receipt.receivedAt || ''}`
+        `收款日期：${receipt.displayReceivedAt || receipt.receivedAt || ''}`
     ].join('\n');
 }
 Page({
@@ -41,8 +65,9 @@ Page({
             const receipt = this.data.receiptId
                 ? await (0, receipt_1.getReceipt)({ receiptId: this.data.receiptId })
                 : await (0, receipt_1.createReceipt)({ billIds: [this.data.billId] });
+            const normalizedReceipt = normalizeReceipt(receipt);
             this.setData({
-                receipt: receipt,
+                receipt: normalizedReceipt,
                 receiptId: String(receipt.id || '')
             });
         }
@@ -61,7 +86,7 @@ Page({
     },
     onShareAppMessage() {
         const receipt = this.data.receipt;
-        const receiptId = String(this.data.receiptId || receipt?.id || '');
+        const receiptId = String(this.data.receiptId || (receipt === null || receipt === void 0 ? void 0 : receipt.id) || '');
         return {
             title: buildReceiptShareTitle(receipt),
             path: receiptId ? `/pages/receipt/index?receiptId=${receiptId}` : '/pages/receipt/index'
@@ -119,7 +144,8 @@ Page({
         }
     },
     async handleDeleteReceipt() {
-        if (!this.data.receipt?.id || this.data.deleting) {
+        var _a;
+        if (!((_a = this.data.receipt) === null || _a === void 0 ? void 0 : _a.id) || this.data.deleting) {
             return;
         }
         const confirmed = await wx.showModal({

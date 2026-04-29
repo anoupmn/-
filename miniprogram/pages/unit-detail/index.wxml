@@ -27,11 +27,22 @@
       <view wx:if="{{detail.summaryCard.overdueHint}}" class="summary-hint danger-text">{{detail.summaryCard.overdueHint}}</view>
     </view>
 
-    <view class="card">
+    <view class="card lease-card">
       <view class="section-subtitle">当前租约</view>
-      <view class="field" wx:if="{{detail.activeLease}}">租期：{{detail.activeLease.startDate}} 至 {{detail.activeLease.endDate}}</view>
-      <view class="field" wx:if="{{detail.activeLease}}">房租：¥{{detail.activeLease.rentAmount}}</view>
-      <view class="field" wx:if="{{detail.activeLease}}">押金：¥{{detail.activeLease.depositAmount}}</view>
+      <view wx:if="{{detail.activeLease}}" class="lease-grid">
+        <view class="lease-cell">
+          <view class="field-label">租期</view>
+          <view class="field">{{detail.activeLease.startDate}} 至 {{detail.activeLease.endDate}}</view>
+        </view>
+        <view class="lease-cell">
+          <view class="field-label">房租</view>
+          <view class="field">¥{{detail.activeLease.rentAmount}}</view>
+        </view>
+        <view class="lease-cell">
+          <view class="field-label">押金</view>
+          <view class="field">¥{{detail.activeLease.depositAmount}}</view>
+        </view>
+      </view>
       <view class="hint" wx:if="{{!detail.activeLease}}">当前没有生效中的租约。</view>
       <button
         wx:if="{{detail.activeLease}}"
@@ -143,7 +154,7 @@
               </view>
               <view class="field">金额：¥{{item.amount}}</view>
             </view>
-            <view wx:if="{{item.receivedAt}}" class="field">收款时间：{{item.receivedAt}}</view>
+            <view wx:if="{{item.receivedAt}}" class="field">收款时间：{{item.displayReceivedAt || item.receivedAt}}</view>
             <view wx:if="{{item.isReceivedAmountMismatch}}" class="fee-note">
               实收 ¥{{item.receivedAmount}}，与应收不一致
             </view>

@@ -1,7 +1,9 @@
 <view class="page-shell">
   <view class="auth-shell">
-    <view class="card auth-card">
+    <view class="auth-card">
       <image class="brand-logo" src="/assets/brand/logo.jpg" mode="aspectFit" />
+      <view class="brand-title">收租吧</view>
+      <view class="brand-sub">房东经营管理小程序</view>
       <button class="auth-button" loading="{{submitting}}" disabled="{{loading || submitting}}" bindtap="handleLogin">
         微信一键登录
       </button>

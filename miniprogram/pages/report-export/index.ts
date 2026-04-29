@@ -9,6 +9,27 @@ function currentMonthKey() {
   return `${year}-${month}`;
 }
 
+function formatDateTime(value: unknown) {
+  const source = String(value || '').trim();
+  if (!source) {
+    return '';
+  }
+
+  const matched = source.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+  if (matched) {
+    return `${matched[1]} ${matched[2]}`;
+  }
+
+  return source.replace('T', ' ').replace(/\.\d{3}Z?$/, '').replace(/Z$/, '');
+}
+
+function normalizeExportRecords(records: Array<Record<string, any>>) {
+  return records.map((record) => ({
+    ...record,
+    displayCreatedAt: formatDateTime(record.createdAt)
+  }));
+}
+
 Page({
   data: {
     month: currentMonthKey(),
@@ -80,7 +101,7 @@ Page({
     try {
       const response = await listReportExports() as { exports?: Array<Record<string, any>> };
       this.setData({
-        exports: response.exports || [],
+        exports: normalizeExportRecords(response.exports || []),
         loadingExports: false
       });
     } catch (error) {
