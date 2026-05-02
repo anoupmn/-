@@ -111,7 +111,7 @@ function buildMonthlyRow(input) {
         房租水电合计: sumBills([...rentBills, ...managementBills, ...utilityBills, ...otherReceivableBills], (bill) => bill.amount),
         本月实收: sumBills(paidThisMonth, (bill) => bill.receivedAmount ?? 0),
         本月未收: sumBills(unpaidThisMonth, (bill) => bill.amount),
-        备注: [checkoutNotes, input.bills.map((bill) => bill.note).filter(Boolean).join('；')].filter(Boolean).join('；')
+        备注: [checkoutNotes, input.bills.filter((b) => b.responsibility !== 'landlord').map((bill) => bill.note).filter(Boolean).join('；')].filter(Boolean).join('；')
     };
 }
 function buildBillDetailRows(input) {
