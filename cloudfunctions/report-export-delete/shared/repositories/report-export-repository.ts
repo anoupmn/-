@@ -29,7 +29,9 @@ const BILL_TYPE_LABELS: Record<string, string> = {
   electricity: '电费',
   property: '物业费',
   misc: '其他费用',
-  custom: '自定义费用'
+  custom: '自定义费用',
+  rent_refund: '余下租金',
+  deposit_refund: '退还押金'
 };
 
 const FEE_NATURE_LABELS: Record<string, string> = {
@@ -105,13 +107,18 @@ function buildMonthlyRow(input: {
   const managementBills = input.bills.filter((bill) => bill.type === 'management');
   const utilityBills = input.bills.filter((bill) => bill.type === 'water' || bill.type === 'electricity');
   const otherReceivableBills = input.bills.filter(
-    (bill) => !['rent', 'management', 'water', 'electricity'].includes(bill.type)
+    (bill) => !['rent', 'management', 'water', 'electricity', 'rent_refund', 'deposit_refund'].includes(bill.type)
+      && bill.responsibility !== 'landlord'
   );
   const repairExpenses = input.ownerExpenses.filter((expense) => expense.expenseType === 'repair');
   const otherExpenses = input.ownerExpenses.filter((expense) => expense.expenseType !== 'repair');
   const tenantIncomeBills = input.bills.filter((bill) => bill.responsibility === 'tenant');
   const paidThisMonth = tenantIncomeBills.filter(isPaid);
   const unpaidThisMonth = tenantIncomeBills.filter((bill) => !isPaid(bill));
+  const checkoutRefundBills = input.bills.filter(
+    (bill) => bill.responsibility === 'landlord' && ['rent_refund', 'deposit_refund'].includes(bill.type)
+  );
+  const checkoutExpense = checkoutRefundBills.reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
 
   return {
     序号: input.index,
@@ -131,7 +138,7 @@ function buildMonthlyRow(input: {
     其他应收: sumBills(otherReceivableBills, (bill) => bill.amount),
     维修费: sumExpenses(repairExpenses),
     其他支出: sumExpenses(otherExpenses),
-    退租支出: 0,
+    退租支出: checkoutExpense,
     房租水电合计: sumBills([...rentBills, ...managementBills, ...utilityBills, ...otherReceivableBills], (bill) => bill.amount),
     本月实收: sumBills(paidThisMonth, (bill) => bill.receivedAmount ?? 0),
     本月未收: sumBills(unpaidThisMonth, (bill) => bill.amount),
@@ -237,11 +244,31 @@ export async function buildMonthlyReportData(
     });
   });
 
+  const 退租支出明细账单 = scopedBills.filter(
+    (bill) => bill.responsibility === 'landlord' && ['rent_refund', 'deposit_refund'].includes(bill.type)
+  );
+  const 退租支出明细 = 退租支出明细账单.map((bill) => {
+    const lease = leasesById.get(bill.leaseId);
+    const room = roomsById.get(bill.roomId);
+    const tenant = lease ? tenantsById.get(lease.tenantId) : undefined;
+    const asset = findRoomAsset(room, assetsById);
+    return {
+      '房源/楼栋': asset?.name ?? '',
+      '房号/房间': room?.name ?? '',
+      '租客': tenant?.name ?? '',
+      '租约': lease ? `${lease.startDate} ~ ${lease.endDate}` : '',
+      '退租日期': bill.dueDate,
+      '支出类型': bill.type === 'rent_refund' ? '余下租金' : '退还押金',
+      '金额': bill.amount,
+      '备注': bill.note ?? ''
+    };
+  });
+
   return {
     月度明细,
     账单明细: buildBillDetailRows({ bills: scopedBills, roomsById, assetsById, leasesById, tenantsById }),
     房东支出明细: buildOwnerExpenseRows({ ownerExpenses: scopedExpenses, roomsById, assetsById }),
-    退租支出明细: []
+    退租支出明细
   };
 }
 

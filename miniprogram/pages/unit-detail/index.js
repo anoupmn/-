@@ -1197,7 +1197,7 @@ Page({
                 }
             });
             this.setData({ settlementDialogVisible: false });
-            wx.showToast({ title: '\u79df\u7ea6\u5df2\u7ed3\u675f\uff0c\u7ed3\u7b97\u5b8c\u6210', icon: 'success' });
+            wx.showToast({ title: '\u5df2\u7ed3\u675f', icon: 'success' });
             await this.loadDetail();
         }
         catch (error) {

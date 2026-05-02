@@ -1401,7 +1401,7 @@ Page({
       } as any);
 
       this.setData({ settlementDialogVisible: false });
-      wx.showToast({ title: '租约已结束，结算完成', icon: 'success' });
+      wx.showToast({ title: '已结束', icon: 'success' });
       await this.loadDetail();
     } catch (error) {
       console.error('confirm settlement failed', error);
