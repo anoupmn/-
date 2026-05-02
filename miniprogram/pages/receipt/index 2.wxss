@@ -1,0 +1,152 @@
+.receipt-shell,
+.receipt-paper,
+.receipt-info,
+.items-table,
+.action-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.receipt-paper {
+  padding: 24rpx;
+  border-radius: 16rpx;
+  background: #ffffff;
+  border: 1rpx solid #dfe5ed;
+  box-shadow: 0 8rpx 20rpx rgba(23, 36, 58, 0.06);
+}
+
+.receipt-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  padding-bottom: 18rpx;
+  border-bottom: 2rpx solid #17243a;
+}
+
+.receipt-title {
+  color: #17243a;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.receipt-date,
+.created-line,
+.receipt-note {
+  color: #5f6672;
+  font-size: 23rpx;
+}
+
+.receipt-info {
+  gap: 0;
+  border: 1rpx solid #e6ebf1;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.info-line {
+  min-height: 64rpx;
+  display: grid;
+  grid-template-columns: 168rpx minmax(0, 1fr);
+  align-items: center;
+  border-bottom: 1rpx solid #e6ebf1;
+}
+
+.info-line:last-child {
+  border-bottom: 0;
+}
+
+.info-line .field-label {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 16rpx;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+
+.info-value {
+  min-width: 0;
+  padding: 0 16rpx;
+  color: #17243a;
+  font-size: 25rpx;
+  font-weight: 600;
+}
+
+.table-head,
+.table-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 0.8fr;
+  gap: 8rpx;
+  align-items: center;
+}
+
+.items-title {
+  color: #17243a;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.table-head {
+  padding: 12rpx 8rpx;
+  border-bottom: 1rpx solid #17243a;
+  color: #17243a;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.table-row {
+  padding: 12rpx 8rpx;
+  border-bottom: 1rpx solid #eef2f6;
+  color: #334155;
+  font-size: 22rpx;
+  line-height: 1.35;
+}
+
+.cell-main {
+  color: #17243a;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.amount-cell {
+  text-align: right;
+  color: #17243a;
+  font-weight: 700;
+}
+
+.meter-line {
+  grid-column: 1 / -1;
+  color: #8a95a3;
+  font-size: 21rpx;
+}
+
+.total-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 18rpx 0 4rpx;
+  border-top: 1rpx solid #dfe5ed;
+  color: #17243a;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12rpx;
+  padding-top: 12rpx;
+}
+
+.action-grid button {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 16rpx;
+  font-size: 24rpx;
+  line-height: 1.2;
+  white-space: normal;
+}

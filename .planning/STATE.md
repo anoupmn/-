@@ -5,7 +5,7 @@ milestone_name: milestone
 status: Phase 07 Complete
 last_updated: "2026-04-28T15:20:00.000Z"
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 7
   total_plans: 26
   completed_plans: 26
@@ -61,12 +61,14 @@ progress:
 | 5 | 费用与账单模型优化 | 已完成（5/5） |
 | 6 | 月度导出与收据 | 已完成（4/4） |
 | 7 | 收据管理与凭证体验补全 | 已完成（4/4） |
+| 8 | 退租结算 | 规划中 |
 
 ## 累积上下文
 
 ### 路线图演进
 
 - Phase 7 added: 收据管理与凭证体验补全
+- Phase 8 added: 退租结算
 
 ## 本次决策
 

@@ -1,0 +1,11 @@
+{
+  "name": "rzb-report-export-create",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "dayjs": "^1.11.20",
+    "wx-server-sdk": "latest",
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6"
+  }
+}

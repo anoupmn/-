@@ -472,3 +472,61 @@
     </view>
   </view>
 </view>
+
+  <view wx:if="{{settlementDialogVisible}}" class="dialog-mask" catchtap="closeSettlementDialog">
+    <view class="dialog-card settlement-dialog" catchtap="">
+      <view class="section-subtitle">退租结算</view>
+
+      <view class="settlement-section">
+        <view class="settlement-label">
+          未收账单：{{settlement.unpaidCount}} 笔
+          <text wx:if="{{settlement.unpaidTotal > 0}}">，合计 ¥{{settlement.unpaidTotal}}</text>
+        </view>
+      </view>
+
+      <view class="settlement-section">
+        <view class="settlement-label {{settlement.waterLastDate ? '' : 'warn-text'}}">
+          水费最后记录：{{settlement.waterLastDate || '无记录，建议补录'}}
+        </view>
+      </view>
+
+      <view class="settlement-section">
+        <view class="settlement-label {{settlement.electricityLastDate ? '' : 'warn-text'}}">
+          电费最后记录：{{settlement.electricityLastDate || '无记录，建议补录'}}
+        </view>
+      </view>
+
+      <view wx:if="{{settlement.isEarlyTermination}}" class="settlement-section">
+        <view class="settlement-label">
+          余下租金（预估）：¥{{settlement.rentRefundEstimate}}
+        </view>
+        <view class="settlement-sub">每周期租金 ¥{{settlement.dailyRent}}/天</view>
+        <view class="labeled-input">
+          <view class="field-label">退款天数</view>
+          <input class="input" type="number" value="{{settlement.rentRefundDays}}" bindinput="handleSettlementRentDaysChange" placeholder="0"/>
+        </view>
+      </view>
+
+      <view wx:if="{{settlement.hasDeposit || settlement.hasFireDeposit || settlement.hasLockCardDeposit}}" class="settlement-section">
+        <view class="settlement-label">押金退还</view>
+        <view wx:if="{{settlement.hasDeposit}}" class="settlement-check" data-field="refundDeposit" bindtap="toggleSettlementCheckbox">
+          <view class="check-box {{settlement.refundDeposit ? 'check-box-on' : ''}}">{{settlement.refundDeposit ? '✓' : ''}}</view>
+          <view class="check-label">押金</view>
+        </view>
+        <view wx:if="{{settlement.hasFireDeposit}}" class="settlement-check" data-field="refundFireDeposit" bindtap="toggleSettlementCheckbox">
+          <view class="check-box {{settlement.refundFireDeposit ? 'check-box-on' : ''}}">{{settlement.refundFireDeposit ? '✓' : ''}}</view>
+          <view class="check-label">消防押金</view>
+        </view>
+        <view wx:if="{{settlement.hasLockCardDeposit}}" class="settlement-check" data-field="refundLockCardDeposit" bindtap="toggleSettlementCheckbox">
+          <view class="check-box {{settlement.refundLockCardDeposit ? 'check-box-on' : ''}}">{{settlement.refundLockCardDeposit ? '✓' : ''}}</view>
+          <view class="check-label">门禁卡押金</view>
+        </view>
+      </view>
+
+      <view class="settlement-actions">
+        <button class="secondary-button" bindtap="closeSettlementDialog">取消</button>
+        <button class="primary-button" loading="{{settlement.submitting}}" disabled="{{settlement.submitting}}" bindtap="confirmSettlement">确认退租结算</button>
+      </view>
+    </view>
+  </view>
+</view>

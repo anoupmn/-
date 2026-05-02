@@ -1,0 +1,87 @@
+<view class="page-shell">
+  <view class="report-export-shell page-stack">
+    <view class="card export-summary">
+      <picker mode="date" fields="month" value="{{month}}" bindchange="handleMonthChange">
+        <view class="picker-line">
+          <view class="field-label">月份</view>
+          <view class="picker-value">{{month}}</view>
+        </view>
+      </picker>
+
+      <radio-group class="range-segments" bindchange="handleRangeChange">
+        <label class="range-option {{rangeType === 'all' ? 'active' : ''}}">
+          <radio class="hidden-radio" value="all" checked="{{rangeType === 'all'}}" />全部
+        </label>
+        <label class="range-option {{rangeType === 'asset' ? 'active' : ''}}">
+          <radio class="hidden-radio" value="asset" checked="{{rangeType === 'asset'}}" />按房源
+        </label>
+        <label class="range-option {{rangeType === 'room' ? 'active' : ''}}">
+          <radio class="hidden-radio" value="room" checked="{{rangeType === 'room'}}" />按房间
+        </label>
+      </radio-group>
+
+      <picker wx:if="{{rangeType === 'asset' || rangeType === 'room'}}" range="{{assetOptions}}" value="{{selectedAssetIndex}}" bindchange="handleAssetChange">
+        <view class="picker-line">
+          <view class="field-label">选择房源</view>
+          <view class="picker-value">{{assetOptions[selectedAssetIndex] || '暂无房源'}}</view>
+        </view>
+      </picker>
+      <picker wx:if="{{rangeType === 'room'}}" range="{{roomOptions}}" value="{{selectedRoomIndex}}" bindchange="handleRoomChange">
+        <view class="picker-line">
+          <view class="field-label">选择房间</view>
+          <view class="picker-value">{{roomOptions[selectedRoomIndex] || '暂无房间'}}</view>
+        </view>
+      </picker>
+
+      <button class="primary-button" loading="{{exporting}}" disabled="{{exporting}}" bindtap="createExport">导出报表</button>
+    </view>
+
+    <view wx:if="{{result}}" class="card result-card">
+      <view class="section-title">导出的摘要</view>
+      <view class="summary-grid">
+        <view class="summary-cell">
+          <view class="field-label">应收金额</view>
+          <view class="summary-money">¥{{result.summary.tenantIncomeTotal}}</view>
+        </view>
+        <view class="summary-cell">
+          <view class="field-label">支出金额</view>
+          <view class="summary-money danger">¥{{result.summary.ownerExpenseTotal}}</view>
+        </view>
+        <view class="summary-cell">
+          <view class="field-label">房间数</view>
+          <view class="summary-money">{{result.summary.roomCount}}</view>
+        </view>
+        <view class="summary-cell">
+          <view class="field-label">账单数</view>
+          <view class="summary-money">{{result.summary.billCount}}</view>
+        </view>
+      </view>
+      <button class="secondary-button" bindtap="openExportFile">打开 Excel</button>
+    </view>
+
+    <view class="records-block">
+      <view class="section-title">导出记录</view>
+      <view wx:if="{{loadingExports}}" class="card text-muted">正在加载导出记录...</view>
+      <view wx:elif="{{!exports.length}}" class="card text-muted">暂无导出记录</view>
+      <view wx:for="{{exports}}" wx:key="id" class="export-record">
+        <view class="record-main">
+          <view class="record-title">{{item.month}} · {{item.scopeLabel}}</view>
+          <view class="record-sub">导出时间：{{item.displayCreatedAt || item.createdAt}}</view>
+          <view class="record-sub">收入 ¥{{item.summary.tenantIncomeTotal}} / 支出 ¥{{item.summary.ownerExpenseTotal}}</view>
+        </view>
+        <view class="record-actions">
+          <button class="icon-button" data-file-id="{{item.fileID}}" bindtap="openExportRecord">查看</button>
+          <button
+            class="icon-button danger"
+            data-export-id="{{item.id}}"
+            loading="{{deletingExportId === item.id}}"
+            disabled="{{deletingExportId}}"
+            bindtap="deleteExportRecord"
+          >
+            删除
+          </button>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

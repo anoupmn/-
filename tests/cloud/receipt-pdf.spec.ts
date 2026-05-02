@@ -4,6 +4,19 @@ import { createMockDb, createMockStore, getWXContext } from '../helpers/mock-clo
 describe('receipt-pdf cloud function', () => {
   it('builds a printable pdf for a receipt snapshot', async () => {
     const store = createMockStore();
+    store.leases.push({
+      id: 'lease_1',
+      landlordOpenId: 'openid',
+      roomId: 'room_101',
+      tenantId: 'tenant_1',
+      startDate: '2026-01-01',
+      endDate: '2026-12-31',
+      billingCycleDays: 30,
+      rentAmount: 2600,
+      depositAmount: 2600,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    });
     store.receipts.push({
       id: 'receipt_1',
       receiptNo: 'R202604280001',
@@ -47,7 +60,7 @@ describe('receipt-pdf cloud function', () => {
       receiptId: 'receipt_1'
     } as any);
 
-    expect(result.fileName).toBe('R202604280001-张三-收款收据.pdf');
+    expect(result.fileName).toBe('收款收据-房源152号楼-房间101-租约2026-01-01至2026-12-31-租客张三-R202604280001.pdf');
     expect(result.contentType).toBe('application/pdf');
     expect(result.size).toBeGreaterThan(100);
     const pdf = Buffer.from(result.pdfBase64 || '', 'base64').toString('binary');

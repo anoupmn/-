@@ -125,7 +125,75 @@ describe('leases-end cloud function', () => {
       __mockDb: createLeasesOnlyDb(leases) as any,
       __mockContext: { getWXContext: () => getWXContext('openid_test') },
       now
+  it('supports settlement parameter without breaking backward compatibility', async () => {
+    const leases: LeaseRecord[] = [
+      {
+        _id: 'db_lease_s',
+        id: 'lease_s',
+        landlordOpenId: 'openid_test',
+        roomId: 'room_1',
+        tenantId: 'tenant_1',
+        startDate: '2026-01-01',
+        endDate: '2026-12-31',
+        billingCycleDays: 30,
+        rentAmount: 3200,
+        depositAmount: 3200,
+        note: '',
+        closedAt: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z'
+      }
+    ];
+    const now = '2026-04-15T00:00:00.000Z';
+
+    const result = await leasesEndMain({
+      leaseId: 'lease_s',
+      settlement: {
+        voidFutureSystemBills: true,
+        refundDeposit: true
+      },
+      __mockDb: createLeasesOnlyDb(leases) as any,
+      __mockContext: { getWXContext: () => getWXContext('openid_test') },
+      now
     });
+
+    expect(result.lease.closedAt).toBe(now);
+    expect(leases.find((item) => item.id === 'lease_s')?.closedAt).toBe(now);
+  });
+
+  it('endLease without settlement preserves backward compatibility', async () => {
+    const leases: LeaseRecord[] = [
+      {
+        _id: 'db_lease_t',
+        id: 'lease_t',
+        landlordOpenId: 'openid_test',
+        roomId: 'room_2',
+        tenantId: 'tenant_2',
+        startDate: '2026-01-01',
+        endDate: '2026-12-31',
+        billingCycleDays: 30,
+        rentAmount: 3000,
+        depositAmount: 3000,
+        note: '',
+        closedAt: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z'
+      }
+    ];
+    const now = '2026-05-01T00:00:00.000Z';
+
+    const result = await leasesEndMain({
+      leaseId: 'lease_t',
+      __mockDb: createLeasesOnlyDb(leases) as any,
+      __mockContext: { getWXContext: () => getWXContext('openid_test') },
+      now
+    });
+
+    expect(result.lease.closedAt).toBe(now);
+    expect(result.unpaidBillSummary).toBeDefined();
+    expect(leases.find((item) => item.id === 'lease_t')?.closedAt).toBe(now);
+  });
+});
 
     expect(result.currentStatus).toBe('pending_move_in');
     expect(result.lease.closedAt).toBe(now);

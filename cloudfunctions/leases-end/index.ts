@@ -4,6 +4,13 @@ import { listAll, resolveDb, resolveLandlordOpenId, type CloudEventBase } from '
 
 export interface LeaseEndEvent extends CloudEventBase {
   leaseId: string;
+  settlement?: {
+    voidFutureSystemBills?: boolean;
+    rentRefundDays?: number;
+    refundDeposit?: boolean;
+    refundFireDeposit?: boolean;
+    refundLockCardDeposit?: boolean;
+  };
 }
 
 export async function main(event: LeaseEndEvent) {
@@ -16,5 +23,5 @@ export async function main(event: LeaseEndEvent) {
     throw new Error(`Lease ${event.leaseId} not found.`);
   }
 
-  return endLease(db, event.leaseId, event);
+  return endLease(db, event.leaseId, event, event.settlement);
 }

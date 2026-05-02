@@ -5,7 +5,7 @@
       <view class="brand-title">收租吧</view>
       <view class="brand-sub">房东经营管理小程序</view>
       <button class="auth-button" loading="{{submitting}}" disabled="{{loading || submitting}}" bindtap="handleLogin">
-        微信一键登录
+        登录后保存数据
       </button>
       <view wx:if="{{errorMessage}}" class="auth-error">{{errorMessage}}</view>
     </view>

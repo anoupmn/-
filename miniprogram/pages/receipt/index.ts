@@ -47,6 +47,42 @@ function buildReceiptSummary(receipt: Record<string, any>) {
   ].join('\n');
 }
 
+function normalizePdfFileName(value: unknown) {
+  const baseName = String(value || '收款收据')
+    .replace(/\.pdf$/i, '')
+    .trim()
+    .replace(/[\\/:*?"<>|\s]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 100);
+
+  return `${baseName || '收款收据'}.pdf`;
+}
+
+function copyPdfWithFileName(tempFilePath: string, fileName: unknown) {
+  const userDataPath = wx.env?.USER_DATA_PATH;
+  if (!userDataPath || typeof wx.getFileSystemManager !== 'function') {
+    return Promise.resolve(tempFilePath);
+  }
+
+  const fs = wx.getFileSystemManager();
+  const localFilePath = `${userDataPath}/${normalizePdfFileName(fileName)}`;
+
+  return new Promise<string>((resolve) => {
+    fs.unlink({
+      filePath: localFilePath,
+      complete: () => {
+        fs.copyFile({
+          srcPath: tempFilePath,
+          destPath: localFilePath,
+          success: () => resolve(localFilePath),
+          fail: () => resolve(tempFilePath)
+        });
+      }
+    });
+  });
+}
+
 Page({
   data: {
     billId: '',
@@ -134,8 +170,9 @@ Page({
       }
 
       const downloaded = await wx.cloud.downloadFile({ fileID });
+      const localFilePath = await copyPdfWithFileName(downloaded.tempFilePath, result.fileName);
       await wx.openDocument({
-        filePath: downloaded.tempFilePath,
+        filePath: localFilePath,
         fileType: 'pdf',
         showMenu: true
       });

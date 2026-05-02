@@ -1,0 +1,99 @@
+<view class="page-shell">
+  <view class="receipt-records-shell page-stack">
+    <view class="card issue-card">
+      <view class="issue-head">
+        <view class="issue-label">开收据</view>
+        <view class="section-title">按租约开收据</view>
+      </view>
+      <view wx:if="{{issueError}}" class="fee-note">{{issueError}}</view>
+      <view wx:if="{{!receiptLeaseOptions.length}}" class="text-muted">暂无可开收据的租约月份</view>
+      <block wx:else>
+        <picker range="{{issueAssetOptions}}" range-key="label" value="{{selectedIssueAssetIndex}}" bindchange="handleIssueAssetChange">
+          <view class="picker-line">
+            <view class="field-label">选择房源</view>
+            <view class="picker-value">{{issueAssetOptions[selectedIssueAssetIndex].label}}</view>
+          </view>
+        </picker>
+        <picker range="{{issueRoomOptions}}" range-key="label" value="{{selectedIssueRoomIndex}}" bindchange="handleIssueRoomChange">
+          <view class="picker-line">
+            <view class="field-label">选择房间</view>
+            <view class="picker-value">{{issueRoomOptions[selectedIssueRoomIndex].label}}</view>
+          </view>
+        </picker>
+        <picker range="{{issueLeaseOptions}}" range-key="label" value="{{selectedReceiptLeaseIndex}}" bindchange="handleReceiptLeaseChange">
+          <view class="picker-line">
+            <view class="field-label">选择租约</view>
+            <view class="picker-value">{{issueLeaseOptions[selectedReceiptLeaseIndex].label}}</view>
+          </view>
+        </picker>
+        <picker range="{{receiptMonthOptions}}" range-key="monthLabel" value="{{selectedReceiptMonthIndex}}" bindchange="handleReceiptMonthChange">
+          <view class="picker-line">
+            <view class="field-label">选择月份</view>
+            <view class="picker-value">{{receiptMonthOptions[selectedReceiptMonthIndex].monthLabel}}</view>
+          </view>
+        </picker>
+        <view wx:if="{{receiptMonthOptions[selectedReceiptMonthIndex]}}" class="issue-total">
+          {{receiptMonthOptions[selectedReceiptMonthIndex].billCount}} 笔账单，合计 ¥{{receiptMonthOptions[selectedReceiptMonthIndex].totalAmount}}
+        </view>
+        <button
+          class="primary-button issue-button"
+          loading="{{creatingReceipt}}"
+          disabled="{{creatingReceipt}}"
+          bindtap="createReceiptForSelectedLease"
+        >
+          开具该租约本月收据
+        </button>
+      </block>
+    </view>
+
+    <view class="filter-card">
+      <picker mode="date" fields="month" value="{{month}}" bindchange="handleMonthChange">
+        <view class="filter-chip">月份：{{month || '全部月份'}}</view>
+      </picker>
+      <picker range="{{assetOptions}}" range-key="label" value="{{selectedAssetIndex}}" bindchange="handleAssetChange">
+        <view class="filter-chip">{{assetOptions[selectedAssetIndex].label}}</view>
+      </picker>
+      <picker range="{{roomOptions}}" range-key="label" value="{{selectedRoomIndex}}" bindchange="handleRoomChange">
+        <view class="filter-chip">{{roomOptions[selectedRoomIndex].label}}</view>
+      </picker>
+      <picker range="{{tenantOptions}}" range-key="label" value="{{selectedTenantIndex}}" bindchange="handleTenantChange">
+        <view class="filter-chip">{{tenantOptions[selectedTenantIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="records-block">
+      <view class="section-title">收据管理</view>
+      <view wx:if="{{loading}}" class="card text-muted">正在加载收据管理...</view>
+      <view wx:elif="{{error}}" class="card text-muted">{{error}}</view>
+      <view wx:elif="{{!receipts.length}}" class="card text-muted">暂无符合条件的收据</view>
+      <view wx:for="{{receiptGroups}}" wx:key="month" wx:for-item="group" class="receipt-month-group">
+        <view class="month-group-head">
+          <view class="month-title">{{group.monthLabel}}</view>
+          <view class="month-status">已开 {{group.count}} 张 / ¥{{group.totalAmount}}</view>
+        </view>
+        <view wx:for="{{group.receipts}}" wx:key="id" wx:for-item="item" class="receipt-row">
+          <view class="receipt-main">
+            <view class="receipt-title">{{item.assetName || '未知房源'}} · {{item.roomName || '未知房间'}}</view>
+            <view class="receipt-sub">租客：{{item.tenantName || '未知租客'}}</view>
+            <view class="receipt-sub">租约收据：{{item.receiptNo}}</view>
+            <view class="receipt-sub">收款日期：{{item.displayReceivedAt || item.receivedAt}} · {{item.billCount}} 笔账单</view>
+          </view>
+          <view class="receipt-amount">¥{{item.totalAmount}}</view>
+          <view class="record-actions">
+            <button class="mini-action" data-id="{{item.id}}" bindtap="openReceipt">查看</button>
+            <button class="mini-action" data-id="{{item.roomId}}" bindtap="openRoom">房间</button>
+            <button
+              class="mini-action danger"
+              loading="{{deletingReceiptId === item.id}}"
+              disabled="{{!!deletingReceiptId}}"
+              data-id="{{item.id}}"
+              bindtap="deleteReceiptRecord"
+            >
+              删除
+            </button>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

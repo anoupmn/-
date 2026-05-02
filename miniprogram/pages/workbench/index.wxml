@@ -1,7 +1,13 @@
 <view class="page-shell workbench-page">
   <view class="dashboard-shell">
     <view class="card overview-panel">
-      <view class="module-title">今日概览</view>
+      <view class="section-head overview-head">
+        <view class="module-title">今日概览</view>
+        <button wx:if="{{!isLoggedIn}}" class="plain-link" bindtap="handleLoginEntry">
+          <text>登录</text>
+          <text class="chevron">›</text>
+        </button>
+      </view>
       <view class="overview-grid">
         <view
           wx:for="{{overviewCards}}"
@@ -84,7 +90,7 @@
           <view class="reminder-chip chip-blue">{{recommendation.label}}</view>
           <view class="reminder-name">{{recommendation.title}}</view>
           <view class="reminder-meta">
-            <text class="meta-text">去处理</text>
+            <text class="meta-text">{{recommendation.actionLabel || '去处理'}}</text>
             <text class="row-chevron">›</text>
           </view>
         </view>
@@ -105,7 +111,9 @@
           <view class="todo-title">待处理提醒</view>
           <view class="todo-label">优先处理已逾期与3天内到期租约，避免漏收。</view>
         </view>
-        <button class="primary-button todo-action" bindtap="openRecommendation">去处理</button>
+        <button class="primary-button todo-action" bindtap="openRecommendation">
+          {{recommendation.actionLabel || '去处理'}}
+        </button>
       </view>
       <view wx:else class="empty-state">
         <view class="text-muted">暂无优先动作</view>

@@ -1,7 +1,7 @@
 {
   "pages": [
-    "pages/auth/index",
     "pages/workbench/index",
+    "pages/auth/index",
     "pages/ops/index",
     "pages/units/index",
     "pages/profile/index",
@@ -56,6 +56,14 @@
     "backgroundColor": "#f3f6f9",
     "backgroundTextStyle": "light"
   },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于选择房源地址并记录房源位置"
+    }
+  },
+  "requiredPrivateInfos": [
+    "chooseLocation"
+  ],
   "style": "v2",
   "sitemapLocation": "sitemap.json"
 }

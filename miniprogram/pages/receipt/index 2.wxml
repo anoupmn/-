@@ -1,0 +1,63 @@
+<view class="page-shell">
+  <view class="receipt-shell page-stack">
+    <view wx:if="{{loading}}" class="card">
+      <view class="text-muted">正在加载收据...</view>
+    </view>
+
+    <view wx:elif="{{receipt}}" class="receipt-paper">
+      <view class="receipt-top">
+        <view class="receipt-title">收款收据（非发票）</view>
+        <view class="receipt-date">收款日期：{{receipt.displayReceivedAt || receipt.receivedAt}}</view>
+      </view>
+
+      <view class="receipt-info">
+        <view class="info-line">
+          <view class="field-label">收据编号</view>
+          <view class="info-value">{{receipt.receiptNo}}</view>
+        </view>
+        <view class="info-line">
+          <view class="field-label">房源/房间</view>
+          <view class="info-value">{{receipt.assetName}} {{receipt.roomName}}</view>
+        </view>
+        <view class="info-line">
+          <view class="field-label">租客</view>
+          <view class="info-value">{{receipt.tenantName}}</view>
+        </view>
+      </view>
+
+      <view class="items-table">
+        <view class="items-title">收款项目明细</view>
+        <view class="table-head">
+          <view>项目</view>
+          <view>应收日期</view>
+          <view>实收日期</view>
+          <view>金额(元)</view>
+        </view>
+        <view wx:for="{{receipt.items}}" wx:key="billId" class="table-row">
+          <view class="cell-main">{{item.itemLabel}}</view>
+          <view>{{item.dueDate}}</view>
+          <view>{{item.displayReceivedAt || item.receivedAt}}</view>
+          <view class="amount-cell">{{item.receivedAmount}}</view>
+          <view wx:if="{{item.meterReading}}" class="meter-line">
+            读数：{{item.meterReading.previousReading}} -> {{item.meterReading.currentReading}}，用量 {{item.meterReading.usage}}
+          </view>
+          <view wx:if="{{item.note}}" class="meter-line">备注：{{item.note}}</view>
+        </view>
+      </view>
+
+      <view class="total-line">
+        <view>合计金额（大写）</view>
+        <view>¥{{receipt.totalAmount}}</view>
+      </view>
+      <view class="receipt-note">备注：本收据不含房东支出及业主费用。</view>
+      <view class="created-line">生成时间：{{receipt.displayCreatedAt || receipt.createdAt}}</view>
+
+      <view class="action-grid">
+        <button class="primary-button" loading="{{exportingPdf}}" disabled="{{exportingPdf}}" bindtap="exportPrintablePdf">导出PDF打印版</button>
+        <button class="secondary-button" bindtap="copyReceiptSummary">复制收据摘要</button>
+        <button class="secondary-button" open-type="share">分享凭证</button>
+        <button class="danger-button" loading="{{deleting}}" disabled="{{deleting}}" bindtap="handleDeleteReceipt">删除收据</button>
+      </view>
+    </view>
+  </view>
+</view>

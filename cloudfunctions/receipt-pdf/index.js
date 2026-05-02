@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = main;
+const collections_1 = require("./shared/constants/collections");
 const receipt_repository_1 = require("./shared/repositories/receipt-repository");
 const runtime_1 = require("./shared/runtime");
 const cloudSdk = (() => {
@@ -115,6 +116,39 @@ function safeFileSegment(value) {
         .replace(/^-|-$/g, '')
         .slice(0, 40) || '收据');
 }
+function safeStorageFileSegment(value) {
+    return (String(value || '')
+        .trim()
+        .replace(/[^A-Za-z0-9_-]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 40) || 'receipt');
+}
+function leasePeriodSegment(lease) {
+    const startDate = dateOnly(lease?.startDate);
+    const endDate = dateOnly(lease?.endDate);
+    if (startDate && endDate) {
+        return `${startDate}至${endDate}`;
+    }
+    if (startDate) {
+        return `自${startDate}`;
+    }
+    if (endDate) {
+        return `至${endDate}`;
+    }
+    return '租约时间未知';
+}
+function buildReceiptFileName(receipt, lease) {
+    const segments = [
+        '收款收据',
+        `房源${safeFileSegment(receipt.assetName)}`,
+        `房间${safeFileSegment(receipt.roomName)}`,
+        `租约${safeFileSegment(leasePeriodSegment(lease))}`,
+        `租客${safeFileSegment(receipt.tenantName)}`,
+        safeFileSegment(receipt.receiptNo)
+    ];
+    return `${segments.join('-')}.pdf`;
+}
 async function uploadPdf(fileName, buffer, shouldSkipUpload) {
     if (shouldSkipUpload || !cloudSdk?.uploadFile) {
         return undefined;
@@ -130,9 +164,12 @@ async function main(event) {
     const landlordOpenId = (0, runtime_1.resolveLandlordOpenId)(event);
     const generatedAt = (0, runtime_1.resolveNow)(event);
     const receipt = await (0, receipt_repository_1.getReceipt)(db, landlordOpenId, String(event.receiptId || ''));
-    const fileName = `${safeFileSegment(receipt.receiptNo)}-${safeFileSegment(receipt.tenantName)}-收款收据.pdf`;
+    const leases = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.leases);
+    const lease = leases.find((item) => item.id === receipt.leaseId && item.landlordOpenId === landlordOpenId);
+    const fileName = buildReceiptFileName(receipt, lease);
+    const storageFileName = `${safeStorageFileSegment(receipt.receiptNo)}-${safeStorageFileSegment(receipt.id)}.pdf`;
     const buffer = buildPdf(receipt, generatedAt);
-    const fileID = await uploadPdf(fileName, buffer, Boolean(event.__mockDb));
+    const fileID = await uploadPdf(storageFileName, buffer, Boolean(event.__mockDb));
     return {
         fileID,
         fileName,

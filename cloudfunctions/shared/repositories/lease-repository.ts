@@ -2,7 +2,7 @@ import { COLLECTIONS } from '../constants/collections';
 import { assertSingleActiveLease, closeLeaseAndDeriveUnitStatus, deriveLeaseStatus } from '../calculators/lease-lifecycle';
 import { LEASE_STATUSES } from '../constants/statuses';
 import { getLeaseFeeRules, leaseSchema, type Lease, type LeaseInput } from '../schemas/lease';
-import type { Bill } from '../schemas/bill';
+import { billSchema, type Bill } from '../schemas/bill';
 import { createId, findById, insertRecord, listAll, removeRecordsByQuery, resolveNow, type CloudEventBase, type DbLike, updateRecord } from '../runtime';
 import { syncBillsForLease } from './bill-repository';
 
@@ -80,7 +80,21 @@ export async function updateLease(db: DbLike, leaseId: string, changes: Partial<
   return updatedLease;
 }
 
-export async function endLease(db: DbLike, leaseId: string, event: CloudEventBase) {
+interface SettlementOptions {
+  voidFutureSystemBills?: boolean;
+  rentRefundDays?: number;
+  refundDeposit?: boolean;
+  refundFireDeposit?: boolean;
+  refundLockCardDeposit?: boolean;
+}
+
+function calculateRentRefund(lease: Lease, days: number): number {
+  if (days <= 0) return 0;
+  const dailyRate = lease.rentAmount / lease.billingCycleDays;
+  return Math.ceil(dailyRate * days * 100) / 100;
+}
+
+export async function endLease(db: DbLike, leaseId: string, event: CloudEventBase, settlement?: SettlementOptions) {
   const leases = await listAll<Lease>(db, COLLECTIONS.leases);
   const currentLease = leases.find((lease) => lease.id === leaseId);
 
@@ -114,6 +128,90 @@ export async function endLease(db: DbLike, leaseId: string, event: CloudEventBas
     bills.filter((bill) => !bill.receivedAt && bill.receivedAmount == null)
   );
 
+  const settlementSummary: {
+    voidedBillCount: number;
+    createdRefundBills: Array<{ type: string; amount: number }>;
+  } = { voidedBillCount: 0, createdRefundBills: [] };
+
+  if (settlement) {
+    if (settlement.voidFutureSystemBills) {
+      const futureUnpaidSystemBills = (await listLeaseBillsSafely(db, leaseId)).filter(
+        (bill) =>
+          bill.dueDate > result.closedLease.closedAt &&
+          !bill.receivedAt &&
+          bill.receivedAmount == null &&
+          (bill.source ?? 'system') === 'system'
+      );
+      for (const bill of futureUnpaidSystemBills) {
+        await removeRecordsByQuery(db, COLLECTIONS.bills, { id: bill.id, landlordOpenId: currentLease.landlordOpenId });
+      }
+      settlementSummary.voidedBillCount = futureUnpaidSystemBills.length;
+    }
+
+    if (settlement.rentRefundDays && settlement.rentRefundDays > 0) {
+      const refundAmount = calculateRentRefund(currentLease, settlement.rentRefundDays);
+      const refundBill = billSchema.parse({
+        id: createId('bill'),
+        landlordOpenId: currentLease.landlordOpenId,
+        leaseId: currentLease.id,
+        roomId: currentLease.roomId,
+        type: 'rent_refund',
+        section: 'rent',
+        dueDate: result.closedLease.closedAt,
+        amount: refundAmount,
+        status: 'pending',
+        receivedAt: null,
+        receivedAmount: null,
+        note: `退余下租金 ${settlement.rentRefundDays}天`,
+        source: 'system',
+        feeNature: 'one_time',
+        responsibility: 'landlord',
+        cadence: 'once',
+        isDepositLike: false,
+        isOneTime: true,
+        createdAt: result.closedLease.closedAt,
+        updatedAt: result.closedLease.closedAt
+      });
+      await insertRecord(db, COLLECTIONS.bills, refundBill);
+      settlementSummary.createdRefundBills.push({ type: 'rent_refund', amount: refundAmount });
+    }
+
+    const feeRules = getLeaseFeeRules(currentLease);
+    const depositItems: Array<{ condition?: boolean; amount: number; note: string }> = [
+      { condition: settlement.refundDeposit, amount: feeRules.deposit.amount, note: '退还押金' },
+      { condition: settlement.refundFireDeposit, amount: feeRules.fireDeposit.amount, note: '退还消防押金' },
+      { condition: settlement.refundLockCardDeposit, amount: feeRules.lockCardDeposit.amount, note: '退还门禁卡押金' }
+    ];
+    for (const item of depositItems) {
+      if (item.condition && item.amount > 0) {
+        const refundBill = billSchema.parse({
+          id: createId('bill'),
+          landlordOpenId: currentLease.landlordOpenId,
+          leaseId: currentLease.id,
+          roomId: currentLease.roomId,
+          type: 'deposit_refund',
+          section: 'deposit',
+          dueDate: result.closedLease.closedAt,
+          amount: item.amount,
+          status: 'pending',
+          receivedAt: null,
+          receivedAmount: null,
+          note: item.note,
+          source: 'system',
+          feeNature: 'deposit',
+          responsibility: 'landlord',
+          cadence: 'once',
+          isDepositLike: true,
+          isOneTime: true,
+          createdAt: result.closedLease.closedAt,
+          updatedAt: result.closedLease.closedAt
+        });
+        await insertRecord(db, COLLECTIONS.bills, refundBill);
+        settlementSummary.createdRefundBills.push({ type: 'deposit_refund', amount: item.amount });
+      }
+    }
+  }
+
   return {
     lease: updatedLease,
     currentStatus: result.currentStatus,
@@ -124,7 +222,8 @@ export async function endLease(db: DbLike, leaseId: string, event: CloudEventBas
     unpaidBillOptions:
       unpaidBills.length > 0
         ? ['keep_debt', 'void_unpaid_system_bills', 'adjust_end_date_and_resync']
-        : []
+        : [],
+    settlementSummary
   };
 }
 

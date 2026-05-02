@@ -12,7 +12,9 @@ export const billTypeSchema = z.enum([
   'electricity',
   'property',
   'misc',
-  'custom'
+  'custom',
+  'rent_refund',
+  'deposit_refund'
 ]);
 export type BillType = z.infer<typeof billTypeSchema>;
 
@@ -51,11 +53,13 @@ export const billSchema = z.object({
   source: z.enum(['system', 'manual']).optional(),
   meterReading: meterReadingSchema.optional(),
   feeNature: billFeeNatureSchema.catch('recurring').default('recurring'),
-  responsibility: z.literal('tenant').catch('tenant').default('tenant'),
+  responsibility: z.enum(['tenant', 'landlord']).catch('tenant').default('tenant'),
   cadence: billCadenceSchema.catch('cycle').default('cycle'),
   isDepositLike: z.boolean().catch(false).default(false),
   isOneTime: z.boolean().catch(false).default(false),
   legacy: z.boolean().catch(false).default(false),
+  receiptId: z.string().optional(),
+  receiptNo: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });

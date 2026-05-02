@@ -22,6 +22,10 @@
   padding: 28rpx 28rpx 26rpx;
 }
 
+.overview-head {
+  align-items: center;
+}
+
 .module-title {
   color: #111827;
   font-size: 32rpx;

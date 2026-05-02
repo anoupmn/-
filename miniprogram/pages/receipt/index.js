@@ -41,6 +41,38 @@ function buildReceiptSummary(receipt) {
         `收款日期：${receipt.displayReceivedAt || receipt.receivedAt || ''}`
     ].join('\n');
 }
+function normalizePdfFileName(value) {
+    const baseName = String(value || '收款收据')
+        .replace(/\.pdf$/i, '')
+        .trim()
+        .replace(/[\\/:*?"<>|\s]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 100);
+    return `${baseName || '收款收据'}.pdf`;
+}
+function copyPdfWithFileName(tempFilePath, fileName) {
+    var _a;
+    const userDataPath = (_a = wx.env) === null || _a === void 0 ? void 0 : _a.USER_DATA_PATH;
+    if (!userDataPath || typeof wx.getFileSystemManager !== 'function') {
+        return Promise.resolve(tempFilePath);
+    }
+    const fs = wx.getFileSystemManager();
+    const localFilePath = `${userDataPath}/${normalizePdfFileName(fileName)}`;
+    return new Promise((resolve) => {
+        fs.unlink({
+            filePath: localFilePath,
+            complete: () => {
+                fs.copyFile({
+                    srcPath: tempFilePath,
+                    destPath: localFilePath,
+                    success: () => resolve(localFilePath),
+                    fail: () => resolve(tempFilePath)
+                });
+            }
+        });
+    });
+}
 Page({
     data: {
         billId: '',
@@ -124,8 +156,9 @@ Page({
                 return;
             }
             const downloaded = await wx.cloud.downloadFile({ fileID });
+            const localFilePath = await copyPdfWithFileName(downloaded.tempFilePath, result.fileName);
             await wx.openDocument({
-                filePath: downloaded.tempFilePath,
+                filePath: localFilePath,
                 fileType: 'pdf',
                 showMenu: true
             });

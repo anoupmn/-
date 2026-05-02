@@ -1,4 +1,4 @@
-const { requireAuthSession } = require('../../services/auth');
+const { bootstrapAuthSession } = require('../../services/auth');
 const { getHomeDashboard } = require('../../services/dashboard');
 const { requestSubscribeMessage, SUBSCRIBE_TEMPLATE_CONFIG_ERROR } = require('../../services/notification');
 const {
@@ -63,6 +63,18 @@ const ALERT_LABELS = {
   expiring: '即将到期',
   vacancy_long: '空置过久',
   manual_abnormal: '人工异常'
+};
+const GUEST_RECOMMENDATION = {
+  type: 'login',
+  label: '开始',
+  title: '登录后添加房源并查看待处理事项',
+  actionLabel: '去登录',
+  actionQuery: {}
+};
+const GUEST_SUBSCRIPTION_STATE = {
+  consentState: 'unknown',
+  hasRequested: false,
+  enabledRuleTypes: []
 };
 
 function getAlertTone(type) {
@@ -199,9 +211,21 @@ Page({
     }
   },
   async onShow() {
-    const session = await requireAuthSession();
+    const session = await bootstrapAuthSession();
 
     if (!session) {
+      this.setData({
+        isLoggedIn: false,
+        displayName: '',
+        status: '可先浏览首页概览，登录后同步个人房源与提醒数据。',
+        isLoading: false,
+        loadFailed: false,
+        overviewCards: normalizeOverviewCards([]),
+        abnormalRows: [],
+        recommendation: GUEST_RECOMMENDATION,
+        recommendationUrl: '',
+        subscriptionState: GUEST_SUBSCRIPTION_STATE
+      });
       return;
     }
 
@@ -212,8 +236,22 @@ Page({
 
     await this.loadDashboard();
   },
+  ensureLoggedIn() {
+    if (this.data.isLoggedIn) {
+      return true;
+    }
+
+    wx.navigateTo({
+      url: '/pages/auth/index'
+    });
+    return false;
+  },
+  handleLoginEntry() {
+    this.ensureLoggedIn();
+  },
   async onPullDownRefresh() {
     if (!this.data.isLoggedIn) {
+      wx.stopPullDownRefresh();
       return;
     }
 
@@ -221,6 +259,10 @@ Page({
     wx.stopPullDownRefresh();
   },
   async handleReminderEntry() {
+    if (!this.ensureLoggedIn()) {
+      return;
+    }
+
     if (this.data.subscriptionState.hasRequested) {
       wx.navigateTo({
         url: '/pages/reminder-settings/index'
@@ -255,6 +297,10 @@ Page({
     }
   },
   navigateTo(event) {
+    if (!this.ensureLoggedIn()) {
+      return;
+    }
+
     const url = event.currentTarget.dataset.url;
     if (!url) {
       return;
@@ -262,6 +308,10 @@ Page({
     wx.navigateTo({ url });
   },
   openUnitsByUrl(url) {
+    if (!this.ensureLoggedIn()) {
+      return;
+    }
+
     setPendingUnitListDrilldownQuery(parseUnitListUrl(url));
     wx.switchTab({
       url: '/pages/units/index'
@@ -286,6 +336,10 @@ Page({
     this.openUnitsByUrl(url);
   },
   openRecommendation() {
+    if (!this.ensureLoggedIn()) {
+      return;
+    }
+
     if (!this.data.recommendationUrl) {
       return;
     }

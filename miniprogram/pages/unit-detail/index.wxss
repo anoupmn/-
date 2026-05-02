@@ -483,3 +483,73 @@
   flex-direction: column;
   gap: 14rpx;
 }
+
+.settlement-dialog {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.settlement-section {
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.settlement-section:last-of-type {
+  border-bottom: 0;
+}
+
+.settlement-label {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+}
+
+.settlement-sub {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.settlement-check {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 0;
+  gap: 16rpx;
+}
+
+.check-box {
+  width: 40rpx;
+  height: 40rpx;
+  border: 2rpx solid #ccc;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: #fff;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.check-box-on {
+  background: #07c160;
+  border-color: #07c160;
+}
+
+.check-label {
+  font-size: 28rpx;
+  color: #333;
+  flex: 1;
+}
+
+.settlement-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 30rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #e5e7eb;
+}
+
+.settlement-actions button {
+  flex: 1;
+}

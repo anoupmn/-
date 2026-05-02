@@ -13,7 +13,9 @@ exports.billTypeSchema = zod_1.z.enum([
     'electricity',
     'property',
     'misc',
-    'custom'
+    'custom',
+    'rent_refund',
+    'deposit_refund'
 ]);
 exports.billSectionSchema = zod_1.z.enum(['rent', 'deposit', 'non_rent']);
 exports.billFeeNatureSchema = zod_1.z.enum(['recurring', 'one_time', 'deposit']);
@@ -42,11 +44,13 @@ exports.billSchema = zod_1.z.object({
     source: zod_1.z.enum(['system', 'manual']).optional(),
     meterReading: exports.meterReadingSchema.optional(),
     feeNature: exports.billFeeNatureSchema.catch('recurring').default('recurring'),
-    responsibility: zod_1.z.literal('tenant').catch('tenant').default('tenant'),
+    responsibility: zod_1.z.enum(['tenant', 'landlord']).catch('tenant').default('tenant'),
     cadence: exports.billCadenceSchema.catch('cycle').default('cycle'),
     isDepositLike: zod_1.z.boolean().catch(false).default(false),
     isOneTime: zod_1.z.boolean().catch(false).default(false),
     legacy: zod_1.z.boolean().catch(false).default(false),
+    receiptId: zod_1.z.string().optional(),
+    receiptNo: zod_1.z.string().optional(),
     createdAt: zod_1.z.string(),
     updatedAt: zod_1.z.string()
 });
