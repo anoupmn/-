@@ -86,6 +86,9 @@ function buildMonthlyRow(input) {
     const unpaidThisMonth = tenantIncomeBills.filter((bill) => !isPaid(bill));
     const checkoutRefundBills = input.bills.filter((bill) => bill.responsibility === 'landlord' && ['rent_refund', 'deposit_refund'].includes(bill.type));
     const checkoutExpense = roundMoney(checkoutRefundBills.reduce((sum, bill) => sum + Number(bill.amount || 0), 0));
+    const checkoutNotes = checkoutExpense > 0
+        ? `[退租] ${checkoutRefundBills.map((b) => `${billLabel(b)} ¥${b.amount}`).join('；')}`
+        : '';
     return {
         序号: input.index,
         '房源/楼栋': input.asset?.name ?? '',
@@ -108,7 +111,7 @@ function buildMonthlyRow(input) {
         房租水电合计: sumBills([...rentBills, ...managementBills, ...utilityBills, ...otherReceivableBills], (bill) => bill.amount),
         本月实收: sumBills(paidThisMonth, (bill) => bill.receivedAmount ?? 0),
         本月未收: sumBills(unpaidThisMonth, (bill) => bill.amount),
-        备注: input.bills.map((bill) => bill.note).filter(Boolean).join('；')
+        备注: [checkoutNotes, input.bills.map((bill) => bill.note).filter(Boolean).join('；')].filter(Boolean).join('；')
     };
 }
 function buildBillDetailRows(input) {
