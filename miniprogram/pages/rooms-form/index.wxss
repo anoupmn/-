@@ -1,6 +1,33 @@
 @import "../quick-entry/index.wxss";
 
 .asset-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
   padding-top: 20rpx;
   border-top: 1rpx solid #e5e7eb;
+}
+
+.room-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.room-delete-button {
+  width: 96rpx;
+  height: 52rpx;
+  line-height: 52rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 10rpx;
+  border: 1rpx solid #fecaca;
+  background: #ffffff;
+  color: #dc2626;
+  font-size: 24rpx;
+}
+
+.room-delete-button::after {
+  border: 0;
 }

@@ -12,9 +12,20 @@
     <view class="section-title">该房源下的房间</view>
     <view wx:if="{{!rooms.length}}" class="hint">还没有房间，先新增一条。</view>
     <view wx:for="{{rooms}}" wx:key="id" class="asset-card">
-      <view class="headline">{{item.name}}</view>
-      <view class="field">默认整租单元：{{item.isWholeUnitDefault ? '是' : '否'}}</view>
-      <view class="field">ID：{{item.id}}</view>
+      <view class="room-main">
+        <view class="headline">{{item.name}}</view>
+        <view class="field">默认整租单元：{{item.isWholeUnitDefault ? '是' : '否'}}</view>
+        <view class="field">ID：{{item.id}}</view>
+      </view>
+      <button
+        wx:if="{{!item.isWholeUnitDefault}}"
+        class="room-delete-button"
+        data-room-id="{{item.id}}"
+        data-room-name="{{item.name}}"
+        bindtap="handleDeleteRoom"
+      >
+        删除
+      </button>
     </view>
   </view>
 </view>
