@@ -1326,35 +1326,26 @@ Page({
       }
     });
   },
+  noop() {},
   closeSettlementDialog() {
     this.setData({ settlementDialogVisible: false });
   },
   handleSettlementInput(event: WechatMiniprogram.Input) {
     const field = event.currentTarget.dataset.field as string;
-    (this.data.settlement as any)[field] = event.detail.value;
-    const s = this.data.settlement as any;
+    const value = event.detail.value;
+    const s = { ...this.data.settlement, [field]: value };
 
     if (field.startsWith('water')) {
-      const result = calcMeterBill(Number(s.waterPreviousReading), Number(s.waterCurrentReading), Number(s.waterUnitPrice));
-      this.setData({
-        settlement: {
-          ...s,
-          waterUsage: result.usage,
-          waterFee: result.fee
-        }
-      });
+      const result = calcMeterBill(Number(s.waterPreviousReading || 0), Number(s.waterCurrentReading || 0), Number(s.waterUnitPrice || 0));
+      s.waterUsage = result.usage;
+      s.waterFee = result.fee;
     } else if (field.startsWith('electricity')) {
-      const result = calcMeterBill(Number(s.electricityPreviousReading), Number(s.electricityCurrentReading), Number(s.electricityUnitPrice));
-      this.setData({
-        settlement: {
-          ...s,
-          electricityUsage: result.usage,
-          electricityFee: result.fee
-        }
-      });
-    } else {
-      this.setData({ settlement: { ...s } });
+      const result = calcMeterBill(Number(s.electricityPreviousReading || 0), Number(s.electricityCurrentReading || 0), Number(s.electricityUnitPrice || 0));
+      s.electricityUsage = result.usage;
+      s.electricityFee = result.fee;
     }
+
+    this.setData({ settlement: s });
   },
   async confirmSettlement() {
     if (this.data.settlement.submitting) return;

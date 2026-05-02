@@ -473,7 +473,7 @@
   </view>
 
   <view wx:if="{{settlementDialogVisible}}" class="dialog-mask" catchtap="closeSettlementDialog">
-    <view class="dialog-card settlement-dialog" catchtap="">
+    <view class="dialog-card settlement-dialog" catchtap="noop">
       <view class="section-subtitle">退租结算</view>
 
       <view class="settlement-hint">

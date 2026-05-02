@@ -1118,25 +1118,33 @@ Page({
             }
         });
     },
+    noop() { },
     closeSettlementDialog() {
         this.setData({ settlementDialogVisible: false });
     },
     handleSettlementInput(event) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
+        var _a, _b, _c, _d, _e;
         const field = event.currentTarget.dataset.field;
-        this.data.settlement[field] = (_b = (_a = event.detail) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : '';
-        const s = this.data.settlement;
+        const value = (_b = (_a = event.detail) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : '';
+        let s = Object.assign({}, this.data.settlement);
+        s[field] = value;
+        const wp = Number(((_c = s.waterPreviousReading) !== null && _c !== void 0 ? _c : 0));
+        const wc = Number(((_d = s.waterCurrentReading) !== null && _d !== void 0 ? _d : 0));
+        const wu = Number(((_e = s.waterUnitPrice) !== null && _e !== void 0 ? _e : 0));
         if (field.startsWith('water')) {
-            const result = calcMeterBill(Number(((_c = s.waterPreviousReading) !== null && _c !== void 0 ? _c : 0)), Number(((_d = s.waterCurrentReading) !== null && _d !== void 0 ? _d : 0)), Number(((_e = s.waterUnitPrice) !== null && _e !== void 0 ? _e : 0)));
-            this.setData({ settlement: Object.assign(Object.assign({}, s), { waterUsage: result.usage, waterFee: result.fee }) });
+            const r = calcMeterBill(wp, wc, wu);
+            s.waterUsage = r.usage;
+            s.waterFee = r.fee;
         }
         else if (field.startsWith('electricity')) {
-            const result = calcMeterBill(Number(((_f = s.electricityPreviousReading) !== null && _f !== void 0 ? _f : 0)), Number(((_g = s.electricityCurrentReading) !== null && _g !== void 0 ? _g : 0)), Number(((_h = s.electricityUnitPrice) !== null && _h !== void 0 ? _h : 0)));
-            this.setData({ settlement: Object.assign(Object.assign({}, s), { electricityUsage: result.usage, electricityFee: result.fee }) });
+            const ep = Number(s.electricityPreviousReading || 0);
+            const ec = Number(s.electricityCurrentReading || 0);
+            const eu = Number(s.electricityUnitPrice || 0);
+            const r = calcMeterBill(ep, ec, eu);
+            s.electricityUsage = r.usage;
+            s.electricityFee = r.fee;
         }
-        else {
-            this.setData({ settlement: Object.assign({}, s) });
-        }
+        this.setData({ settlement: s });
     },
     async confirmSettlement() {
         var _a, _b;
