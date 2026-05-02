@@ -6,10 +6,10 @@ export interface LeaseEndEvent extends CloudEventBase {
   leaseId: string;
   settlement?: {
     voidFutureSystemBills?: boolean;
-    rentRefundDays?: number;
-    refundDeposit?: boolean;
-    refundFireDeposit?: boolean;
-    refundLockCardDeposit?: boolean;
+    rentRefundAmount?: number;
+    depositRefundAmount?: number;
+    fireDepositRefundAmount?: number;
+    lockCardDepositRefundAmount?: number;
   };
 }
 

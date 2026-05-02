@@ -490,7 +490,7 @@
 }
 
 .settlement-section {
-  padding: 16rpx 0;
+  padding: 20rpx 0;
   border-bottom: 1rpx solid #f0f0f0;
 }
 
@@ -498,48 +498,20 @@
   border-bottom: 0;
 }
 
-.settlement-label {
-  font-size: 28rpx;
-  color: #333;
-  line-height: 1.6;
-}
-
-.settlement-sub {
+.settlement-hint {
   font-size: 24rpx;
-  color: #999;
-  margin-top: 4rpx;
+  color: #9ca3af;
+  margin-bottom: 12rpx;
+  line-height: 1.5;
 }
 
-.settlement-check {
-  display: flex;
-  align-items: center;
-  padding: 12rpx 0;
-  gap: 16rpx;
-}
-
-.check-box {
-  width: 40rpx;
-  height: 40rpx;
-  border: 2rpx solid #ccc;
+.settlement-calc {
+  font-size: 26rpx;
+  color: #059669;
+  margin-top: 8rpx;
+  padding: 8rpx 16rpx;
+  background: #ecfdf5;
   border-radius: 8rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28rpx;
-  color: #fff;
-  background: #fff;
-  flex-shrink: 0;
-}
-
-.check-box-on {
-  background: #07c160;
-  border-color: #07c160;
-}
-
-.check-label {
-  font-size: 28rpx;
-  color: #333;
-  flex: 1;
 }
 
 .settlement-actions {

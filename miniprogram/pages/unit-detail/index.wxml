@@ -471,55 +471,87 @@
       </view>
     </view>
   </view>
-</view>
 
   <view wx:if="{{settlementDialogVisible}}" class="dialog-mask" catchtap="closeSettlementDialog">
     <view class="dialog-card settlement-dialog" catchtap="">
       <view class="section-subtitle">退租结算</view>
 
-      <view class="settlement-section">
-        <view class="settlement-label">
-          未收账单：{{settlement.unpaidCount}} 笔
-          <text wx:if="{{settlement.unpaidTotal > 0}}">，合计 ¥{{settlement.unpaidTotal}}</text>
-        </view>
+      <view class="settlement-hint">
+        未收账单 {{settlement.unpaidCount}} 笔
+        <text wx:if="{{settlement.unpaidTotal > 0}}">，共 ¥{{settlement.unpaidTotal}}</text>
       </view>
 
       <view class="settlement-section">
-        <view class="settlement-label {{settlement.waterLastDate ? '' : 'warn-text'}}">
-          水费最后记录：{{settlement.waterLastDate || '无记录，建议补录'}}
-        </view>
-      </view>
-
-      <view class="settlement-section">
-        <view class="settlement-label {{settlement.electricityLastDate ? '' : 'warn-text'}}">
-          电费最后记录：{{settlement.electricityLastDate || '无记录，建议补录'}}
-        </view>
-      </view>
-
-      <view wx:if="{{settlement.isEarlyTermination}}" class="settlement-section">
-        <view class="settlement-label">
-          余下租金（预估）：¥{{settlement.rentRefundEstimate}}
-        </view>
-        <view class="settlement-sub">每周期租金 ¥{{settlement.dailyRent}}/天</view>
+        <view class="section-subtitle">水费抄表</view>
         <view class="labeled-input">
-          <view class="field-label">退款天数</view>
-          <input class="input" type="number" value="{{settlement.rentRefundDays}}" bindinput="handleSettlementRentDaysChange" placeholder="0"/>
+          <view class="field-label">上期读数</view>
+          <input class="input" type="digit" data-field="waterPreviousReading" value="{{settlement.waterPreviousReading}}" bindinput="handleSettlementInput" placeholder="上次抄表数"/>
+        </view>
+        <view class="labeled-input">
+          <view class="field-label">本期读数</view>
+          <input class="input" type="digit" data-field="waterCurrentReading" value="{{settlement.waterCurrentReading}}" bindinput="handleSettlementInput" placeholder="当前抄表数"/>
+        </view>
+        <view class="labeled-input">
+          <view class="field-label">单价（元/方）</view>
+          <input class="input" type="digit" data-field="waterUnitPrice" value="{{settlement.waterUnitPrice}}" bindinput="handleSettlementInput" placeholder="水费单价"/>
+        </view>
+        <view wx:if="{{settlement.waterUsage > 0}}" class="settlement-calc">
+          用量 {{settlement.waterUsage}} 方 · 费用 ¥{{settlement.waterFee}}
         </view>
       </view>
 
-      <view wx:if="{{settlement.hasDeposit || settlement.hasFireDeposit || settlement.hasLockCardDeposit}}" class="settlement-section">
-        <view class="settlement-label">押金退还</view>
-        <view wx:if="{{settlement.hasDeposit}}" class="settlement-check" data-field="refundDeposit" bindtap="toggleSettlementCheckbox">
-          <view class="check-box {{settlement.refundDeposit ? 'check-box-on' : ''}}">{{settlement.refundDeposit ? '✓' : ''}}</view>
-          <view class="check-label">押金</view>
+      <view class="settlement-section">
+        <view class="section-subtitle">电费抄表</view>
+        <view class="labeled-input">
+          <view class="field-label">上期读数</view>
+          <input class="input" type="digit" data-field="electricityPreviousReading" value="{{settlement.electricityPreviousReading}}" bindinput="handleSettlementInput" placeholder="上次抄表数"/>
         </view>
-        <view wx:if="{{settlement.hasFireDeposit}}" class="settlement-check" data-field="refundFireDeposit" bindtap="toggleSettlementCheckbox">
-          <view class="check-box {{settlement.refundFireDeposit ? 'check-box-on' : ''}}">{{settlement.refundFireDeposit ? '✓' : ''}}</view>
-          <view class="check-label">消防押金</view>
+        <view class="labeled-input">
+          <view class="field-label">本期读数</view>
+          <input class="input" type="digit" data-field="electricityCurrentReading" value="{{settlement.electricityCurrentReading}}" bindinput="handleSettlementInput" placeholder="当前抄表数"/>
         </view>
-        <view wx:if="{{settlement.hasLockCardDeposit}}" class="settlement-check" data-field="refundLockCardDeposit" bindtap="toggleSettlementCheckbox">
-          <view class="check-box {{settlement.refundLockCardDeposit ? 'check-box-on' : ''}}">{{settlement.refundLockCardDeposit ? '✓' : ''}}</view>
-          <view class="check-label">门禁卡押金</view>
+        <view class="labeled-input">
+          <view class="field-label">单价（元/度）</view>
+          <input class="input" type="digit" data-field="electricityUnitPrice" value="{{settlement.electricityUnitPrice}}" bindinput="handleSettlementInput" placeholder="电费单价"/>
+        </view>
+        <view wx:if="{{settlement.electricityUsage > 0}}" class="settlement-calc">
+          用量 {{settlement.electricityUsage}} 度 · 费用 ¥{{settlement.electricityFee}}
+        </view>
+      </view>
+
+      <view class="settlement-section">
+        <view class="section-subtitle">退余下租金</view>
+        <view class="settlement-hint">{{settlement.rentRefundReference}}</view>
+        <view class="labeled-input">
+          <view class="field-label">退款金额</view>
+          <input class="input" type="digit" data-field="rentRefundAmount" value="{{settlement.rentRefundAmount}}" bindinput="handleSettlementInput" placeholder="0"/>
+        </view>
+      </view>
+
+      <view wx:if="{{settlement.depositPaid > 0}}" class="settlement-section">
+        <view class="section-subtitle">退还押金</view>
+        <view class="settlement-hint">已缴 ¥{{settlement.depositPaid}}</view>
+        <view class="labeled-input">
+          <view class="field-label">退款金额</view>
+          <input class="input" type="digit" data-field="depositRefundAmount" value="{{settlement.depositRefundAmount}}" bindinput="handleSettlementInput" placeholder="0"/>
+        </view>
+      </view>
+
+      <view wx:if="{{settlement.fireDepositPaid > 0}}" class="settlement-section">
+        <view class="section-subtitle">退还消防押金</view>
+        <view class="settlement-hint">已缴 ¥{{settlement.fireDepositPaid}}</view>
+        <view class="labeled-input">
+          <view class="field-label">退款金额</view>
+          <input class="input" type="digit" data-field="fireDepositRefundAmount" value="{{settlement.fireDepositRefundAmount}}" bindinput="handleSettlementInput" placeholder="0"/>
+        </view>
+      </view>
+
+      <view wx:if="{{settlement.lockCardDepositPaid > 0}}" class="settlement-section">
+        <view class="section-subtitle">退还门禁卡押金</view>
+        <view class="settlement-hint">已缴 ¥{{settlement.lockCardDepositPaid}}</view>
+        <view class="labeled-input">
+          <view class="field-label">退款金额</view>
+          <input class="input" type="digit" data-field="lockCardDepositRefundAmount" value="{{settlement.lockCardDepositRefundAmount}}" bindinput="handleSettlementInput" placeholder="0"/>
         </view>
       </view>
 

@@ -82,16 +82,10 @@ export async function updateLease(db: DbLike, leaseId: string, changes: Partial<
 
 interface SettlementOptions {
   voidFutureSystemBills?: boolean;
-  rentRefundDays?: number;
-  refundDeposit?: boolean;
-  refundFireDeposit?: boolean;
-  refundLockCardDeposit?: boolean;
-}
-
-function calculateRentRefund(lease: Lease, days: number): number {
-  if (days <= 0) return 0;
-  const dailyRate = lease.rentAmount / lease.billingCycleDays;
-  return Math.ceil(dailyRate * days * 100) / 100;
+  rentRefundAmount?: number;
+  depositRefundAmount?: number;
+  fireDepositRefundAmount?: number;
+  lockCardDepositRefundAmount?: number;
 }
 
 export async function endLease(db: DbLike, leaseId: string, event: CloudEventBase, settlement?: SettlementOptions) {
@@ -148,8 +142,7 @@ export async function endLease(db: DbLike, leaseId: string, event: CloudEventBas
       settlementSummary.voidedBillCount = futureUnpaidSystemBills.length;
     }
 
-    if (settlement.rentRefundDays && settlement.rentRefundDays > 0) {
-      const refundAmount = calculateRentRefund(currentLease, settlement.rentRefundDays);
+    if (settlement.rentRefundAmount && settlement.rentRefundAmount > 0) {
       const refundBill = billSchema.parse({
         id: createId('bill'),
         landlordOpenId: currentLease.landlordOpenId,
@@ -158,11 +151,11 @@ export async function endLease(db: DbLike, leaseId: string, event: CloudEventBas
         type: 'rent_refund',
         section: 'rent',
         dueDate: result.closedLease.closedAt,
-        amount: refundAmount,
+        amount: settlement.rentRefundAmount,
         status: 'pending',
         receivedAt: null,
         receivedAmount: null,
-        note: `退余下租金 ${settlement.rentRefundDays}天`,
+        note: '退余下租金',
         source: 'system',
         feeNature: 'one_time',
         responsibility: 'landlord',
@@ -173,17 +166,16 @@ export async function endLease(db: DbLike, leaseId: string, event: CloudEventBas
         updatedAt: result.closedLease.closedAt
       });
       await insertRecord(db, COLLECTIONS.bills, refundBill);
-      settlementSummary.createdRefundBills.push({ type: 'rent_refund', amount: refundAmount });
+      settlementSummary.createdRefundBills.push({ type: 'rent_refund', amount: settlement.rentRefundAmount });
     }
 
-    const feeRules = getLeaseFeeRules(currentLease);
-    const depositItems: Array<{ condition?: boolean; amount: number; note: string }> = [
-      { condition: settlement.refundDeposit, amount: feeRules.deposit.amount, note: '退还押金' },
-      { condition: settlement.refundFireDeposit, amount: feeRules.fireDeposit.amount, note: '退还消防押金' },
-      { condition: settlement.refundLockCardDeposit, amount: feeRules.lockCardDeposit.amount, note: '退还门禁卡押金' }
+    const depositRefundItems: Array<{ amount: number | undefined; note: string }> = [
+      { amount: settlement.depositRefundAmount, note: '退还押金' },
+      { amount: settlement.fireDepositRefundAmount, note: '退还消防押金' },
+      { amount: settlement.lockCardDepositRefundAmount, note: '退还门禁卡押金' }
     ];
-    for (const item of depositItems) {
-      if (item.condition && item.amount > 0) {
+    for (const item of depositRefundItems) {
+      if (item.amount && item.amount > 0) {
         const refundBill = billSchema.parse({
           id: createId('bill'),
           landlordOpenId: currentLease.landlordOpenId,

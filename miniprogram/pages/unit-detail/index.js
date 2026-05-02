@@ -347,6 +347,14 @@ function buildManualBillMeta(typeIndex, currentLabel = '') {
 function isUtilityBillType(type) {
     return type === 'water' || type === 'electricity';
 }
+function calcMeterBill(prev, curr, price) {
+    if (![prev, curr, price].every(Number.isFinite) || prev < 0 || curr < prev || price <= 0) {
+        return { usage: 0, fee: 0 };
+    }
+    const usage = Math.max(0, curr - prev);
+    const fee = Math.round(usage * price * 100) / 100;
+    return { usage, fee };
+}
 function formatNumberInput(value) {
     if (value === null || value === undefined || value === '') {
         return '';
@@ -421,21 +429,30 @@ Page({
         canRenewLease: false,
         settlementDialogVisible: false,
         settlement: {
+            submitting: false,
             unpaidCount: 0,
             unpaidTotal: 0,
-            waterLastDate: '',
-            electricityLastDate: '',
-            rentRefundDays: 0,
-            rentRefundEstimate: 0,
-            dailyRent: 0,
-            isEarlyTermination: false,
-            refundDeposit: false,
-            refundFireDeposit: false,
-            refundLockCardDeposit: false,
-            hasDeposit: false,
-            hasFireDeposit: false,
-            hasLockCardDeposit: false,
-            submitting: false
+            waterPreviousReading: '',
+            waterCurrentReading: '',
+            waterUnitPrice: '',
+            waterUsage: 0,
+            waterFee: 0,
+            waterMonthKey: '',
+            electricityPreviousReading: '',
+            electricityCurrentReading: '',
+            electricityUnitPrice: '',
+            electricityUsage: 0,
+            electricityFee: 0,
+            electricityMonthKey: '',
+            rentRefundReference: '',
+            rentRefundAmount: '',
+            depositPaid: 0,
+            depositRefundAmount: '',
+            fireDepositPaid: 0,
+            fireDepositRefundAmount: '',
+            lockCardDepositPaid: 0,
+            lockCardDepositRefundAmount: '',
+            voidFutureBills: true
         }
     },
     async loadDetail(roomId) {
@@ -1042,102 +1059,142 @@ Page({
         }
     },
     async handleEndLease() {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e, _f;
         const lease = (_b = (_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.activeLease);
-        if (!(lease === null || lease === void 0 ? void 0 : lease.id)) {
+        if (!(lease === null || lease === void 0 ? void 0 : lease.id))
             return;
-        }
         const today = getLocalDateKey();
+        const monthKey = today.slice(0, 7);
         const endDate = String(((_c = lease.endDate) !== null && _c !== void 0 ? _c : '')).slice(0, 10);
         const remainingDays = Math.max(0, Math.floor((new Date(endDate).getTime() - new Date(today).getTime()) / 86400000));
         const billingCycleDays = Number(((_d = lease.billingCycleDays) !== null && _d !== void 0 ? _d : 30));
         const rentAmount = Number(lease.rentAmount || 0);
         const dailyRent = billingCycleDays > 0 ? rentAmount / billingCycleDays : 0;
-        const rentRefundEstimate = Math.ceil(remainingDays * dailyRent * 100) / 100;
+        const suggestedRentRefund = Math.round(remainingDays * dailyRent * 100) / 100;
         const feeRules = lease.feeRules || {};
-        const depositAmount = Number(feeRules.deposit?.amount ?? lease.depositAmount ?? 0);
-        const fireDepositAmount = Number(feeRules.fireDeposit?.amount ?? 0);
-        const lockCardDepositAmount = Number(feeRules.lockCardDeposit?.amount ?? 0);
+        const depositPaid = Number(((_e = feeRules.deposit) === null || _e === void 0 ? void 0 : _e.amount) ?? ((_f = lease.depositAmount) !== null && _f !== void 0 ? _f : 0));
+        const fireDepositPaid = Number(feeRules.fireDeposit?.amount ?? 0);
+        const lockCardDepositPaid = Number(feeRules.lockCardDeposit?.amount ?? 0);
         const allBillItems = ((this.data.detail?.monthlyBillGroups || [])).flatMap((g) => (Array.isArray(g.items) ? g.items : []));
         const unpaidBills = allBillItems.filter((b) => !b.receivedAt || b.receivedAmount == null);
         const unpaidTotal = unpaidBills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
-        const findLastMeterDate = (type) => {
-            const typeBills = allBillItems
-                .filter((b) => b.type === type)
+        const findLastMeter = (type) => {
+            const typed = allBillItems.filter((b) => b.type === type && b.meterReading)
                 .sort((a, b) => (b.dueDate || '').localeCompare(a.dueDate || ''));
-            return typeBills.length > 0 ? (typeBills[0].dueDate || '') : '';
+            return typed.length > 0 ? typed[0].meterReading : null;
         };
+        const lastWater = findLastMeter('water');
+        const lastElectricity = findLastMeter('electricity');
+        const rentRefundReference = remainingDays > 0
+            ? `\u5269\u4f59${remainingDays}\u5929\uff0c\u5efa\u8bae \xa5${suggestedRentRefund}\uff08\xa5${Math.round(dailyRent * 100) / 100}/\u5929\uff09`
+            : '\u5df2\u5230\u671f\uff0c\u65e0\u9700\u9000\u6b3e';
         this.setData({
             settlementDialogVisible: true,
             settlement: {
+                submitting: false,
                 unpaidCount: unpaidBills.length,
                 unpaidTotal: Math.round(unpaidTotal * 100) / 100,
-                waterLastDate: findLastMeterDate('water'),
-                electricityLastDate: findLastMeterDate('electricity'),
-                rentRefundDays: remainingDays,
-                rentRefundEstimate: rentRefundEstimate,
-                dailyRent: Math.round(dailyRent * 100) / 100,
-                isEarlyTermination: remainingDays > 0,
-                refundDeposit: depositAmount > 0,
-                refundFireDeposit: fireDepositAmount > 0,
-                refundLockCardDeposit: lockCardDepositAmount > 0,
-                hasDeposit: depositAmount > 0,
-                hasFireDeposit: fireDepositAmount > 0,
-                hasLockCardDeposit: lockCardDepositAmount > 0,
-                submitting: false
+                waterPreviousReading: lastWater ? String(lastWater.currentReading) : '',
+                waterCurrentReading: '',
+                waterUnitPrice: lastWater ? String(lastWater.unitPrice) : '',
+                waterUsage: 0,
+                waterFee: 0,
+                waterMonthKey: monthKey,
+                electricityPreviousReading: lastElectricity ? String(lastElectricity.currentReading) : '',
+                electricityCurrentReading: '',
+                electricityUnitPrice: lastElectricity ? String(lastElectricity.unitPrice) : '',
+                electricityUsage: 0,
+                electricityFee: 0,
+                electricityMonthKey: monthKey,
+                rentRefundReference,
+                rentRefundAmount: '',
+                depositPaid,
+                depositRefundAmount: '',
+                fireDepositPaid,
+                fireDepositRefundAmount: '',
+                lockCardDepositPaid,
+                lockCardDepositRefundAmount: '',
+                voidFutureBills: true
             }
         });
     },
     closeSettlementDialog() {
         this.setData({ settlementDialogVisible: false });
     },
-    handleSettlementRentDaysChange(event) {
-        var _a;
-        const days = Math.max(0, parseInt(String(((_a = event.detail.value) !== null && _a !== void 0 ? _a : '0')), 10) || 0);
-        const estimate = Math.ceil(days * this.data.settlement.dailyRent * 100) / 100;
-        this.setData({
-            settlement: {
-                ...this.data.settlement,
-                rentRefundDays: days,
-                rentRefundEstimate: estimate
-            }
-        });
-    },
-    toggleSettlementCheckbox(event) {
+    handleSettlementInput(event) {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         const field = event.currentTarget.dataset.field;
-        this.data.settlement[field] = !this.data.settlement[field];
-        this.setData({
-            settlement: { ...this.data.settlement }
-        });
+        this.data.settlement[field] = (_b = (_a = event.detail) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : '';
+        const s = this.data.settlement;
+        if (field.startsWith('water')) {
+            const result = calcMeterBill(Number(((_c = s.waterPreviousReading) !== null && _c !== void 0 ? _c : 0)), Number(((_d = s.waterCurrentReading) !== null && _d !== void 0 ? _d : 0)), Number(((_e = s.waterUnitPrice) !== null && _e !== void 0 ? _e : 0)));
+            this.setData({ settlement: Object.assign(Object.assign({}, s), { waterUsage: result.usage, waterFee: result.fee }) });
+        }
+        else if (field.startsWith('electricity')) {
+            const result = calcMeterBill(Number(((_f = s.electricityPreviousReading) !== null && _f !== void 0 ? _f : 0)), Number(((_g = s.electricityCurrentReading) !== null && _g !== void 0 ? _g : 0)), Number(((_h = s.electricityUnitPrice) !== null && _h !== void 0 ? _h : 0)));
+            this.setData({ settlement: Object.assign(Object.assign({}, s), { electricityUsage: result.usage, electricityFee: result.fee }) });
+        }
+        else {
+            this.setData({ settlement: Object.assign({}, s) });
+        }
     },
     async confirmSettlement() {
-        if (this.data.settlement.submitting) {
-            return;
-        }
         var _a, _b;
-        const leaseId = (_b = (_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.activeLease) === null || _b === void 0 ? void 0 : _b.id;
-        if (!leaseId) {
+        if (this.data.settlement.submitting)
             return;
-        }
+        const leaseId = (_b = (_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.activeLease) === null || _b === void 0 ? void 0 : _b.id;
+        if (!leaseId)
+            return;
+        const s = this.data.settlement;
         this.setData({ 'settlement.submitting': true });
         try {
+            const wp = Number(s.waterPreviousReading);
+            const wc = Number(s.waterCurrentReading);
+            const wu = Number(s.waterUnitPrice);
+            if ([wp, wc, wu].every(Number.isFinite) && wc > wp && wu > 0) {
+                await (0, bill_1.saveBill)({
+                    leaseId,
+                    monthKey: s.waterMonthKey,
+                    type: 'water',
+                    previousReading: wp,
+                    currentReading: wc,
+                    unitPrice: wu
+                });
+            }
+            const ep = Number(s.electricityPreviousReading);
+            const ec = Number(s.electricityCurrentReading);
+            const eu = Number(s.electricityUnitPrice);
+            if ([ep, ec, eu].every(Number.isFinite) && ec > ep && eu > 0) {
+                await (0, bill_1.saveBill)({
+                    leaseId,
+                    monthKey: s.electricityMonthKey,
+                    type: 'electricity',
+                    previousReading: ep,
+                    currentReading: ec,
+                    unitPrice: eu
+                });
+            }
+            const rentRefundAmount = Number(s.rentRefundAmount || 0);
+            const depositRefundAmount = Number(s.depositRefundAmount || 0);
+            const fireDepositRefundAmount = Number(s.fireDepositRefundAmount || 0);
+            const lockCardDepositRefundAmount = Number(s.lockCardDepositRefundAmount || 0);
             await (0, lease_1.endLease)({
                 leaseId,
                 settlement: {
-                    voidFutureSystemBills: true,
-                    rentRefundDays: this.data.settlement.rentRefundDays,
-                    refundDeposit: this.data.settlement.refundDeposit,
-                    refundFireDeposit: this.data.settlement.refundFireDeposit,
-                    refundLockCardDeposit: this.data.settlement.refundLockCardDeposit
+                    voidFutureSystemBills: s.voidFutureBills,
+                    rentRefundAmount: rentRefundAmount > 0 ? rentRefundAmount : undefined,
+                    depositRefundAmount: depositRefundAmount > 0 ? depositRefundAmount : undefined,
+                    fireDepositRefundAmount: fireDepositRefundAmount > 0 ? fireDepositRefundAmount : undefined,
+                    lockCardDepositRefundAmount: lockCardDepositRefundAmount > 0 ? lockCardDepositRefundAmount : undefined
                 }
             });
             this.setData({ settlementDialogVisible: false });
-            wx.showToast({ title: '租约已结束，结算完成', icon: 'success' });
+            wx.showToast({ title: '\u79df\u7ea6\u5df2\u7ed3\u675f\uff0c\u7ed3\u7b97\u5b8c\u6210', icon: 'success' });
             await this.loadDetail();
         }
         catch (error) {
             console.error('confirm settlement failed', error);
-            wx.showToast({ title: '操作失败，请稍后重试', icon: 'none' });
+            wx.showToast({ title: '\u64cd\u4f5c\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5', icon: 'none' });
         }
         finally {
             this.setData({ 'settlement.submitting': false });
