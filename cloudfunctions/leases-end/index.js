@@ -1,27 +1,16 @@
-import { endLease } from './shared/repositories/lease-repository';
-import { COLLECTIONS } from './shared/constants/collections';
-import { listAll, resolveDb, resolveLandlordOpenId, type CloudEventBase } from './shared/runtime';
-
-export interface LeaseEndEvent extends CloudEventBase {
-  leaseId: string;
-  settlement?: {
-    voidFutureSystemBills?: boolean;
-    rentRefundDays?: number;
-    refundDeposit?: boolean;
-    refundFireDeposit?: boolean;
-    refundLockCardDeposit?: boolean;
-  };
-}
-
-export async function main(event: LeaseEndEvent) {
-  const db = resolveDb(event);
-  const landlordOpenId = resolveLandlordOpenId(event);
-  const leases = await listAll<{ id: string; landlordOpenId: string }>(db, COLLECTIONS.leases);
-  const ownedLease = leases.find((item) => item.id === event.leaseId && item.landlordOpenId === landlordOpenId);
-
-  if (!ownedLease) {
-    throw new Error(`Lease ${event.leaseId} not found.`);
-  }
-
-  return endLease(db, event.leaseId, event, event.settlement);
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.main = main;
+const lease_repository_1 = require("./shared/repositories/lease-repository");
+const collections_1 = require("./shared/constants/collections");
+const runtime_1 = require("./shared/runtime");
+async function main(event) {
+    const db = (0, runtime_1.resolveDb)(event);
+    const landlordOpenId = (0, runtime_1.resolveLandlordOpenId)(event);
+    const leases = await (0, runtime_1.listAll)(db, collections_1.COLLECTIONS.leases);
+    const ownedLease = leases.find((item) => item.id === event.leaseId && item.landlordOpenId === landlordOpenId);
+    if (!ownedLease) {
+        throw new Error(`Lease ${event.leaseId} not found.`);
+    }
+    return (0, lease_repository_1.endLease)(db, event.leaseId, event, event.settlement);
 }

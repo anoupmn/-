@@ -418,7 +418,25 @@ Page({
             occurredAt: '',
             amount: ''
         },
-        canRenewLease: false
+        canRenewLease: false,
+        settlementDialogVisible: false,
+        settlement: {
+            unpaidCount: 0,
+            unpaidTotal: 0,
+            waterLastDate: '',
+            electricityLastDate: '',
+            rentRefundDays: 0,
+            rentRefundEstimate: 0,
+            dailyRent: 0,
+            isEarlyTermination: false,
+            refundDeposit: false,
+            refundFireDeposit: false,
+            refundLockCardDeposit: false,
+            hasDeposit: false,
+            hasFireDeposit: false,
+            hasLockCardDeposit: false,
+            submitting: false
+        }
     },
     async loadDetail(roomId) {
         var _a, _b, _c;
@@ -1024,30 +1042,106 @@ Page({
         }
     },
     async handleEndLease() {
+        var _a, _b, _c, _d;
+        const lease = (_b = (_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.activeLease);
+        if (!(lease === null || lease === void 0 ? void 0 : lease.id)) {
+            return;
+        }
+        const today = getLocalDateKey();
+        const endDate = String(((_c = lease.endDate) !== null && _c !== void 0 ? _c : '')).slice(0, 10);
+        const remainingDays = Math.max(0, Math.floor((new Date(endDate).getTime() - new Date(today).getTime()) / 86400000));
+        const billingCycleDays = Number(((_d = lease.billingCycleDays) !== null && _d !== void 0 ? _d : 30));
+        const rentAmount = Number(lease.rentAmount || 0);
+        const dailyRent = billingCycleDays > 0 ? rentAmount / billingCycleDays : 0;
+        const rentRefundEstimate = Math.ceil(remainingDays * dailyRent * 100) / 100;
+        const feeRules = lease.feeRules || {};
+        const depositAmount = Number(feeRules.deposit?.amount ?? lease.depositAmount ?? 0);
+        const fireDepositAmount = Number(feeRules.fireDeposit?.amount ?? 0);
+        const lockCardDepositAmount = Number(feeRules.lockCardDeposit?.amount ?? 0);
+        const allBillItems = ((this.data.detail?.monthlyBillGroups || [])).flatMap((g) => (Array.isArray(g.items) ? g.items : []));
+        const unpaidBills = allBillItems.filter((b) => !b.receivedAt || b.receivedAmount == null);
+        const unpaidTotal = unpaidBills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+        const findLastMeterDate = (type) => {
+            const typeBills = allBillItems
+                .filter((b) => b.type === type)
+                .sort((a, b) => (b.dueDate || '').localeCompare(a.dueDate || ''));
+            return typeBills.length > 0 ? (typeBills[0].dueDate || '') : '';
+        };
+        this.setData({
+            settlementDialogVisible: true,
+            settlement: {
+                unpaidCount: unpaidBills.length,
+                unpaidTotal: Math.round(unpaidTotal * 100) / 100,
+                waterLastDate: findLastMeterDate('water'),
+                electricityLastDate: findLastMeterDate('electricity'),
+                rentRefundDays: remainingDays,
+                rentRefundEstimate: rentRefundEstimate,
+                dailyRent: Math.round(dailyRent * 100) / 100,
+                isEarlyTermination: remainingDays > 0,
+                refundDeposit: depositAmount > 0,
+                refundFireDeposit: fireDepositAmount > 0,
+                refundLockCardDeposit: lockCardDepositAmount > 0,
+                hasDeposit: depositAmount > 0,
+                hasFireDeposit: fireDepositAmount > 0,
+                hasLockCardDeposit: lockCardDepositAmount > 0,
+                submitting: false
+            }
+        });
+    },
+    closeSettlementDialog() {
+        this.setData({ settlementDialogVisible: false });
+    },
+    handleSettlementRentDaysChange(event) {
+        var _a;
+        const days = Math.max(0, parseInt(String(((_a = event.detail.value) !== null && _a !== void 0 ? _a : '0')), 10) || 0);
+        const estimate = Math.ceil(days * this.data.settlement.dailyRent * 100) / 100;
+        this.setData({
+            settlement: {
+                ...this.data.settlement,
+                rentRefundDays: days,
+                rentRefundEstimate: estimate
+            }
+        });
+    },
+    toggleSettlementCheckbox(event) {
+        const field = event.currentTarget.dataset.field;
+        this.data.settlement[field] = !this.data.settlement[field];
+        this.setData({
+            settlement: { ...this.data.settlement }
+        });
+    },
+    async confirmSettlement() {
+        if (this.data.settlement.submitting) {
+            return;
+        }
         var _a, _b;
         const leaseId = (_b = (_a = this.data.detail) === null || _a === void 0 ? void 0 : _a.activeLease) === null || _b === void 0 ? void 0 : _b.id;
         if (!leaseId) {
             return;
         }
-        const confirmation = await wx.showModal({
-            title: '结束租约',
-            content: '确认结束当前租约后，历史记录会保留。若仍有未收账单，可选择保留欠款、作废未收系统账单，或修改截止日期后重算。'
-        });
-        if (!confirmation.confirm) {
-            return;
-        }
-        const closeResult = await this.endLeaseWithRetry(String(leaseId));
-        if (!closeResult.success) {
-            wx.showToast({
-                title: closeResult.isTimeout ? '请求超时，请稍后重试' : '结束租约失败，请稍后重试',
-                icon: 'none'
+        this.setData({ 'settlement.submitting': true });
+        try {
+            await (0, lease_1.endLease)({
+                leaseId,
+                settlement: {
+                    voidFutureSystemBills: true,
+                    rentRefundDays: this.data.settlement.rentRefundDays,
+                    refundDeposit: this.data.settlement.refundDeposit,
+                    refundFireDeposit: this.data.settlement.refundFireDeposit,
+                    refundLockCardDeposit: this.data.settlement.refundLockCardDeposit
+                }
             });
-            return;
+            this.setData({ settlementDialogVisible: false });
+            wx.showToast({ title: '租约已结束，结算完成', icon: 'success' });
+            await this.loadDetail();
         }
-        wx.showToast({
-            title: '租约已结束',
-            icon: 'success'
-        });
+        catch (error) {
+            console.error('confirm settlement failed', error);
+            wx.showToast({ title: '操作失败，请稍后重试', icon: 'none' });
+        }
+        finally {
+            this.setData({ 'settlement.submitting': false });
+        }
     },
     async handleDeleteLease() {
         var _a, _b, _c;
